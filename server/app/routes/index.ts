@@ -3,6 +3,7 @@ import { HealthRoutes } from './health.routes';
 import { AuthRoutes } from '../modules/auth/auth.routes';
 import { UserRoutes } from '../modules/user/user.routes';
 import { OrganizationRoutes } from '../modules/organization/organization.routes';
+import { CRMRoutes } from '../modules/crm/crm.routes';
 
 const router = Router();
 
@@ -26,6 +27,10 @@ const moduleRoutes = [
   {
     path: '/organizations',
     route: OrganizationRoutes,
+  },
+  {
+    path: '/crm',
+    route: CRMRoutes,
   },
 ];
 
