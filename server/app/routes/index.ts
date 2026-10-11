@@ -5,6 +5,7 @@ import { UserRoutes } from '../modules/user/user.routes';
 import { OrganizationRoutes } from '../modules/organization/organization.routes';
 import { CRMRoutes } from '../modules/crm/crm.routes';
 import { ProjectRoutes } from '../modules/project/project.routes';
+import { TorRoutes } from '../modules/tor/tor.routes';
 
 const router = Router();
 
@@ -36,6 +37,10 @@ const moduleRoutes = [
   {
     path: '/projects',
     route: ProjectRoutes,
+  },
+  {
+    path: '/tors',
+    route: TorRoutes,
   },
 ];
 
