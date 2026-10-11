@@ -21,3 +21,20 @@ export interface IUserProfile {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface ILoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface IUserOrgMembership {
+  orgId: string;
+  orgName: string;
+  orgRole: string;
+}
+
+export interface ILoginResponse {
+  user: IUserProfile;
+  organizations: IUserOrgMembership[];
+  tokens: IAuthTokens;
+}

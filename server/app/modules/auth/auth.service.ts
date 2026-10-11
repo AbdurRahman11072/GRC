@@ -1,8 +1,14 @@
 import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
-import { hashPassword, generateAuthTokens } from './auth.utils';
-import type { IAuthTokens, IUserProfile } from './auth.interface';
+import { hashPassword, verifyPassword, generateAuthTokens } from './auth.utils';
+import type {
+  IAuthTokens,
+  IUserProfile,
+  ILoginPayload,
+  ILoginResponse,
+  IUserOrgMembership,
+} from './auth.interface';
 
 export interface IRegisterUserPayload {
   name: string;
@@ -123,6 +129,79 @@ const registerUser = async (payload: IRegisterUserPayload): Promise<IRegisterRes
   };
 };
 
+const loginUser = async (payload: ILoginPayload): Promise<ILoginResponse> => {
+  const normalizedEmail = payload.email.toLowerCase().trim();
+
+  // 1. Find user by email including their organization memberships
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    include: {
+      orgMemberships: {
+        include: {
+          organization: {
+            select: {
+              id: true,
+              orgName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid email or password');
+  }
+
+  // 2. Check if account is active
+  if (!user.isActive) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account has been deactivated. Please contact your organization administrator.'
+    );
+  }
+
+  // 3. Verify password hash with Argon2
+  const isPasswordValid = await verifyPassword(payload.password, user.passwordHash);
+
+  if (!isPasswordValid) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid email or password');
+  }
+
+  // 4. Generate Auth Tokens
+  const tokens = generateAuthTokens({
+    userId: user.id,
+    email: user.email,
+    isSuperAdmin: user.isSuperAdmin,
+  });
+
+  const userProfile: IUserProfile = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    phone: user.phone,
+    nid: user.nid,
+    designation: user.designation,
+    isSuperAdmin: user.isSuperAdmin,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
+  const organizations: IUserOrgMembership[] = user.orgMemberships.map((membership) => ({
+    orgId: membership.orgId,
+    orgName: membership.organization.orgName,
+    orgRole: membership.orgRole,
+  }));
+
+  return {
+    user: userProfile,
+    organizations,
+    tokens,
+  };
+};
+
 export const AuthService = {
   registerUser,
+  loginUser,
 };
