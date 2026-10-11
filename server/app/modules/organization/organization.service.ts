@@ -1,6 +1,7 @@
 import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
+import { OrgRole } from '../../../generated/prisma';
 
 export interface ICreateOrgPayload {
   orgName: string;
@@ -213,9 +214,222 @@ const updateOrganization = async (
   return updatedOrg;
 };
 
+const safeUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  nid: true,
+  designation: true,
+  isActive: true,
+  isSuperAdmin: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
+/**
+ * 5. Get organization members (paginated, with search and role filter)
+ */
+const getOrganizationMembers = async (
+  orgId: string,
+  options: { page?: number; limit?: number; search?: string; role?: OrgRole }
+) => {
+  const page = Math.max(1, Number(options.page) || 1);
+  const limit = Math.max(1, Math.min(100, Number(options.limit) || 20));
+  const skip = (page - 1) * limit;
+
+  const whereClause: any = { orgId };
+
+  if (options.role) {
+    whereClause.orgRole = options.role;
+  }
+
+  if (options.search) {
+    const search = options.search.trim();
+    whereClause.user = {
+      OR: [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { designation: { contains: search, mode: 'insensitive' } },
+      ],
+    };
+  }
+
+  const [members, total] = await Promise.all([
+    prisma.organizationMember.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        orgId: true,
+        orgRole: true,
+        createdAt: true,
+        updatedAt: true,
+        user: {
+          select: safeUserSelect,
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.organizationMember.count({ where: whereClause }),
+  ]);
+
+  const formatted = members.map((m) => ({
+    memberId: m.id,
+    orgId: m.orgId,
+    orgRole: m.orgRole,
+    joinedAt: m.createdAt,
+    updatedAt: m.updatedAt,
+    user: m.user,
+  }));
+
+  return {
+    data: formatted,
+    pagination: {
+      total,
+      page,
+      limit,
+    },
+  };
+};
+
+/**
+ * 6. Update member's role in the organization
+ */
+const updateMemberRole = async (
+  callerUserId: string,
+  callerIsSuperAdmin: boolean,
+  callerOrgRole: OrgRole,
+  orgId: string,
+  targetMemberId: string,
+  newRole: OrgRole
+) => {
+  const targetMember = await prisma.organizationMember.findUnique({
+    where: { id: targetMemberId },
+    include: { user: { select: safeUserSelect } },
+  });
+
+  if (!targetMember || targetMember.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Organization member not found');
+  }
+
+  // Permission rules
+  if (!callerIsSuperAdmin) {
+    // If target is currently OWNER, only an OWNER can modify them
+    if (targetMember.orgRole === 'OWNER' && callerOrgRole !== 'OWNER') {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        'Only an Organization Owner can modify another Owner role.'
+      );
+    }
+
+    // If granting OWNER role, caller must be OWNER
+    if (newRole === 'OWNER' && callerOrgRole !== 'OWNER') {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        'Only an Organization Owner can promote members to Owner.'
+      );
+    }
+  }
+
+  // Safety rule: Cannot demote the last remaining OWNER of the organization
+  if (targetMember.orgRole === 'OWNER' && newRole !== 'OWNER') {
+    const ownerCount = await prisma.organizationMember.count({
+      where: { orgId, orgRole: 'OWNER' },
+    });
+
+    if (ownerCount <= 1) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Cannot demote the last remaining Owner of the organization. Promote another member first.'
+      );
+    }
+  }
+
+  const updated = await prisma.organizationMember.update({
+    where: { id: targetMemberId },
+    data: { orgRole: newRole },
+    select: {
+      id: true,
+      orgId: true,
+      orgRole: true,
+      updatedAt: true,
+      user: {
+        select: safeUserSelect,
+      },
+    },
+  });
+
+  return {
+    memberId: updated.id,
+    orgId: updated.orgId,
+    orgRole: updated.orgRole,
+    updatedAt: updated.updatedAt,
+    user: updated.user,
+  };
+};
+
+/**
+ * 7. Remove member from organization
+ */
+const removeMember = async (
+  callerUserId: string,
+  callerIsSuperAdmin: boolean,
+  callerOrgRole: OrgRole,
+  orgId: string,
+  targetMemberId: string
+) => {
+  const targetMember = await prisma.organizationMember.findUnique({
+    where: { id: targetMemberId },
+  });
+
+  if (!targetMember || targetMember.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Organization member not found');
+  }
+
+  // Permission & Safety rules
+  if (!callerIsSuperAdmin) {
+    // Admins cannot remove Owners
+    if (targetMember.orgRole === 'OWNER' && callerOrgRole !== 'OWNER') {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        'Admins cannot remove an Organization Owner.'
+      );
+    }
+  }
+
+  // Cannot remove the last remaining OWNER
+  if (targetMember.orgRole === 'OWNER') {
+    const ownerCount = await prisma.organizationMember.count({
+      where: { orgId, orgRole: 'OWNER' },
+    });
+
+    if (ownerCount <= 1) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Cannot remove the last remaining Owner of the organization.'
+      );
+    }
+  }
+
+  await prisma.organizationMember.delete({
+    where: { id: targetMemberId },
+  });
+
+  return {
+    success: true,
+    message: 'Member removed from organization successfully',
+  };
+};
+
 export const OrganizationService = {
   createOrganization,
   getMyOrganizations,
   getOrganizationById,
   updateOrganization,
+  getOrganizationMembers,
+  updateMemberRole,
+  removeMember,
 };
+

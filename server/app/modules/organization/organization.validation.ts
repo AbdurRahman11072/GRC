@@ -42,8 +42,43 @@ export const getOrgByIdValidationSchema = z.object({
   }),
 });
 
+export const getMembersValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid organization ID format'),
+  }),
+  query: z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+    search: z.string().optional(),
+    role: z.enum(['OWNER', 'ADMIN', 'AUDITOR', 'MEMBER']).optional(),
+  }),
+});
+
+export const updateMemberRoleValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid organization ID format'),
+    memberId: z.string().uuid('Invalid member ID format'),
+  }),
+  body: z.object({
+    orgRole: z.enum(['OWNER', 'ADMIN', 'AUDITOR', 'MEMBER'], {
+      required_error: 'orgRole is required',
+    }),
+  }),
+});
+
+export const removeMemberValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid organization ID format'),
+    memberId: z.string().uuid('Invalid member ID format'),
+  }),
+});
+
 export const OrganizationValidation = {
   createOrgValidationSchema,
   updateOrgValidationSchema,
   getOrgByIdValidationSchema,
+  getMembersValidationSchema,
+  updateMemberRoleValidationSchema,
+  removeMemberValidationSchema,
 };
+
