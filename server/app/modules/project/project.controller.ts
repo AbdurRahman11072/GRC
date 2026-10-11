@@ -140,6 +140,73 @@ const deleteDepartment = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const addMember = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const projectId = req.params.id as string;
+  const result = await ProjectService.addMember(orgId, projectId, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Project member assigned successfully',
+    data: result,
+  });
+});
+
+const batchAddMembers = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const projectId = req.params.id as string;
+  const result = await ProjectService.batchAddMembers(orgId, projectId, req.body.members);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: `Batch member assignment complete: ${result.assignedCount} members assigned`,
+    data: result,
+  });
+});
+
+const getMembers = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const projectId = req.params.id as string;
+  const result = await ProjectService.getMembers(orgId, projectId, req.query as any);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Project members retrieved successfully',
+    data: result,
+  });
+});
+
+const updateMember = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const projectId = req.params.id as string;
+  const memberId = req.params.memberId as string;
+  const result = await ProjectService.updateMember(orgId, projectId, memberId, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Project member updated successfully',
+    data: result,
+  });
+});
+
+const deleteMember = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const projectId = req.params.id as string;
+  const memberId = req.params.memberId as string;
+  const result = await ProjectService.deleteMember(orgId, projectId, memberId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
 export const ProjectController = {
   createProject,
   getProjects,
@@ -151,5 +218,11 @@ export const ProjectController = {
   getDepartments,
   updateDepartment,
   deleteDepartment,
+  addMember,
+  batchAddMembers,
+  getMembers,
+  updateMember,
+  deleteMember,
 };
+
 

@@ -108,5 +108,58 @@ router.delete(
   ProjectController.deleteDepartment
 );
 
+// -----------------------------------------------------------------------------
+// 4-Team Collaborative Member Assignment (ORG_TEAM_1, ORG_TEAM_2, CLIENT_TEAM, AUDITEE_TEAM)
+// -----------------------------------------------------------------------------
+
+// Add a single member to project
+router.post(
+  '/:id/members',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(ProjectValidation.addMemberValidationSchema),
+  ProjectController.addMember
+);
+
+// Batch assign members to project
+router.post(
+  '/:id/members/batch',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(ProjectValidation.batchAddMembersValidationSchema),
+  ProjectController.batchAddMembers
+);
+
+// List members in project (filterable by teamBucket and departmentId)
+router.get(
+  '/:id/members',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(ProjectValidation.getMembersValidationSchema),
+  ProjectController.getMembers
+);
+
+// Update member team bucket or department
+router.patch(
+  '/:id/members/:memberId',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(ProjectValidation.updateMemberValidationSchema),
+  ProjectController.updateMember
+);
+
+// Remove member from project
+router.delete(
+  '/:id/members/:memberId',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN'),
+  validateRequest(ProjectValidation.deleteMemberValidationSchema),
+  ProjectController.deleteMember
+);
+
 export const ProjectRoutes = router;
 export default router;

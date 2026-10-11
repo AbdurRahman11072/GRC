@@ -128,6 +128,62 @@ export const deleteDepartmentValidationSchema = z.object({
   }),
 });
 
+export const addMemberValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+  }),
+  body: z.object({
+    userId: z.string().uuid('Invalid user ID format'),
+    teamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
+    departmentId: z.string().uuid('Invalid department ID format').optional(),
+  }),
+});
+
+export const batchAddMembersValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+  }),
+  body: z.object({
+    members: z
+      .array(
+        z.object({
+          userId: z.string().uuid('Invalid user ID format'),
+          teamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
+          departmentId: z.string().uuid('Invalid department ID format').optional(),
+        })
+      )
+      .min(1, 'At least one member is required'),
+  }),
+});
+
+export const getMembersValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+  }),
+  query: z.object({
+    teamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']).optional(),
+    departmentId: z.string().uuid().optional(),
+  }),
+});
+
+export const updateMemberValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+    memberId: z.string().uuid('Invalid member ID format'),
+  }),
+  body: z.object({
+    teamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']).optional(),
+    departmentId: z.string().uuid('Invalid department ID format').optional().nullable(),
+  }),
+});
+
+export const deleteMemberValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+    memberId: z.string().uuid('Invalid member ID format'),
+  }),
+});
+
 export const ProjectValidation = {
   createProjectValidationSchema,
   getProjectsValidationSchema,
@@ -139,5 +195,11 @@ export const ProjectValidation = {
   getDepartmentsValidationSchema,
   updateDepartmentValidationSchema,
   deleteDepartmentValidationSchema,
+  addMemberValidationSchema,
+  batchAddMembersValidationSchema,
+  getMembersValidationSchema,
+  updateMemberValidationSchema,
+  deleteMemberValidationSchema,
 };
+
 
