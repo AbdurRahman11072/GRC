@@ -22,6 +22,13 @@ router.post('/refresh', AuthController.refreshSession);
 
 router.get('/me', authMiddleware(), AuthController.getMe);
 
+router.post(
+  '/create-user',
+  authMiddleware(),
+  validateRequest(AuthValidation.createUserValidationSchema),
+  AuthController.createUser
+);
+
 export const AuthRoutes = router;
 export default router;
 

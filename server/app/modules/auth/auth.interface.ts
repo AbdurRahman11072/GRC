@@ -38,3 +38,24 @@ export interface ILoginResponse {
   organizations: IUserOrgMembership[];
   tokens: IAuthTokens;
 }
+
+export interface IProvisionUserPayload {
+  orgId: string;
+  name: string;
+  email: string;
+  password: string;
+  orgRole: 'ADMIN' | 'AUDITOR' | 'MEMBER';
+  phone?: string;
+  nid?: string;
+  designation?: string;
+}
+
+export interface IProvisionUserResponse {
+  user: IUserProfile;
+  membership: {
+    orgId: string;
+    orgRole: string;
+    isExistingUser: boolean;
+  };
+}
+

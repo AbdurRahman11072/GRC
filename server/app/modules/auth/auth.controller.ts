@@ -93,10 +93,30 @@ const getMe = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const createUser = asyncHandler(async (req: Request, res: Response) => {
+  const callerUserId = req.user!.userId;
+  const callerIsSuperAdmin = !!req.user!.isSuperAdmin;
+
+  const result = await AuthService.provisionUser(
+    callerUserId,
+    callerIsSuperAdmin,
+    req.body
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'User provisioned successfully',
+    data: result,
+  });
+});
+
 export const AuthController = {
   register,
   login,
   refreshSession,
   getMe,
+  createUser,
 };
+
 

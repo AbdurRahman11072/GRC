@@ -43,7 +43,32 @@ export const loginValidationSchema = z.object({
   }),
 });
 
+export const createUserValidationSchema = z.object({
+  body: z.object({
+    orgId: z
+      .string({ required_error: 'Organization ID is required' })
+      .uuid('Invalid organization ID format'),
+    name: z
+      .string({ required_error: 'Name is required' })
+      .min(2, 'Name must be at least 2 characters')
+      .max(100, 'Name must not exceed 100 characters'),
+    email: z
+      .string({ required_error: 'Email is required' })
+      .email('Invalid email address'),
+    password: z
+      .string({ required_error: 'Temporary password is required' })
+      .min(8, 'Temporary password must be at least 8 characters')
+      .max(100, 'Temporary password must not exceed 100 characters'),
+    orgRole: z.enum(['ADMIN', 'AUDITOR', 'MEMBER']).default('AUDITOR'),
+    phone: z.string().optional(),
+    nid: z.string().optional(),
+    designation: z.string().optional(),
+  }),
+});
+
 export const AuthValidation = {
   registerValidationSchema,
   loginValidationSchema,
+  createUserValidationSchema,
 };
+
