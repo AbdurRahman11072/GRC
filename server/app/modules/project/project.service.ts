@@ -388,10 +388,256 @@ const deleteProject = async (orgId: string, projectId: string) => {
   };
 };
 
+/**
+ * 6. Create a department in a project
+ */
+const createDepartment = async (
+  orgId: string,
+  projectId: string,
+  payload: { name: string; description?: string }
+) => {
+  const existingProject = await prisma.project.findFirst({
+    where: { id: projectId, orgId, isDeleted: false },
+  });
+
+  if (!existingProject) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
+  }
+
+  const name = payload.name.trim();
+
+  // Check unique department name per project
+  const duplicate = await prisma.projectDepartment.findFirst({
+    where: { projectId, name: { equals: name, mode: 'insensitive' } },
+  });
+
+  if (duplicate) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      `A department named '${name}' already exists in this project`
+    );
+  }
+
+  const department = await prisma.projectDepartment.create({
+    data: {
+      projectId,
+      name,
+      description: payload.description?.trim() || null,
+    },
+    include: {
+      _count: {
+        select: {
+          members: true,
+          drtTickets: true,
+        },
+      },
+    },
+  });
+
+  return department;
+};
+
+/**
+ * 7. Batch create departments in a project
+ */
+const batchCreateDepartments = async (
+  orgId: string,
+  projectId: string,
+  departments: Array<{ name: string; description?: string }>
+) => {
+  const existingProject = await prisma.project.findFirst({
+    where: { id: projectId, orgId, isDeleted: false },
+  });
+
+  if (!existingProject) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
+  }
+
+  const existingDepts = await prisma.projectDepartment.findMany({
+    where: { projectId },
+    select: { name: true },
+  });
+  const existingNames = new Set(existingDepts.map((d) => d.name.toLowerCase()));
+
+  const createdDepartments: any[] = [];
+  const skippedNames: string[] = [];
+
+  for (const item of departments) {
+    const trimmedName = item.name.trim();
+    if (existingNames.has(trimmedName.toLowerCase())) {
+      skippedNames.push(trimmedName);
+      continue;
+    }
+
+    const created = await prisma.projectDepartment.create({
+      data: {
+        projectId,
+        name: trimmedName,
+        description: item.description?.trim() || null,
+      },
+      include: {
+        _count: {
+          select: {
+            members: true,
+            drtTickets: true,
+          },
+        },
+      },
+    });
+
+    existingNames.add(trimmedName.toLowerCase());
+    createdDepartments.push(created);
+  }
+
+  return {
+    createdCount: createdDepartments.length,
+    skippedCount: skippedNames.length,
+    skippedNames,
+    departments: createdDepartments,
+  };
+};
+
+/**
+ * 8. List all departments in a project
+ */
+const getDepartments = async (orgId: string, projectId: string) => {
+  const existingProject = await prisma.project.findFirst({
+    where: { id: projectId, orgId, isDeleted: false },
+  });
+
+  if (!existingProject) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
+  }
+
+  const departments = await prisma.projectDepartment.findMany({
+    where: { projectId },
+    orderBy: { name: 'asc' },
+    include: {
+      _count: {
+        select: {
+          members: true,
+          drtTickets: true,
+        },
+      },
+    },
+  });
+
+  return departments;
+};
+
+/**
+ * 9. Update department details
+ */
+const updateDepartment = async (
+  orgId: string,
+  projectId: string,
+  deptId: string,
+  payload: { name?: string; description?: string | null }
+) => {
+  const existingProject = await prisma.project.findFirst({
+    where: { id: projectId, orgId, isDeleted: false },
+  });
+
+  if (!existingProject) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
+  }
+
+  const existingDept = await prisma.projectDepartment.findFirst({
+    where: { id: deptId, projectId },
+  });
+
+  if (!existingDept) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Department not found in this project');
+  }
+
+  if (payload.name && payload.name.trim().toLowerCase() !== existingDept.name.toLowerCase()) {
+    const duplicate = await prisma.projectDepartment.findFirst({
+      where: {
+        projectId,
+        name: { equals: payload.name.trim(), mode: 'insensitive' },
+        NOT: { id: deptId },
+      },
+    });
+
+    if (duplicate) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        `A department named '${payload.name.trim()}' already exists in this project`
+      );
+    }
+  }
+
+  const updated = await prisma.projectDepartment.update({
+    where: { id: deptId },
+    data: {
+      ...(payload.name !== undefined ? { name: payload.name.trim() } : {}),
+      ...(payload.description !== undefined
+        ? { description: payload.description ? payload.description.trim() : null }
+        : {}),
+    },
+    include: {
+      _count: {
+        select: {
+          members: true,
+          drtTickets: true,
+        },
+      },
+    },
+  });
+
+  return updated;
+};
+
+/**
+ * 10. Delete a department (with safety guard on assigned DRT tickets)
+ */
+const deleteDepartment = async (orgId: string, projectId: string, deptId: string) => {
+  const existingProject = await prisma.project.findFirst({
+    where: { id: projectId, orgId, isDeleted: false },
+  });
+
+  if (!existingProject) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
+  }
+
+  const existingDept = await prisma.projectDepartment.findFirst({
+    where: { id: deptId, projectId },
+    include: {
+      drtTickets: { select: { id: true, requestCode: true } },
+      members: { select: { id: true } },
+    },
+  });
+
+  if (!existingDept) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Department not found in this project');
+  }
+
+  if (existingDept.drtTickets.length > 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot delete department '${existingDept.name}': it has ${existingDept.drtTickets.length} active DRT ticket(s) assigned to it. Reassign or delete those tickets first.`
+    );
+  }
+
+  await prisma.projectDepartment.delete({
+    where: { id: deptId },
+  });
+
+  return {
+    success: true,
+    message: `Department '${existingDept.name}' deleted successfully`,
+  };
+};
+
 export const ProjectService = {
   createProject,
   getProjects,
   getProjectById,
   updateProject,
   deleteProject,
+  createDepartment,
+  batchCreateDepartments,
+  getDepartments,
+  updateDepartment,
+  deleteDepartment,
 };

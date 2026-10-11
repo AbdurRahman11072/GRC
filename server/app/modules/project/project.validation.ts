@@ -68,10 +68,76 @@ export const deleteProjectValidationSchema = z.object({
   }),
 });
 
+export const createDepartmentValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+  }),
+  body: z.object({
+    name: z
+      .string()
+      .min(2, 'Department name must be at least 2 characters')
+      .max(100, 'Department name must not exceed 100 characters'),
+    description: z.string().optional(),
+  }),
+});
+
+export const batchCreateDepartmentsValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+  }),
+  body: z.object({
+    departments: z
+      .array(
+        z.object({
+          name: z
+            .string()
+            .min(2, 'Department name must be at least 2 characters')
+            .max(100, 'Department name must not exceed 100 characters'),
+          description: z.string().optional(),
+        })
+      )
+      .min(1, 'At least one department is required'),
+  }),
+});
+
+export const getDepartmentsValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+  }),
+});
+
+export const updateDepartmentValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+    deptId: z.string().uuid('Invalid department ID format'),
+  }),
+  body: z.object({
+    name: z
+      .string()
+      .min(2, 'Department name must be at least 2 characters')
+      .max(100, 'Department name must not exceed 100 characters')
+      .optional(),
+    description: z.string().optional().nullable(),
+  }),
+});
+
+export const deleteDepartmentValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid project ID format'),
+    deptId: z.string().uuid('Invalid department ID format'),
+  }),
+});
+
 export const ProjectValidation = {
   createProjectValidationSchema,
   getProjectsValidationSchema,
   getProjectByIdValidationSchema,
   updateProjectValidationSchema,
   deleteProjectValidationSchema,
+  createDepartmentValidationSchema,
+  batchCreateDepartmentsValidationSchema,
+  getDepartmentsValidationSchema,
+  updateDepartmentValidationSchema,
+  deleteDepartmentValidationSchema,
 };
+

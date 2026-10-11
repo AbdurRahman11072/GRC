@@ -55,5 +55,58 @@ router.delete(
   ProjectController.deleteProject
 );
 
+// -----------------------------------------------------------------------------
+// Project Department Management (Auditee routing: Marketing, Engineering, IT, Legal, etc.)
+// -----------------------------------------------------------------------------
+
+// Create a single department in project
+router.post(
+  '/:id/departments',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(ProjectValidation.createDepartmentValidationSchema),
+  ProjectController.createDepartment
+);
+
+// Batch create departments in project
+router.post(
+  '/:id/departments/batch',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(ProjectValidation.batchCreateDepartmentsValidationSchema),
+  ProjectController.batchCreateDepartments
+);
+
+// List all departments in project
+router.get(
+  '/:id/departments',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(ProjectValidation.getDepartmentsValidationSchema),
+  ProjectController.getDepartments
+);
+
+// Update department details
+router.patch(
+  '/:id/departments/:deptId',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(ProjectValidation.updateDepartmentValidationSchema),
+  ProjectController.updateDepartment
+);
+
+// Delete department from project
+router.delete(
+  '/:id/departments/:deptId',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN'),
+  validateRequest(ProjectValidation.deleteDepartmentValidationSchema),
+  ProjectController.deleteDepartment
+);
+
 export const ProjectRoutes = router;
 export default router;
