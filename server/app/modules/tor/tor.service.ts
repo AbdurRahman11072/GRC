@@ -1,6 +1,14 @@
 import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
+import { TeamBucket } from '../../../generated/prisma';
+
+export interface IStreamWeightItem {
+  streamBucket: TeamBucket;
+  dataCollectionAllocated: number;
+  dataAnalysisAllocated: number;
+  dataAnalysisObtained?: number;
+}
 
 export interface ICreateTorPayload {
   projectId: string;
@@ -389,6 +397,175 @@ const deleteTor = async (orgId: string, id: string) => {
   };
 };
 
+/**
+ * 7. Set / Upsert stream weights for a ToR node (single or batch)
+ */
+const setTorStreamWeights = async (
+  orgId: string,
+  torId: string,
+  payload: { weights?: IStreamWeightItem[] } | IStreamWeightItem
+) => {
+  const existingTor = await prisma.tor.findUnique({
+    where: { id: torId },
+    include: {
+      project: { select: { orgId: true } },
+    },
+  });
+
+  if (!existingTor || existingTor.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'ToR node not found');
+  }
+
+  const items: IStreamWeightItem[] =
+    'weights' in payload && Array.isArray(payload.weights)
+      ? payload.weights
+      : [payload as IStreamWeightItem];
+
+  for (const item of items) {
+    await prisma.torStreamWeight.upsert({
+      where: {
+        torId_streamBucket: {
+          torId,
+          streamBucket: item.streamBucket,
+        },
+      },
+      update: {
+        dataCollectionAllocated: item.dataCollectionAllocated,
+        dataAnalysisAllocated: item.dataAnalysisAllocated,
+        dataAnalysisObtained: item.dataAnalysisObtained ?? 0.0,
+      },
+      create: {
+        torId,
+        streamBucket: item.streamBucket,
+        dataCollectionAllocated: item.dataCollectionAllocated,
+        dataAnalysisAllocated: item.dataAnalysisAllocated,
+        dataAnalysisObtained: item.dataAnalysisObtained ?? 0.0,
+      },
+    });
+  }
+
+  const updatedWeights = await prisma.torStreamWeight.findMany({
+    where: { torId },
+    orderBy: { streamBucket: 'asc' },
+  });
+
+  const totals = updatedWeights.reduce(
+    (acc, curr) => ({
+      totalDataCollectionAllocated: acc.totalDataCollectionAllocated + curr.dataCollectionAllocated,
+      totalDataAnalysisAllocated: acc.totalDataAnalysisAllocated + curr.dataAnalysisAllocated,
+      totalAllocated:
+        acc.totalAllocated + curr.dataCollectionAllocated + curr.dataAnalysisAllocated,
+      totalDataAnalysisObtained: acc.totalDataAnalysisObtained + curr.dataAnalysisObtained,
+    }),
+    {
+      totalDataCollectionAllocated: 0,
+      totalDataAnalysisAllocated: 0,
+      totalAllocated: 0,
+      totalDataAnalysisObtained: 0,
+    }
+  );
+
+  return {
+    torId,
+    torCode: existingTor.code,
+    torTitle: existingTor.title,
+    weights: updatedWeights,
+    summary: totals,
+  };
+};
+
+/**
+ * 8. Get stream weights and marks summary for a ToR node
+ */
+const getTorStreamWeights = async (orgId: string, torId: string) => {
+  const existingTor = await prisma.tor.findUnique({
+    where: { id: torId },
+    include: {
+      project: { select: { orgId: true } },
+    },
+  });
+
+  if (!existingTor || existingTor.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'ToR node not found');
+  }
+
+  const weights = await prisma.torStreamWeight.findMany({
+    where: { torId },
+    orderBy: { streamBucket: 'asc' },
+  });
+
+  const totals = weights.reduce(
+    (acc, curr) => ({
+      totalDataCollectionAllocated: acc.totalDataCollectionAllocated + curr.dataCollectionAllocated,
+      totalDataAnalysisAllocated: acc.totalDataAnalysisAllocated + curr.dataAnalysisAllocated,
+      totalAllocated:
+        acc.totalAllocated + curr.dataCollectionAllocated + curr.dataAnalysisAllocated,
+      totalDataAnalysisObtained: acc.totalDataAnalysisObtained + curr.dataAnalysisObtained,
+    }),
+    {
+      totalDataCollectionAllocated: 0,
+      totalDataAnalysisAllocated: 0,
+      totalAllocated: 0,
+      totalDataAnalysisObtained: 0,
+    }
+  );
+
+  return {
+    torId,
+    torCode: existingTor.code,
+    torTitle: existingTor.title,
+    weights,
+    summary: totals,
+  };
+};
+
+/**
+ * 9. Delete a stream weight from a ToR node
+ */
+const deleteTorStreamWeight = async (
+  orgId: string,
+  torId: string,
+  streamBucket: TeamBucket
+) => {
+  const existingTor = await prisma.tor.findUnique({
+    where: { id: torId },
+    include: {
+      project: { select: { orgId: true } },
+    },
+  });
+
+  if (!existingTor || existingTor.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'ToR node not found');
+  }
+
+  const existingWeight = await prisma.torStreamWeight.findUnique({
+    where: {
+      torId_streamBucket: {
+        torId,
+        streamBucket,
+      },
+    },
+  });
+
+  if (!existingWeight) {
+    throw new AppError(httpStatus.NOT_FOUND, `No stream weight found for ${streamBucket}`);
+  }
+
+  await prisma.torStreamWeight.delete({
+    where: {
+      torId_streamBucket: {
+        torId,
+        streamBucket,
+      },
+    },
+  });
+
+  return {
+    success: true,
+    message: `Stream weight for '${streamBucket}' removed from ToR node successfully`,
+  };
+};
+
 export const TorService = {
   createTor,
   getTorTree,
@@ -396,4 +573,7 @@ export const TorService = {
   getTorById,
   updateTor,
   deleteTor,
+  setTorStreamWeights,
+  getTorStreamWeights,
+  deleteTorStreamWeight,
 };

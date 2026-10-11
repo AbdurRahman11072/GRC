@@ -64,5 +64,38 @@ router.delete(
   TorController.deleteTor
 );
 
+// -----------------------------------------------------------------------------
+// Stream Weight Allocation (Data Collection vs Data Analysis marks)
+// -----------------------------------------------------------------------------
+
+// Set / Upsert stream weights for a ToR node
+router.post(
+  '/:id/stream-weights',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(TorValidation.setStreamWeightsValidationSchema),
+  TorController.setTorStreamWeights
+);
+
+// Get stream weights and marks summary for a ToR node
+router.get(
+  '/:id/stream-weights',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(TorValidation.getStreamWeightsValidationSchema),
+  TorController.getTorStreamWeights
+);
+
+// Delete stream weight for a specific stream bucket
+router.delete(
+  '/:id/stream-weights/:streamBucket',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN'),
+  validateRequest(TorValidation.deleteStreamWeightValidationSchema),
+  TorController.deleteTorStreamWeight
+);
+
 export const TorRoutes = router;
 export default router;

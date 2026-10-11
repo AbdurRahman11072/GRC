@@ -82,6 +82,46 @@ const deleteTor = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const setTorStreamWeights = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await TorService.setTorStreamWeights(orgId, id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'ToR stream weights configured successfully',
+    data: result,
+  });
+});
+
+const getTorStreamWeights = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await TorService.getTorStreamWeights(orgId, id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'ToR stream weights retrieved successfully',
+    data: result,
+  });
+});
+
+const deleteTorStreamWeight = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const streamBucket = req.params.streamBucket as any;
+  const result = await TorService.deleteTorStreamWeight(orgId, id, streamBucket);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
 export const TorController = {
   createTor,
   getTorTree,
@@ -89,4 +129,8 @@ export const TorController = {
   getTorById,
   updateTor,
   deleteTor,
+  setTorStreamWeights,
+  getTorStreamWeights,
+  deleteTorStreamWeight,
 };
+

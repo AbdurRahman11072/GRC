@@ -66,6 +66,44 @@ export const deleteTorValidationSchema = z.object({
   }),
 });
 
+export const streamWeightItemSchema = z.object({
+  streamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
+  dataCollectionAllocated: z
+    .number()
+    .min(0, 'Data collection allocated marks must be >= 0'),
+  dataAnalysisAllocated: z
+    .number()
+    .min(0, 'Data analysis allocated marks must be >= 0'),
+  dataAnalysisObtained: z
+    .number()
+    .min(0, 'Data analysis obtained marks must be >= 0')
+    .optional(),
+});
+
+export const setStreamWeightsValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ToR ID format'),
+  }),
+  body: z
+    .object({
+      weights: z.array(streamWeightItemSchema).min(1, 'At least one stream weight is required'),
+    })
+    .or(streamWeightItemSchema),
+});
+
+export const getStreamWeightsValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ToR ID format'),
+  }),
+});
+
+export const deleteStreamWeightValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ToR ID format'),
+    streamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
+  }),
+});
+
 export const TorValidation = {
   createTorValidationSchema,
   getTorTreeValidationSchema,
@@ -73,4 +111,8 @@ export const TorValidation = {
   getTorByIdValidationSchema,
   updateTorValidationSchema,
   deleteTorValidationSchema,
+  setStreamWeightsValidationSchema,
+  getStreamWeightsValidationSchema,
+  deleteStreamWeightValidationSchema,
 };
+
