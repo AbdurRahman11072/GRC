@@ -26,5 +26,34 @@ router.get(
   CRMController.getEntities
 );
 
+// Get CRM entity by ID
+router.get(
+  '/entities/:id',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(CRMValidation.getEntityByIdValidationSchema),
+  CRMController.getEntityById
+);
+
+// Update CRM entity (OWNER, ADMIN, AUDITOR)
+router.patch(
+  '/entities/:id',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(CRMValidation.updateEntityValidationSchema),
+  CRMController.updateEntity
+);
+
+// Delete CRM entity (OWNER, ADMIN)
+router.delete(
+  '/entities/:id',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN'),
+  validateRequest(CRMValidation.deleteEntityValidationSchema),
+  CRMController.deleteEntity
+);
+
 export const CRMRoutes = router;
 export default router;

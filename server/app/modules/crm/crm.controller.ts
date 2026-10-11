@@ -29,7 +29,50 @@ const getEntities = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const getEntityById = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await CRMService.getEntityById(orgId, id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'CRM entity retrieved successfully',
+    data: result,
+  });
+});
+
+const updateEntity = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await CRMService.updateEntity(orgId, id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'CRM entity updated successfully',
+    data: result,
+  });
+});
+
+const deleteEntity = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await CRMService.deleteEntity(orgId, id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
 export const CRMController = {
   createEntity,
   getEntities,
+  getEntityById,
+  updateEntity,
+  deleteEntity,
 };
+

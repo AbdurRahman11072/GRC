@@ -1,9 +1,19 @@
+import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
+import { AppError } from '../../error/AppError';
 import { CRMEntityType } from '../../../generated/prisma';
 
 export interface ICreateCRMEntityPayload {
   name: string;
   entityType: CRMEntityType;
+  address?: string;
+  website?: string;
+  phone?: string;
+}
+
+export interface IUpdateCRMEntityPayload {
+  name?: string;
+  entityType?: CRMEntityType;
   address?: string;
   website?: string;
   phone?: string;
@@ -90,7 +100,119 @@ const getEntities = async (orgId: string, options: ICRMQueryOptions) => {
   };
 };
 
+/**
+ * 3. Get single CRM entity by ID (with linked projects)
+ */
+const getEntityById = async (orgId: string, entityId: string) => {
+  const entity = await prisma.entityCRM.findUnique({
+    where: { id: entityId },
+    include: {
+      clientProjects: {
+        select: {
+          id: true,
+          projectName: true,
+          projectType: true,
+          status: true,
+          createdAt: true,
+        },
+      },
+      auditeeProjects: {
+        select: {
+          id: true,
+          projectName: true,
+          projectType: true,
+          status: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
+  if (!entity || entity.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'CRM entity not found');
+  }
+
+  const linkedProjects =
+    entity.entityType === 'CLIENT' ? entity.clientProjects : entity.auditeeProjects;
+
+  return {
+    ...entity,
+    projects: linkedProjects,
+    projectCount: linkedProjects.length,
+  };
+};
+
+/**
+ * 4. Update CRM entity details
+ */
+const updateEntity = async (
+  orgId: string,
+  entityId: string,
+  payload: IUpdateCRMEntityPayload
+) => {
+  const entity = await prisma.entityCRM.findUnique({
+    where: { id: entityId },
+  });
+
+  if (!entity || entity.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'CRM entity not found');
+  }
+
+  const updated = await prisma.entityCRM.update({
+    where: { id: entityId },
+    data: {
+      ...(payload.name !== undefined ? { name: payload.name.trim() } : {}),
+      ...(payload.entityType !== undefined ? { entityType: payload.entityType } : {}),
+      ...(payload.address !== undefined ? { address: payload.address?.trim() || null } : {}),
+      ...(payload.website !== undefined ? { website: payload.website?.trim() || null } : {}),
+      ...(payload.phone !== undefined ? { phone: payload.phone?.trim() || null } : {}),
+    },
+  });
+
+  return updated;
+};
+
+/**
+ * 5. Delete CRM entity (with safety check on active linked projects)
+ */
+const deleteEntity = async (orgId: string, entityId: string) => {
+  const entity = await prisma.entityCRM.findUnique({
+    where: { id: entityId },
+    include: {
+      clientProjects: { select: { id: true } },
+      auditeeProjects: { select: { id: true } },
+    },
+  });
+
+  if (!entity || entity.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'CRM entity not found');
+  }
+
+  const totalProjects =
+    entity.clientProjects.length + entity.auditeeProjects.length;
+
+  if (totalProjects > 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot delete CRM entity: it is currently referenced by ${totalProjects} active project(s). Reassign or archive those projects first.`
+    );
+  }
+
+  await prisma.entityCRM.delete({
+    where: { id: entityId },
+  });
+
+  return {
+    success: true,
+    message: 'CRM entity deleted successfully',
+  };
+};
+
 export const CRMService = {
   createEntity,
   getEntities,
+  getEntityById,
+  updateEntity,
+  deleteEntity,
 };
+
