@@ -4,6 +4,7 @@ import { AuthRoutes } from '../modules/auth/auth.routes';
 import { UserRoutes } from '../modules/user/user.routes';
 import { OrganizationRoutes } from '../modules/organization/organization.routes';
 import { CRMRoutes } from '../modules/crm/crm.routes';
+import { ProjectRoutes } from '../modules/project/project.routes';
 
 const router = Router();
 
@@ -31,6 +32,10 @@ const moduleRoutes = [
   {
     path: '/crm',
     route: CRMRoutes,
+  },
+  {
+    path: '/projects',
+    route: ProjectRoutes,
   },
 ];
 
