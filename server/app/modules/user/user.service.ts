@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
-import { OrgRole } from '@prisma/client';
+import { OrgRole } from '../../../generated/prisma';
 
 export interface IUpdateProfilePayload {
   name?: string;
