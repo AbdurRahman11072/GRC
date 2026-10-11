@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { validateRequest } from '../../middleware/validateRequest';
+import { authMiddleware } from '../../middleware/authMiddleware';
 import { AuthValidation } from './auth.validation';
 import { AuthController } from './auth.controller';
 
@@ -17,6 +18,11 @@ router.post(
   AuthController.login
 );
 
+router.post('/refresh', AuthController.refreshSession);
+
+router.get('/me', authMiddleware(), AuthController.getMe);
+
 export const AuthRoutes = router;
 export default router;
+
 

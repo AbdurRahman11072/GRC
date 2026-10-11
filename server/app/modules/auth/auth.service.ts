@@ -1,7 +1,12 @@
 import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
-import { hashPassword, verifyPassword, generateAuthTokens } from './auth.utils';
+import {
+  hashPassword,
+  verifyPassword,
+  generateAuthTokens,
+  verifyRefreshToken,
+} from './auth.utils';
 import type {
   IAuthTokens,
   IUserProfile,
@@ -201,7 +206,90 @@ const loginUser = async (payload: ILoginPayload): Promise<ILoginResponse> => {
   };
 };
 
+const refreshAuthTokens = async (tokenString: string): Promise<IAuthTokens> => {
+  const decoded = verifyRefreshToken(tokenString);
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.userId },
+    select: { id: true, email: true, isActive: true, isSuperAdmin: true },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User no longer exists');
+  }
+
+  if (!user.isActive) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account has been deactivated. Please contact your organization administrator.'
+    );
+  }
+
+  return generateAuthTokens({
+    userId: user.id,
+    email: user.email,
+    isSuperAdmin: user.isSuperAdmin,
+  });
+};
+
+const getMe = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      nid: true,
+      designation: true,
+      isSuperAdmin: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+      orgMemberships: {
+        select: {
+          id: true,
+          orgId: true,
+          orgRole: true,
+          organization: {
+            select: {
+              id: true,
+              orgName: true,
+              orgType: true,
+            },
+          },
+        },
+      },
+      projectMemberships: {
+        select: {
+          id: true,
+          projectId: true,
+          teamBucket: true,
+          departmentId: true,
+          project: {
+            select: {
+              id: true,
+              projectName: true,
+              projectType: true,
+              status: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  return user;
+};
+
 export const AuthService = {
   registerUser,
   loginUser,
+  refreshAuthTokens,
+  getMe,
 };
+
