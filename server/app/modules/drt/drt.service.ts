@@ -5,6 +5,7 @@ import {
   TeamBucket,
   DRTLifecycleStatus,
   DRTReviewStatus,
+  PeriodEvidenceStatus,
 } from '../../../generated/prisma';
 
 export interface ICreateTicketPayload {
@@ -492,6 +493,185 @@ const deleteTicket = async (orgId: string, id: string) => {
   };
 };
 
+/**
+ * Helper: Automated SLA excess days calculation against expectedDateOfReceipt
+ */
+const calculateExcessDays = (
+  expectedDateOfReceipt: Date | null,
+  actualDateOfReceipt: Date | null,
+  lifecycleStatus: DRTLifecycleStatus
+): number => {
+  if (!expectedDateOfReceipt) {
+    return 0;
+  }
+
+  const isFulfilled = lifecycleStatus === 'SUBMITTED' || lifecycleStatus === 'ACCEPTED';
+  const comparisonDate = isFulfilled
+    ? (actualDateOfReceipt || new Date())
+    : new Date();
+
+  const diffTime = comparisonDate.getTime() - expectedDateOfReceipt.getTime();
+  if (diffTime <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+};
+
+/**
+ * 7. Update ticket lifecycle status (OPEN -> SUBMITTED -> REVISION_REQUESTED -> ACCEPTED)
+ */
+const updateLifecycleStatus = async (
+  orgId: string,
+  id: string,
+  payload: { lifecycleStatus: DRTLifecycleStatus; actualDateOfReceipt?: string | null }
+) => {
+  const existingTicket = await prisma.dRTTicket.findUnique({
+    where: { id },
+    include: {
+      project: { select: { orgId: true } },
+    },
+  });
+
+  if (!existingTicket || existingTicket.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'DRT ticket not found');
+  }
+
+  let finalActualReceipt: Date | null = existingTicket.actualDateOfReceipt;
+
+  if (payload.actualDateOfReceipt !== undefined) {
+    finalActualReceipt = payload.actualDateOfReceipt
+      ? new Date(payload.actualDateOfReceipt)
+      : null;
+  } else if (
+    (payload.lifecycleStatus === 'SUBMITTED' || payload.lifecycleStatus === 'ACCEPTED') &&
+    !existingTicket.actualDateOfReceipt
+  ) {
+    finalActualReceipt = new Date();
+  }
+
+  const excessDays = calculateExcessDays(
+    existingTicket.expectedDateOfReceipt,
+    finalActualReceipt,
+    payload.lifecycleStatus
+  );
+
+  await prisma.dRTTicket.update({
+    where: { id },
+    data: {
+      lifecycleStatus: payload.lifecycleStatus,
+      actualDateOfReceipt: finalActualReceipt,
+      excessDays,
+    },
+  });
+
+  return getTicketById(orgId, id);
+};
+
+/**
+ * 8. Update ticket auditor review outcome (auditor-only: DONE, PARTIAL, PENDING, NOT_AVAILABLE, NOT_APPLICABLE)
+ */
+const updateReviewStatus = async (
+  orgId: string,
+  id: string,
+  payload: { reviewStatus: DRTReviewStatus; actualDateOfReceipt?: string | null }
+) => {
+  const existingTicket = await prisma.dRTTicket.findUnique({
+    where: { id },
+    include: {
+      project: { select: { orgId: true } },
+    },
+  });
+
+  if (!existingTicket || existingTicket.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'DRT ticket not found');
+  }
+
+  let finalActualReceipt: Date | null = existingTicket.actualDateOfReceipt;
+  if (payload.actualDateOfReceipt !== undefined) {
+    finalActualReceipt = payload.actualDateOfReceipt
+      ? new Date(payload.actualDateOfReceipt)
+      : null;
+  }
+
+  const excessDays = calculateExcessDays(
+    existingTicket.expectedDateOfReceipt,
+    finalActualReceipt,
+    existingTicket.lifecycleStatus
+  );
+
+  await prisma.dRTTicket.update({
+    where: { id },
+    data: {
+      reviewStatus: payload.reviewStatus,
+      actualDateOfReceipt: finalActualReceipt,
+      excessDays,
+    },
+  });
+
+  return getTicketById(orgId, id);
+};
+
+/**
+ * 9. Update multi-year period evidence statuses (SHARED, PARTIAL, NOT_SHARED, NOT_APPLICABLE)
+ */
+const updatePeriodStatuses = async (
+  orgId: string,
+  id: string,
+  payload: {
+    statuses: Array<{ periodId: string; evidenceStatus: PeriodEvidenceStatus }>;
+  }
+) => {
+  const existingTicket = await prisma.dRTTicket.findUnique({
+    where: { id },
+    include: {
+      project: { select: { orgId: true } },
+    },
+  });
+
+  if (!existingTicket || existingTicket.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'DRT ticket not found');
+  }
+
+  // Validate all periodIds belong to this project
+  const periodIds = payload.statuses.map((s) => s.periodId);
+  const validPeriods = await prisma.assessmentPeriod.findMany({
+    where: {
+      id: { in: periodIds },
+      projectId: existingTicket.projectId,
+    },
+    select: { id: true },
+  });
+
+  if (validPeriods.length !== periodIds.length) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'One or more specified assessment periods do not exist in this project'
+    );
+  }
+
+  for (const item of payload.statuses) {
+    await prisma.dRTTicketPeriodStatus.upsert({
+      where: {
+        ticketId_periodId: {
+          ticketId: id,
+          periodId: item.periodId,
+        },
+      },
+      update: {
+        evidenceStatus: item.evidenceStatus,
+      },
+      create: {
+        ticketId: id,
+        periodId: item.periodId,
+        evidenceStatus: item.evidenceStatus,
+      },
+    });
+  }
+
+  return getTicketById(orgId, id);
+};
+
 export const DRTService = {
   createTicket,
   getTickets,
@@ -499,4 +679,7 @@ export const DRTService = {
   updateTicket,
   mapToRs,
   deleteTicket,
+  updateLifecycleStatus,
+  updateReviewStatus,
+  updatePeriodStatuses,
 };

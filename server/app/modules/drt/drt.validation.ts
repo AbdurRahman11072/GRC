@@ -107,6 +107,52 @@ export const deleteTicketValidationSchema = z.object({
   }),
 });
 
+export const updateLifecycleStatusValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ticket ID format'),
+  }),
+  body: z.object({
+    lifecycleStatus: z.enum(['OPEN', 'SUBMITTED', 'REVISION_REQUESTED', 'ACCEPTED']),
+    actualDateOfReceipt: z
+      .string()
+      .datetime()
+      .optional()
+      .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional())
+      .nullable(),
+  }),
+});
+
+export const updateReviewStatusValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ticket ID format'),
+  }),
+  body: z.object({
+    reviewStatus: z.enum(['PENDING', 'PARTIAL', 'DONE', 'NOT_AVAILABLE', 'NOT_APPLICABLE']),
+    actualDateOfReceipt: z
+      .string()
+      .datetime()
+      .optional()
+      .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional())
+      .nullable(),
+  }),
+});
+
+export const updatePeriodStatusesValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ticket ID format'),
+  }),
+  body: z.object({
+    statuses: z
+      .array(
+        z.object({
+          periodId: z.string().uuid('Invalid period ID format'),
+          evidenceStatus: z.enum(['SHARED', 'PARTIAL', 'NOT_SHARED', 'NOT_APPLICABLE']),
+        })
+      )
+      .min(1, 'At least one period status is required'),
+  }),
+});
+
 export const DRTValidation = {
   createTicketValidationSchema,
   getTicketsValidationSchema,
@@ -114,4 +160,8 @@ export const DRTValidation = {
   updateTicketValidationSchema,
   mapToRsValidationSchema,
   deleteTicketValidationSchema,
+  updateLifecycleStatusValidationSchema,
+  updateReviewStatusValidationSchema,
+  updatePeriodStatusesValidationSchema,
 };
+

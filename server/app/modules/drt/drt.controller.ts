@@ -82,6 +82,45 @@ const deleteTicket = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const updateLifecycleStatus = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await DRTService.updateLifecycleStatus(orgId, id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'DRT ticket lifecycle status updated successfully',
+    data: result,
+  });
+});
+
+const updateReviewStatus = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await DRTService.updateReviewStatus(orgId, id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'DRT ticket auditor review outcome updated successfully',
+    data: result,
+  });
+});
+
+const updatePeriodStatuses = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await DRTService.updatePeriodStatuses(orgId, id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'DRT ticket multi-year period statuses updated successfully',
+    data: result,
+  });
+});
+
 export const DRTController = {
   createTicket,
   getTickets,
@@ -89,4 +128,8 @@ export const DRTController = {
   updateTicket,
   mapToRs,
   deleteTicket,
+  updateLifecycleStatus,
+  updateReviewStatus,
+  updatePeriodStatuses,
 };
+

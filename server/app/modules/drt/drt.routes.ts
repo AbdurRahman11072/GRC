@@ -65,5 +65,38 @@ router.delete(
   DRTController.deleteTicket
 );
 
+// -----------------------------------------------------------------------------
+// Two-Tier Status Engine & SLA Tracking
+// -----------------------------------------------------------------------------
+
+// Update DRT Ticket lifecycle status (OPEN -> SUBMITTED -> REVISION_REQUESTED -> ACCEPTED)
+router.patch(
+  '/tickets/:id/lifecycle',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(DRTValidation.updateLifecycleStatusValidationSchema),
+  DRTController.updateLifecycleStatus
+);
+
+// Update DRT Ticket auditor review outcome (auditor-only: DONE, PARTIAL, PENDING, NOT_AVAILABLE, NOT_APPLICABLE)
+router.patch(
+  '/tickets/:id/review-status',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(DRTValidation.updateReviewStatusValidationSchema),
+  DRTController.updateReviewStatus
+);
+
+// Update DRT Ticket multi-year period statuses (SHARED, PARTIAL, NOT_SHARED, NOT_APPLICABLE)
+router.put(
+  '/tickets/:id/period-statuses',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(DRTValidation.updatePeriodStatusesValidationSchema),
+  DRTController.updatePeriodStatuses
+);
+
 export const DRTRoutes = router;
 export default router;
