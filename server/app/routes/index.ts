@@ -6,6 +6,7 @@ import { OrganizationRoutes } from '../modules/organization/organization.routes'
 import { CRMRoutes } from '../modules/crm/crm.routes';
 import { ProjectRoutes } from '../modules/project/project.routes';
 import { TorRoutes } from '../modules/tor/tor.routes';
+import { DRTRoutes } from '../modules/drt/drt.routes';
 
 const router = Router();
 
@@ -41,6 +42,10 @@ const moduleRoutes = [
   {
     path: '/tors',
     route: TorRoutes,
+  },
+  {
+    path: '/drt',
+    route: DRTRoutes,
   },
 ];
 

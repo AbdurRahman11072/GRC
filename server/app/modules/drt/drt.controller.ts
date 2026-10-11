@@ -1,0 +1,92 @@
+import { Request, Response } from 'express';
+import httpStatus from 'http-status';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { sendResponse } from '../../utils/sendResponse';
+import { DRTService } from './drt.service';
+
+const createTicket = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const result = await DRTService.createTicket(orgId, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'DRT ticket created successfully',
+    data: result,
+  });
+});
+
+const getTickets = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const projectId = req.params.projectId as string;
+  const result = await DRTService.getTickets(orgId, projectId, req.query as any);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'DRT tickets retrieved successfully',
+    pagination: result.pagination,
+    data: result.data,
+  });
+});
+
+const getTicketById = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await DRTService.getTicketById(orgId, id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'DRT ticket retrieved successfully',
+    data: result,
+  });
+});
+
+const updateTicket = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await DRTService.updateTicket(orgId, id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'DRT ticket updated successfully',
+    data: result,
+  });
+});
+
+const mapToRs = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await DRTService.mapToRs(orgId, id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'ToR mappings updated successfully for DRT ticket',
+    data: result,
+  });
+});
+
+const deleteTicket = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await DRTService.deleteTicket(orgId, id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+export const DRTController = {
+  createTicket,
+  getTickets,
+  getTicketById,
+  updateTicket,
+  mapToRs,
+  deleteTicket,
+};
