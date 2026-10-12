@@ -7,8 +7,8 @@ import {
   BaseQueryApi,
 } from '@reduxjs/toolkit/query/react';
 import type { AuthState } from '../slices/authSlice';
-import { setToken, logout } from '../slices/authSlice';
-import type { ApiResponse, IRefreshResponseData } from '../../types/auth.types';
+import { setToken, setUser, setOrganizations, logout } from '../slices/authSlice';
+import type { ApiResponse, IRefreshResponseData, IUserProfile, IUserOrgMembership } from '../../types/auth.types';
 
 const getBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
@@ -25,14 +25,27 @@ const rawBaseQuery = fetchBaseQuery({
     // Avoid circular dependency with RootState by querying auth state slice directly
     const state = getState() as { auth?: AuthState };
     const token = state.auth?.accessToken;
-    const orgId = state.auth?.currentOrgId;
+
+    // Robust active orgId resolution:
+    // 1. Current orgId in Redux state
+    // 2. First organization in user's memberships
+    // 3. Fallback to localStorage 'zio_current_org_id'
+    let orgId = state.auth?.currentOrgId || state.auth?.organizations?.[0]?.orgId;
+    if ((!orgId || orgId === 'undefined' || orgId === 'null') && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('zio_current_org_id');
+      if (stored && stored !== 'undefined' && stored !== 'null' && stored.trim() !== '') {
+        orgId = stored.trim();
+      } else {
+        orgId = undefined;
+      }
+    }
 
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    if (orgId) {
-      headers.set('x-org-id', orgId);
+    if (orgId && orgId !== 'undefined' && orgId !== 'null' && orgId.trim() !== '') {
+      headers.set('x-org-id', orgId.trim());
     }
 
     return headers;
@@ -67,6 +80,51 @@ const refreshAccessToken = async (api: BaseQueryApi): Promise<string | null> => 
 
       if (newAccessToken) {
         api.dispatch(setToken(newAccessToken));
+
+        // Restore user profile and organization list immediately
+        try {
+          const meResponse = await fetch(`${getBaseUrl()}/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${newAccessToken}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          });
+          if (meResponse.ok) {
+            const meData = (await meResponse.json()) as any;
+            if (meData?.data) {
+              const raw = meData.data;
+              const userProfile: IUserProfile = raw.user || {
+                id: raw.id,
+                email: raw.email,
+                name: raw.name,
+                phone: raw.phone,
+                nid: raw.nid,
+                designation: raw.designation,
+                isSuperAdmin: !!raw.isSuperAdmin,
+                isActive: raw.isActive !== undefined ? !!raw.isActive : true,
+                createdAt: raw.createdAt || new Date().toISOString(),
+                updatedAt: raw.updatedAt || new Date().toISOString(),
+              };
+
+              const orgList: IUserOrgMembership[] =
+                raw.organizations ||
+                (raw.orgMemberships || []).map((m: any) => ({
+                  orgId: m.orgId,
+                  orgName: m.organization?.orgName || 'Workspace',
+                  orgRole: m.orgRole,
+                }));
+
+              api.dispatch(setUser(userProfile));
+              if (orgList.length > 0) {
+                api.dispatch(setOrganizations(orgList));
+              }
+            }
+          }
+        } catch {
+          // Non-blocking for refresh
+        }
+
         return newAccessToken;
       } else {
         api.dispatch(logout());

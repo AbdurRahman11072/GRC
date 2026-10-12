@@ -1,5 +1,5 @@
 import { baseApi } from './baseApi';
-import { setCredentials, setOrganizations, logout, setLoading } from '../slices/authSlice';
+import { setCredentials, setUser, setOrganizations, logout, setLoading } from '../slices/authSlice';
 import type {
   ApiResponse,
   ILoginPayload,
@@ -87,8 +87,33 @@ export const authApi = baseApi.injectEndpoints({
         dispatch(setLoading(true));
         try {
           const { data } = await queryFulfilled;
-          if (data.data) {
-            dispatch(setOrganizations(data.data.organizations));
+          if (data?.data) {
+            const raw = data.data as any;
+            const userProfile: IUserProfile = raw.user || {
+              id: raw.id,
+              email: raw.email,
+              name: raw.name,
+              phone: raw.phone,
+              nid: raw.nid,
+              designation: raw.designation,
+              isSuperAdmin: !!raw.isSuperAdmin,
+              isActive: raw.isActive !== undefined ? !!raw.isActive : true,
+              createdAt: raw.createdAt || new Date().toISOString(),
+              updatedAt: raw.updatedAt || new Date().toISOString(),
+            };
+
+            const orgList: IUserOrgMembership[] =
+              raw.organizations ||
+              (raw.orgMemberships || []).map((m: any) => ({
+                orgId: m.orgId,
+                orgName: m.organization?.orgName || 'Workspace',
+                orgRole: m.orgRole,
+              }));
+
+            dispatch(setUser(userProfile));
+            if (orgList.length > 0) {
+              dispatch(setOrganizations(orgList));
+            }
           }
         } catch {
           dispatch(logout());

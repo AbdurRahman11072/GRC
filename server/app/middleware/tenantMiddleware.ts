@@ -11,6 +11,7 @@ import { OrgRole } from '../../generated/prisma';
  * 2. req.params.orgId
  * 3. req.query.orgId
  * 4. req.body.orgId
+ * 5. Automatic fallback to user's primary organization membership
  */
 export const tenantMiddleware = () => {
   return async (req: Request, _res: Response, next: NextFunction) => {
@@ -23,11 +24,64 @@ export const tenantMiddleware = () => {
       }
 
       const orgIdHeader = req.headers['x-org-id'];
-      const rawOrgId =
+      let rawOrgId: string | undefined =
         (Array.isArray(orgIdHeader) ? orgIdHeader[0] : orgIdHeader) ||
         req.params.orgId ||
-        req.query.orgId ||
+        (req.query.orgId as string | undefined) ||
         req.body?.orgId;
+
+      // Filter out literal 'undefined', 'null', or empty strings
+      if (typeof rawOrgId === 'string') {
+        const trimmed = rawOrgId.trim();
+        if (!trimmed || trimmed === 'undefined' || trimmed === 'null') {
+          rawOrgId = undefined;
+        } else {
+          rawOrgId = trimmed;
+        }
+      }
+
+      // If no explicit orgId is supplied in header/query/body, automatically resolve user's organization
+      if (!rawOrgId) {
+        // 1. Direct organization membership
+        const primaryMembership = await prisma.organizationMember.findFirst({
+          where: { userId: req.user.userId },
+          orderBy: { createdAt: 'asc' },
+          select: { orgId: true },
+        });
+
+        if (primaryMembership?.orgId) {
+          rawOrgId = primaryMembership.orgId;
+        } else {
+          // 2. Project membership linking to an organization
+          const projectMembership = await prisma.projectMember.findFirst({
+            where: { userId: req.user.userId },
+            select: { project: { select: { orgId: true } } },
+          });
+
+          if (projectMembership?.project?.orgId) {
+            rawOrgId = projectMembership.project.orgId;
+          } else {
+            // 3. Organization created by the user
+            const createdOrg = await prisma.organization.findFirst({
+              where: { createdById: req.user.userId },
+              select: { id: true },
+            });
+
+            if (createdOrg?.id) {
+              rawOrgId = createdOrg.id;
+            } else {
+              // 4. Fallback to the latest available organization in the system
+              const defaultOrg = await prisma.organization.findFirst({
+                orderBy: { createdAt: 'desc' },
+                select: { id: true },
+              });
+              if (defaultOrg?.id) {
+                rawOrgId = defaultOrg.id;
+              }
+            }
+          }
+        }
+      }
 
       if (!rawOrgId || typeof rawOrgId !== 'string') {
         throw new AppError(
@@ -38,7 +92,7 @@ export const tenantMiddleware = () => {
 
       const orgId = rawOrgId.trim();
 
-      // Check if organization exists
+      // Check if target organization exists
       const org = await prisma.organization.findUnique({
         where: { id: orgId },
         select: { id: true, orgName: true },
@@ -55,7 +109,7 @@ export const tenantMiddleware = () => {
         return next();
       }
 
-      // Verify caller is an active member of this organization
+      // Check primary organization membership
       const membership = await prisma.organizationMember.findUnique({
         where: {
           orgId_userId: {
@@ -65,16 +119,41 @@ export const tenantMiddleware = () => {
         },
       });
 
-      if (!membership) {
-        throw new AppError(
-          httpStatus.FORBIDDEN,
-          'Access denied: You are not a member of this organization.'
-        );
+      if (membership) {
+        req.orgId = org.id;
+        req.orgRole = membership.orgRole;
+        return next();
       }
 
-      req.orgId = org.id;
-      req.orgRole = membership.orgRole;
-      next();
+      // Check if user is a member of any project within this organization
+      const projectMembership = await prisma.projectMember.findFirst({
+        where: {
+          userId: req.user.userId,
+          project: { orgId: org.id },
+        },
+      });
+
+      if (projectMembership) {
+        req.orgId = org.id;
+        req.orgRole = 'AUDITOR';
+        return next();
+      }
+
+      // Check if user was the creator of the organization
+      const createdOrg = await prisma.organization.findFirst({
+        where: { id: org.id, createdById: req.user.userId },
+      });
+
+      if (createdOrg) {
+        req.orgId = org.id;
+        req.orgRole = 'OWNER';
+        return next();
+      }
+
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        'Access denied: You are not a member of this organization.'
+      );
     } catch (error) {
       next(error);
     }

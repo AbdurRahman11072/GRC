@@ -85,11 +85,32 @@ const getMe = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const result = await AuthService.getMe(userId);
 
+  const organizations = (result.orgMemberships || []).map((membership) => ({
+    orgId: membership.orgId,
+    orgName: membership.organization?.orgName || 'Workspace',
+    orgRole: membership.orgRole,
+  }));
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Current user profile retrieved successfully',
-    data: result,
+    data: {
+      ...result,
+      user: {
+        id: result.id,
+        email: result.email,
+        name: result.name,
+        phone: result.phone,
+        nid: result.nid,
+        designation: result.designation,
+        isSuperAdmin: result.isSuperAdmin,
+        isActive: result.isActive,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt,
+      },
+      organizations,
+    },
   });
 });
 

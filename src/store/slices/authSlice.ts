@@ -12,7 +12,10 @@ export interface AuthState {
 
 const getInitialOrgId = (): string | null => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('zio_current_org_id');
+    const val = localStorage.getItem('zio_current_org_id');
+    if (val && val !== 'undefined' && val !== 'null' && val.trim() !== '') {
+      return val.trim();
+    }
   }
   return null;
 };
@@ -46,15 +49,18 @@ export const authSlice = createSlice({
 
       if (organizations && organizations.length > 0) {
         state.organizations = organizations;
-        // If currentOrgId is not valid or not set, default to first organization
         const orgExists = state.organizations.some((o) => o.orgId === state.currentOrgId);
-        if (!orgExists) {
+        if (!state.currentOrgId || !orgExists) {
           state.currentOrgId = organizations[0].orgId;
           if (typeof window !== 'undefined') {
             localStorage.setItem('zio_current_org_id', organizations[0].orgId);
           }
         }
       }
+    },
+    setUser: (state, action: PayloadAction<IUserProfile>) => {
+      state.user = action.payload;
+      state.isAuthenticated = true;
     },
     setToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
@@ -68,10 +74,13 @@ export const authSlice = createSlice({
     },
     setOrganizations: (state, action: PayloadAction<IUserOrgMembership[]>) => {
       state.organizations = action.payload;
-      if (action.payload.length > 0 && !state.organizations.some((o) => o.orgId === state.currentOrgId)) {
-        state.currentOrgId = action.payload[0].orgId;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('zio_current_org_id', action.payload[0].orgId);
+      if (action.payload.length > 0) {
+        const orgExists = state.organizations.some((o) => o.orgId === state.currentOrgId);
+        if (!state.currentOrgId || !orgExists) {
+          state.currentOrgId = action.payload[0].orgId;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('zio_current_org_id', action.payload[0].orgId);
+          }
         }
       }
     },
@@ -94,6 +103,7 @@ export const authSlice = createSlice({
 
 export const {
   setCredentials,
+  setUser,
   setToken,
   setCurrentOrgId,
   setOrganizations,
