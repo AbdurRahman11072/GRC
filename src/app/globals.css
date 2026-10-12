@@ -1,8 +1,25 @@
 @import "tailwindcss";
 
+@theme {
+  --color-canvas-base: #090d16;
+  --color-canvas-card: #0f172a;
+  --color-canvas-subtle: #162032;
+  --color-canvas-elevated: #1e293b;
+  --color-canvas-border: #334155;
+  --color-canvas-border-subtle: rgba(255, 255, 255, 0.08);
+
+  --color-brand-cyan: #06b6d4;
+  --color-brand-indigo: #6366f1;
+  --color-brand-emerald: #10b981;
+  --color-brand-amber: #f59e0b;
+  --color-brand-rose: #f43f5e;
+}
+
 :root {
   --background: #090d16;
   --foreground: #f8fafc;
+  --card-bg: rgba(15, 23, 42, 0.72);
+  --card-border: rgba(255, 255, 255, 0.08);
 }
 
 body {
@@ -12,4 +29,61 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism panels */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  background: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+}
+
+/* High-density financial/audit numeric typography */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle enterprise glowing highlights */
+.glow-cyan {
+  box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.25);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.25);
+}
+
+.glow-indigo {
+  box-shadow: 0 0 15px -3px rgba(99, 102, 241, 0.25);
+}
+
+/* Slim scrollbars for dense data grids and ToR tree navigation */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
