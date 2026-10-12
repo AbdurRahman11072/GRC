@@ -3,29 +3,44 @@
 ## Overview & Approach
 To ensure complete transparency, traceability, and high code quality, backend development is structured into **10 granular, sequential phases**. Each phase is broken down into small, isolated tasks using **Express.js**, **Prisma ORM**, and **Neon DB** (Serverless PostgreSQL).
 
-> [!IMPORTANT]
-> **Working Agreement & Execution Protocol:**
-> 1. **One discrete sub-task at a time:** We will implement only one sub-task at a time, test it, verify it compiles cleanly, and ensure all types and lints pass.
-> 2. **Mandatory User Review:** After completing and verifying each sub-task, we will present the changes and explicitly ask for your review.
-> 3. **Push to GitHub upon Approval:** Once your review is approved ("review is good"), we will commit the changes with a clear semantic message and push the code to GitHub.
-> 4. **Sequential Progression:** Only after the commit and push are successfully completed will we proceed to the next task or sub-task.
-> 5. **No bulk-writing:** We will never create unrelated modules, files, or future sub-tasks in advance without your prior review and approval.
+> [!NOTE]
+> **Backend Development Status (as of 2026-10-12):**
+> **Phases 1 through 7 are 100% complete and fully verified** with comprehensive test suites, clean TypeScript builds, and atomic Git commits.
+> Backend development is currently paused to build the complete frontend App Router interface on top of the live APIs.
+> **Remaining backend phases (Phase 8: R2 Storage & Submissions, Phase 9: Real-time Scoring Engine, Phase 10: Snapshots & Excel Migration) will resume immediately after the frontend milestone.**
 
 ---
 
-## Phase Breakdown
+## Phase Status Summary
+
+| Phase | Module | Status | Commit / Notes |
+| :--- | :--- | :---: | :--- |
+| **Phase 1** | Express Hybrid Scaffold, Prisma & Neon DB | **COMPLETED** | `91c6fe2` — Hybrid server setup, Prisma singleton, health check |
+| **Phase 2** | Authentication & Identity (`/api/v1/auth`, `/api/v1/users`) | **COMPLETED** | `893eb27`..`f7797ad` — Argon2id, JWT, refresh rotation, user directory |
+| **Phase 3** | Organizations & Tenant Boundary (`/api/v1/organizations`) | **COMPLETED** | `1c7e616`, `c887da6`, `40f0058` — Multi-tenant isolation, RBAC, member management |
+| **Phase 4** | CRM Directory Module (`/api/v1/crm`) | **COMPLETED** | `e0d6d29`, `bb7af50` — Client (BTRC) & Auditee (Fiber@Home) directory CRUD |
+| **Phase 5** | Projects & 4-Team Architecture (`/api/v1/projects`) | **COMPLETED** | `da35e57`, `070a686`, `ac8e4c1` — Project workspace, departments, 4-team collaborative buckets |
+| **Phase 6** | Terms of Reference (ToR) WBS Tree (`/api/v1/tors`) | **COMPLETED** | `fe5a433`, `d2c06b5` — Hierarchical WBS tree, recursive builder, stream weights |
+| **Phase 7** | Data Request Tracking (DRT) Engine (`/api/v1/drt`) | **COMPLETED** | `88d8a88`, `57a02e6` — Ticketing, ToR mapping, 2-tier status, automated SLA delay, period grid |
+| **Phase 8** | Cloudflare R2 Storage & Evidence Submissions | *PAUSED* | Presigned uploads, evidence packages, comments |
+| **Phase 9** | Real-time Mathematical Scoring Engine | *PAUSED* | Revenue-weighted formulas, milestone marks, macro scoring |
+| **Phase 10** | Snapshots, Tamper-Evident Audit Log & Excel Importer | *PAUSED* | Immutable frozen snapshots, SHA-256 chained audit logs, Excel import wizard |
+
+---
+
+## Architecture Flow
 
 ```mermaid
 graph TD
-    P1[Phase 1: Express Scaffold, Prisma & Neon DB] --> P2[Phase 2: Auth & Identity Module]
-    P2 --> P3[Phase 3: Organizations & Tenancy Isolation]
-    P3 --> P4[Phase 4: CRM Directory Module]
-    P4 --> P5[Phase 5: Projects & 4-Team Architecture]
-    P5 --> P6[Phase 6: ToR Tree & WBS Module]
-    P6 --> P7[Phase 7: DRT Ticketing & SLAs]
-    P7 --> P8[Phase 8: Cloudflare R2 & Submissions]
-    P8 --> P9[Phase 9: Mathematical Scoring Engine]
-    P9 --> P10[Phase 10: Snapshots, Audit Log & Excel Importer]
+    P1[Phase 1: Express Scaffold, Prisma & Neon DB ✅] --> P2[Phase 2: Auth & Identity Module ✅]
+    P2 --> P3[Phase 3: Organizations & Tenancy Isolation ✅]
+    P3 --> P4[Phase 4: CRM Directory Module ✅]
+    P4 --> P5[Phase 5: Projects & 4-Team Architecture ✅]
+    P5 --> P6[Phase 6: ToR Tree & WBS Module ✅]
+    P6 --> P7[Phase 7: DRT Ticketing & SLAs ✅]
+    P7 -.->|Paused for Frontend UI| P8[Phase 8: Cloudflare R2 & Submissions ⏸️]
+    P8 --> P9[Phase 9: Mathematical Scoring Engine ⏸️]
+    P9 --> P10[Phase 10: Snapshots, Audit Log & Excel Importer ⏸️]
 ```
 
 ---
