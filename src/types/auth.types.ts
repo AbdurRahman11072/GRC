@@ -31,6 +31,29 @@ export interface IUserOrgMembership {
   orgRole: 'OWNER' | 'ADMIN' | 'AUDITOR' | 'MEMBER' | string;
 }
 
+export interface ILoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface IRegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  nid?: string;
+  designation?: string;
+  organization?: {
+    orgName: string;
+    orgType: string;
+    orgAddress?: string;
+    orgPhone?: string;
+    orgEmail?: string;
+    orgWebsite?: string;
+    numberOfEmployee?: number;
+  };
+}
+
 export interface ILoginResponseData {
   user: IUserProfile;
   organizations: IUserOrgMembership[];
@@ -52,6 +75,17 @@ export interface IRefreshResponseData {
   accessToken: string;
 }
 
+export interface IProvisionUserPayload {
+  orgId: string;
+  name: string;
+  email: string;
+  password: string;
+  orgRole: 'ADMIN' | 'AUDITOR' | 'MEMBER';
+  phone?: string;
+  nid?: string;
+  designation?: string;
+}
+
 export interface IProvisionUserResponseData {
   user: IUserProfile;
   membership: {
@@ -59,4 +93,11 @@ export interface IProvisionUserResponseData {
     orgRole: string;
     isExistingUser: boolean;
   };
+}
+
+export interface IUpdateMePayload {
+  name?: string;
+  phone?: string;
+  nid?: string;
+  designation?: string;
 }
