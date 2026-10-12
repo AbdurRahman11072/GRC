@@ -6,12 +6,18 @@ export const crmApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getEntities: builder.query<
       ApiResponse<ICrmEntity[]>,
-      { type?: 'CLIENT' | 'AUDITEE'; search?: string } | void
+      { entityType?: 'CLIENT' | 'AUDITEE'; type?: 'CLIENT' | 'AUDITEE'; search?: string } | void
     >({
-      query: (params) => ({
-        url: '/crm/entities',
-        params: params || undefined,
-      }),
+      query: (params) => {
+        if (!params) return { url: '/crm/entities' };
+        return {
+          url: '/crm/entities',
+          params: {
+            entityType: params.entityType || params.type,
+            search: params.search,
+          },
+        };
+      },
       providesTags: ['CRM'],
     }),
 

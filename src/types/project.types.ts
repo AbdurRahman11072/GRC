@@ -32,26 +32,18 @@ export interface ICrmEntity {
   id: string;
   orgId: string;
   name: string;
-  code?: string | null;
   entityType: 'CLIENT' | 'AUDITEE';
-  email?: string | null;
-  phone?: string | null;
   address?: string | null;
-  contactPersonName?: string | null;
-  contactPersonEmail?: string | null;
-  contactPersonPhone?: string | null;
+  website?: string | null;
+  phone?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ICreateCrmEntityPayload {
   name: string;
-  code?: string;
   entityType: 'CLIENT' | 'AUDITEE';
-  email?: string;
-  phone?: string;
   address?: string;
-  contactPersonName?: string;
-  contactPersonEmail?: string;
-  contactPersonPhone?: string;
+  website?: string;
+  phone?: string;
 }

@@ -31,11 +31,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
   const clientEntities = entities
     .filter((e) => e.entityType === 'CLIENT')
-    .map((e) => ({ label: `${e.name} (${e.code || 'CLIENT'})`, value: e.id }));
+    .map((e) => ({ label: e.name, value: e.id }));
 
   const auditeeEntities = entities
     .filter((e) => e.entityType === 'AUDITEE')
-    .map((e) => ({ label: `${e.name} (${e.code || 'AUDITEE'})`, value: e.id }));
+    .map((e) => ({ label: e.name, value: e.id }));
 
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
   const [createEntity] = useCreateEntityMutation();
