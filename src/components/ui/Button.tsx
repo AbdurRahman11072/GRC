@@ -13,17 +13,17 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
-    'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm shadow-indigo-600/30 border border-indigo-500/30',
+    'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs border border-indigo-600',
   secondary:
-    'bg-slate-850 hover:bg-slate-800 text-slate-100 border border-slate-750 hover:border-slate-700',
+    'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs hover:border-slate-300',
   outline:
-    'bg-transparent hover:bg-slate-900/60 text-slate-250 hover:text-white border border-slate-800 hover:border-slate-700',
+    'bg-transparent hover:bg-slate-100 text-slate-700 border border-slate-300',
   destructive:
-    'bg-rose-600/90 hover:bg-rose-600 text-white shadow-sm shadow-rose-600/30 border border-rose-500/40',
+    'bg-rose-600 hover:bg-rose-700 text-white shadow-xs border border-rose-600',
   ghost:
-    'bg-transparent hover:bg-slate-900/50 text-slate-400 hover:text-slate-100 border border-transparent',
+    'bg-transparent hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-transparent',
   cyan:
-    'bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold shadow-sm shadow-cyan-600/30 border border-cyan-400/40',
+    'bg-cyan-600 hover:bg-cyan-700 text-white font-medium shadow-xs border border-cyan-600',
 };
 
 const sizeStyles: Record<NonNullable<ButtonProps['size']>, string> = {
@@ -52,7 +52,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || isLoading}
-        className={`inline-flex items-center justify-center transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:ring-offset-1 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98] ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+        className={`inline-flex items-center justify-center transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-1 focus:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98] ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
         {...props}
       >
         {isLoading ? (

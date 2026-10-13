@@ -25,7 +25,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
               {section.title}
             </div>
           ) : idx > 0 ? (
-            <div className="border-t border-slate-800/80 my-2" />
+            <div className="border-t border-slate-200 my-2" />
           ) : null}
 
           {section.items.map((item) => {
@@ -42,11 +42,11 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                 title={isCollapsed ? item.name : undefined}
                 className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                   isActive
-                    ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-sm shadow-indigo-600/10'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-transparent'
+                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
                 } ${isCollapsed ? 'justify-center px-0' : ''}`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-400' : ''}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-600' : 'text-slate-500'}`} />
                 {!isCollapsed && <span>{item.name}</span>}
               </Link>
             );

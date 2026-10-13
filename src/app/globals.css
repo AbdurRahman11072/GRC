@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas-base: #090d16;
-  --color-canvas-card: #0f172a;
-  --color-canvas-subtle: #162032;
-  --color-canvas-elevated: #1e293b;
-  --color-canvas-border: #334155;
-  --color-canvas-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-canvas-base: #f8fafc;
+  --color-canvas-card: #ffffff;
+  --color-canvas-subtle: #f1f5f9;
+  --color-canvas-elevated: #ffffff;
+  --color-canvas-border: #e2e8f0;
+  --color-canvas-border-subtle: #f1f5f9;
 
-  --color-brand-cyan: #06b6d4;
-  --color-brand-indigo: #6366f1;
-  --color-brand-emerald: #10b981;
-  --color-brand-amber: #f59e0b;
-  --color-brand-rose: #f43f5e;
+  --color-brand-cyan: #0891b2;
+  --color-brand-indigo: #4f46e5;
+  --color-brand-emerald: #059669;
+  --color-brand-amber: #d97706;
+  --color-brand-rose: #e11d48;
 }
 
 :root {
-  --background: #090d16;
-  --foreground: #f8fafc;
-  --card-bg: rgba(15, 23, 42, 0.72);
-  --card-border: rgba(255, 255, 255, 0.08);
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
 }
 
 body {
@@ -33,12 +33,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism panels */
+/* Crisp panels */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.72);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
 }
 
 .glass-panel-hover {
@@ -46,9 +47,9 @@ body {
 }
 
 .glass-panel-hover:hover {
-  border-color: rgba(99, 102, 241, 0.35);
-  background: rgba(15, 23, 42, 0.85);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.08);
 }
 
 /* High-density financial/audit numeric typography */
@@ -58,32 +59,32 @@ body {
 
 /* Subtle enterprise glowing highlights */
 .glow-cyan {
-  box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.25);
+  box-shadow: 0 0 15px -3px rgba(8, 145, 178, 0.15);
 }
 
 .glow-emerald {
-  box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 15px -3px rgba(5, 150, 105, 0.15);
 }
 
 .glow-indigo {
-  box-shadow: 0 0 15px -3px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 15px -3px rgba(79, 70, 229, 0.15);
 }
 
-/* Slim scrollbars for dense data grids and ToR tree navigation */
+/* Slim scrollbars for light mode */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94a3b8;
 }

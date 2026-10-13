@@ -29,20 +29,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile backdrop */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs lg:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
       {/* Sidebar container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 bg-slate-900/95 border-r border-slate-800 transition-all duration-300 flex flex-col justify-between ${
+        className={`fixed top-0 bottom-0 left-0 z-40 bg-white border-r border-slate-200 shadow-2xs transition-all duration-300 flex flex-col justify-between ${
           isCollapsed ? 'w-20' : 'w-64'
         } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Top Brand Header */}
-          <div className="h-16 px-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+          <div className="h-16 px-4 border-b border-slate-200 flex items-center justify-between shrink-0">
             <Link
               href="/dashboard"
               className="flex items-center gap-3 overflow-hidden select-none"
@@ -52,10 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               {!isCollapsed && (
                 <div className="truncate">
-                  <div className="font-bold text-sm tracking-tight text-slate-100 truncate">
-                    Zio Tech <span className="text-cyan-400">GRC</span>
+                  <div className="font-bold text-sm tracking-tight text-slate-900 truncate">
+                    Zio Tech <span className="text-cyan-600 font-extrabold">GRC</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-medium truncate">
+                  <div className="text-[10px] text-slate-500 font-medium truncate">
                     Enterprise IS Audit
                   </div>
                 </div>
@@ -65,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Collapse toggle (desktop only) */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
               title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             >
               {isCollapsed ? (
@@ -78,11 +78,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Current Organization Info (when expanded) */}
           {!isCollapsed && activeOrg && (
-            <div className="p-3 mx-3 my-2.5 rounded-xl bg-slate-850/60 border border-slate-800/80 shrink-0">
+            <div className="p-3 mx-3 my-2.5 rounded-xl bg-slate-50 border border-slate-200 shrink-0">
               <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-0.5">
                 Active Tenant
               </div>
-              <div className="text-xs font-semibold text-slate-200 truncate">
+              <div className="text-xs font-semibold text-slate-800 truncate">
                 {activeOrg.orgName}
               </div>
               <div className="mt-1 flex items-center gap-1.5">

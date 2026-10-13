@@ -12,6 +12,18 @@ export interface ApiResponse<T> {
   };
 }
 
+export interface IUserProjectMembership {
+  id: string;
+  projectId: string;
+  teamBucket: 'ADMINISTRATOR' | 'ORG_MEMBER' | 'CLIENT' | 'AUDITEE';
+  project?: {
+    id: string;
+    projectName: string;
+    projectType: string;
+    status: string;
+  };
+}
+
 export interface IUserProfile {
   id: string;
   email: string;
@@ -23,6 +35,7 @@ export interface IUserProfile {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  projectMemberships?: IUserProjectMembership[];
 }
 
 export interface IUserOrgMembership {

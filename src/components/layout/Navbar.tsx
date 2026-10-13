@@ -66,12 +66,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
   };
 
   return (
-    <header className="h-16 px-6 glass-panel border-b border-slate-800/80 sticky top-0 z-30 flex items-center justify-between">
+    <header className="h-16 px-6 bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 flex items-center justify-between shadow-xs">
       {/* Left Mobile Menu Toggle + Breadcrumbs */}
       <div className="flex items-center gap-4">
         <button
           onClick={onToggleMobileSidebar}
-          className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+          className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
           aria-label="Toggle navigation"
         >
           <Menu className="w-5 h-5" />
@@ -81,9 +81,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
         <div className="relative" ref={orgDropdownRef}>
           <button
             onClick={() => setIsOrgDropdownOpen(!isOrgDropdownOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-xs font-semibold text-slate-200 transition-all select-none"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 text-xs font-semibold text-slate-700 transition-all select-none shadow-2xs"
           >
-            <Building className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <Building className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
             <span className="max-w-[140px] sm:max-w-[200px] truncate">
               {activeOrg?.orgName || 'Select Organization'}
             </span>
@@ -92,8 +92,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
 
           {/* Org dropdown menu */}
           {isOrgDropdownOpen && (
-            <div className="absolute left-0 mt-2 w-64 glass-panel bg-slate-900/98 border border-slate-750 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-2 border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            <div className="absolute left-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3 py-2 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                 Switch Organization
               </div>
               <div className="max-h-56 overflow-y-auto p-1">
@@ -105,15 +105,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
                       onClick={() => handleOrgSwitch(org.orgId)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
                         isSelected
-                          ? 'bg-indigo-600/20 text-indigo-300'
-                          : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                          ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                     >
                       <div className="truncate pr-2">
                         <div className="truncate font-semibold">{org.orgName}</div>
                         <div className="text-[10px] text-slate-400">{org.orgRole}</div>
                       </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
                     </button>
                   );
                 })}
@@ -134,16 +134,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
         <div className="relative" ref={userDropdownRef}>
           <button
             onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-            className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-800/60 transition-colors select-none"
+            className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-100 transition-colors select-none"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center font-bold text-xs text-white shadow-sm shadow-indigo-500/20">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-600 flex items-center justify-center font-bold text-xs text-white shadow-sm shadow-indigo-600/20">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="hidden md:block text-left text-xs">
-              <div className="font-semibold text-slate-200 truncate max-w-[120px]">
+              <div className="font-semibold text-slate-800 truncate max-w-[120px]">
                 {user?.name || 'User Profile'}
               </div>
-              <div className="text-[10px] text-slate-400">
+              <div className="text-[10px] text-slate-500">
                 {activeOrg?.orgRole || 'Auditor'}
               </div>
             </div>
@@ -152,12 +152,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
 
           {/* User menu dropdown */}
           {isUserDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-52 glass-panel bg-slate-900/98 border border-slate-750 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-2 border-b border-slate-800">
-                <div className="text-xs font-semibold text-slate-200 truncate">
+            <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3 py-2 border-b border-slate-100">
+                <div className="text-xs font-semibold text-slate-800 truncate">
                   {user?.name || 'User'}
                 </div>
-                <div className="text-[11px] text-slate-400 truncate">{user?.email}</div>
+                <div className="text-[11px] text-slate-500 truncate">{user?.email}</div>
               </div>
 
               <div className="p-1 space-y-0.5">
@@ -166,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
                     setIsUserDropdownOpen(false);
                     router.push('/settings/profile');
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors text-left"
                 >
                   <User className="w-3.5 h-3.5 text-slate-400" />
                   Account Settings
@@ -175,19 +175,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
                   href="/api/v1/health"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors text-left"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                   API Health
                 </a>
               </div>
 
-              <div className="p-1 border-t border-slate-800">
+              <div className="p-1 border-t border-slate-100">
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors text-left"
                 >
-                  <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                  <LogOut className="w-3.5 h-3.5 text-rose-600" />
                   Sign Out
                 </button>
               </div>

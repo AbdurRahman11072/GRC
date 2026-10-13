@@ -14,6 +14,7 @@ import type {
 } from '../../types/auth.types';
 
 export const authApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     // 1. User login (returns accessToken + user + organizations)
     login: builder.mutation<ApiResponse<ILoginResponseData>, ILoginPayload>({
@@ -100,7 +101,12 @@ export const authApi = baseApi.injectEndpoints({
               isActive: raw.isActive !== undefined ? !!raw.isActive : true,
               createdAt: raw.createdAt || new Date().toISOString(),
               updatedAt: raw.updatedAt || new Date().toISOString(),
+              projectMemberships: raw.projectMemberships || [],
             };
+
+            if (raw.user && raw.projectMemberships && !userProfile.projectMemberships) {
+              userProfile.projectMemberships = raw.projectMemberships;
+            }
 
             const orgList: IUserOrgMembership[] =
               raw.organizations ||

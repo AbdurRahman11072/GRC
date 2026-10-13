@@ -35,7 +35,7 @@ export default function LoginPage() {
   });
 
   return (
-    <Card className="border border-slate-800 bg-slate-900/90 shadow-2xl backdrop-blur-xl">
+    <Card className="border border-slate-200 bg-white/95 shadow-xl backdrop-blur-xl">
       <CardHeader>
         <CardTitle className="text-xl">Sign in to your account</CardTitle>
         <CardDescription>
@@ -114,12 +114,12 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <div className="mt-6 pt-5 border-t border-slate-800/80 text-center">
-          <p className="text-xs text-slate-400">
+        <div className="mt-6 pt-5 border-t border-slate-200 text-center">
+          <p className="text-xs text-slate-500">
             Need to onboard an audit firm or enterprise?{' '}
             <Link
               href="/register"
-              className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+              className="text-cyan-700 hover:text-cyan-800 font-medium transition-colors"
             >
               Register Organization
             </Link>

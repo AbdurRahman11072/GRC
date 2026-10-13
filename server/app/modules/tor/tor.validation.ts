@@ -13,6 +13,7 @@ export const createTorValidationSchema = z.object({
       .min(2, 'ToR title must be at least 2 characters')
       .max(300, 'ToR title must not exceed 300 characters'),
     description: z.string().optional().nullable(),
+    department: z.string().optional().nullable(),
     sortOrder: z.number().int().optional(),
   }),
 });
@@ -56,6 +57,7 @@ export const updateTorValidationSchema = z.object({
       .max(300, 'ToR title must not exceed 300 characters')
       .optional(),
     description: z.string().optional().nullable(),
+    department: z.string().optional().nullable(),
     sortOrder: z.number().int().optional(),
   }),
 });
@@ -67,7 +69,7 @@ export const deleteTorValidationSchema = z.object({
 });
 
 export const streamWeightItemSchema = z.object({
-  streamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
+  streamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
   dataCollectionAllocated: z
     .number()
     .min(0, 'Data collection allocated marks must be >= 0'),
@@ -100,7 +102,7 @@ export const getStreamWeightsValidationSchema = z.object({
 export const deleteStreamWeightValidationSchema = z.object({
   params: z.object({
     id: z.string().uuid('Invalid ToR ID format'),
-    streamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
+    streamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
   }),
 });
 

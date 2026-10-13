@@ -153,6 +153,21 @@ const loginUser = async (payload: ILoginPayload): Promise<ILoginResponse> => {
           },
         },
       },
+      projectMemberships: {
+        select: {
+          id: true,
+          projectId: true,
+          teamBucket: true,
+          project: {
+            select: {
+              id: true,
+              projectName: true,
+              projectType: true,
+              status: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -193,6 +208,7 @@ const loginUser = async (payload: ILoginPayload): Promise<ILoginResponse> => {
     isActive: user.isActive,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    projectMemberships: user.projectMemberships as any,
   };
 
   const organizations: IUserOrgMembership[] = user.orgMemberships.map((membership) => ({
@@ -267,7 +283,6 @@ const getMe = async (userId: string) => {
           id: true,
           projectId: true,
           teamBucket: true,
-          departmentId: true,
           project: {
             select: {
               id: true,

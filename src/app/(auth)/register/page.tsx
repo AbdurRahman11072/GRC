@@ -54,7 +54,7 @@ export default function RegisterPage() {
   });
 
   return (
-    <Card className="border border-slate-800 bg-slate-900/90 shadow-2xl backdrop-blur-xl">
+    <Card className="border border-slate-200 bg-white/95 shadow-xl backdrop-blur-xl">
       <CardHeader>
         <CardTitle className="text-xl">Register Organization & Owner</CardTitle>
         <CardDescription>
@@ -79,8 +79,8 @@ export default function RegisterPage() {
           className="space-y-4"
         >
           {/* Organization Details */}
-          <div className="space-y-3 pb-2 border-b border-slate-800/80">
-            <h4 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+          <div className="space-y-3 pb-2 border-b border-slate-200">
+            <h4 className="text-xs font-semibold text-cyan-700 uppercase tracking-wider">
               1. Organization Profile
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -141,7 +141,7 @@ export default function RegisterPage() {
 
           {/* Lead User Account */}
           <div className="space-y-3 pt-1">
-            <h4 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+            <h4 className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">
               2. Owner Account Details
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -234,12 +234,12 @@ export default function RegisterPage() {
           </div>
         </form>
 
-        <div className="mt-6 pt-5 border-t border-slate-800/80 text-center">
-          <p className="text-xs text-slate-400">
+        <div className="mt-6 pt-5 border-t border-slate-200 text-center">
+          <p className="text-xs text-slate-500">
             Already have an active tenant?{' '}
             <Link
               href="/login"
-              className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+              className="text-cyan-700 hover:text-cyan-800 font-medium transition-colors"
             >
               Sign In
             </Link>

@@ -1,0 +1,65 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import { Shell } from '../../../components/layout/Shell';
+import { WorkspaceHeader, WorkspaceTab } from '../../../components/projects/workspace/WorkspaceHeader';
+import { TabOverview } from '../../../components/projects/workspace/TabOverview';
+import { TabEntities } from '../../../components/projects/workspace/TabEntities';
+import { TabToR } from '../../../components/projects/workspace/TabToR';
+import { TabDRT } from '../../../components/projects/workspace/TabDRT';
+import { TabTeam } from '../../../components/projects/workspace/TabTeam';
+import { useGetProjectByIdQuery } from '../../../store/api/projectApi';
+
+export default function ProjectWorkspacePage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const projectId = params?.id as string;
+
+  const initialTab = (searchParams?.get('tab') as WorkspaceTab) || 'overview';
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
+
+  const { data: projectData, isLoading, error } = useGetProjectByIdQuery(projectId, {
+    skip: !projectId,
+  });
+  const project = projectData?.data;
+
+  return (
+    <Shell>
+      <div className="space-y-6 max-w-7xl mx-auto">
+        {isLoading ? (
+          <div className="py-20 text-center text-xs text-slate-500">
+            Loading audit project workspace...
+          </div>
+        ) : error || !project ? (
+          <div className="py-20 text-center space-y-2">
+            <h2 className="text-base font-semibold text-slate-200">
+              Audit Project Not Found
+            </h2>
+            <p className="text-xs text-slate-400">
+              The requested audit project workspace does not exist or access is restricted.
+            </p>
+          </div>
+        ) : (
+          <>
+            <WorkspaceHeader
+              project={project}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+
+            <div className="pt-2">
+              {activeTab === 'overview' && (
+                <TabOverview project={project} onNavigateTab={setActiveTab} />
+              )}
+              {activeTab === 'entities' && <TabEntities project={project} />}
+              {activeTab === 'tors' && <TabToR projectId={projectId} />}
+              {activeTab === 'drt' && <TabDRT projectId={projectId} />}
+              {activeTab === 'team' && <TabTeam projectId={projectId} />}
+            </div>
+          </>
+        )}
+      </div>
+    </Shell>
+  );
+}

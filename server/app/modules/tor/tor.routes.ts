@@ -97,5 +97,53 @@ router.delete(
   TorController.deleteTorStreamWeight
 );
 
+// -----------------------------------------------------------------------------
+// ToR Member Assignment & Document Submission (DRT Evidence)
+// -----------------------------------------------------------------------------
+
+// Assign member to ToR
+router.post(
+  '/:id/members',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  TorController.assignMemberToTor
+);
+
+// Assign Tri-Party Members (Org, Client, Auditee) & Deadline
+router.post(
+  '/:id/assign-trio',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  TorController.assignTrioMembers
+);
+
+// Remove member from ToR
+router.delete(
+  '/:id/members/:userId',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  TorController.removeMemberFromTor
+);
+
+// Submit document against ToR (checks ToR assignment or admin)
+router.post(
+  '/:id/documents',
+  authMiddleware(),
+  tenantMiddleware(),
+  TorController.submitTorDocument
+);
+
+// Update document review status
+router.patch(
+  '/:id/documents/:docId/status',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  TorController.updateDocumentStatus
+);
+
 export const TorRoutes = router;
 export default router;

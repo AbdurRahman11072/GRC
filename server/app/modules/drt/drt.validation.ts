@@ -7,8 +7,8 @@ export const createTicketValidationSchema = z.object({
       .string()
       .min(1, 'Request code is required (e.g. M1001, S2001)')
       .max(50, 'Request code must not exceed 50 characters'),
-    assignedTeamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
-    departmentId: z.string().uuid('Invalid department ID format').optional().nullable(),
+    assignedTeamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
+    department: z.string().optional().nullable(),
     description: z
       .string()
       .min(2, 'Description must be at least 2 characters'),
@@ -40,8 +40,8 @@ export const getTicketsValidationSchema = z.object({
     search: z.string().optional(),
     lifecycleStatus: z.enum(['OPEN', 'SUBMITTED', 'REVISION_REQUESTED', 'ACCEPTED']).optional(),
     reviewStatus: z.enum(['PENDING', 'PARTIAL', 'DONE', 'NOT_AVAILABLE', 'NOT_APPLICABLE']).optional(),
-    assignedTeamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']).optional(),
-    departmentId: z.string().uuid().optional(),
+    assignedTeamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']).optional(),
+    department: z.string().optional(),
     torId: z.string().uuid().optional(),
   }),
 });
@@ -67,9 +67,9 @@ export const updateTicketValidationSchema = z.object({
       .min(2, 'Description must be at least 2 characters')
       .optional(),
     assignedTeamBucket: z
-      .enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM'])
+      .enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE'])
       .optional(),
-    departmentId: z.string().uuid('Invalid department ID format').optional().nullable(),
+    department: z.string().optional().nullable(),
     dateOfRequest: z
       .string()
       .datetime()

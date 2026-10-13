@@ -13,6 +13,8 @@
     "mg": "npx prisma migrate dev",
     "ge": "npx prisma generate",
     "push": "npx prisma db push",
+    "db:reset": "npx prisma migrate reset --force --skip-seed && npx prisma db push",
+    "migrate:reset": "npx prisma migrate reset --force --skip-seed && npx prisma db push",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.server.json --noEmit",
     "postinstall": "prisma generate"
   },

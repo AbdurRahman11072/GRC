@@ -86,7 +86,7 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
         <form.Field name="entityType">
           {(field) => (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
                 Entity Category
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -95,14 +95,14 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
                   onClick={() => field.handleChange('CLIENT')}
                   className={`p-3 rounded-lg border text-left flex items-start gap-2.5 transition-all ${
                     field.state.value === 'CLIENT'
-                      ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-500/30'
-                      : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500/30'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <Shield className="w-4 h-4 mt-0.5 text-indigo-400 shrink-0" />
+                  <Shield className="w-4 h-4 mt-0.5 text-indigo-600 shrink-0" />
                   <div>
-                    <div className="text-xs font-semibold text-slate-200">Client (Regulator)</div>
-                    <div className="text-[10px] text-slate-400">e.g. BTRC or Oversight Body</div>
+                    <div className="text-xs font-semibold text-slate-900">Client (Regulator)</div>
+                    <div className="text-[10px] text-slate-500">e.g. BTRC or Oversight Body</div>
                   </div>
                 </button>
 
@@ -111,14 +111,14 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
                   onClick={() => field.handleChange('AUDITEE')}
                   className={`p-3 rounded-lg border text-left flex items-start gap-2.5 transition-all ${
                     field.state.value === 'AUDITEE'
-                      ? 'border-cyan-500 bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/30'
-                      : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700'
+                      ? 'border-cyan-500 bg-cyan-50 text-cyan-700 ring-1 ring-cyan-500/30'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <Building2 className="w-4 h-4 mt-0.5 text-cyan-400 shrink-0" />
+                  <Building2 className="w-4 h-4 mt-0.5 text-cyan-600 shrink-0" />
                   <div>
-                    <div className="text-xs font-semibold text-slate-200">Auditee (Operator)</div>
-                    <div className="text-[10px] text-slate-400">e.g. Fiber@Home Ltd</div>
+                    <div className="text-xs font-semibold text-slate-900">Auditee (Operator)</div>
+                    <div className="text-[10px] text-slate-500">e.g. Fiber@Home Ltd</div>
                   </div>
                 </button>
               </div>
@@ -174,7 +174,7 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
         </form.Field>
 
         {/* Modal Action Buttons */}
-        <div className="pt-4 border-t border-slate-800/80 flex items-center justify-end gap-3">
+        <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>

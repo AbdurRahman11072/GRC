@@ -31,7 +31,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+            className="block text-xs font-semibold uppercase tracking-wider text-slate-700"
           >
             {label}
           </label>
@@ -45,10 +45,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
-            className={`w-full bg-slate-900/90 border rounded-lg px-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 transition-colors focus:outline-none focus:ring-1 ${
+            className={`w-full bg-white border rounded-lg px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-1 ${
               error
-                ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/40 text-rose-100'
-                : 'border-slate-800 focus:border-indigo-500/80 focus:ring-indigo-500/40'
+                ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 text-rose-900'
+                : 'border-slate-200 focus:border-indigo-600 focus:ring-indigo-600/20'
             } ${leftIcon ? 'pl-10' : ''} ${rightIcon ? 'pr-10' : ''} ${className}`}
             {...props}
           />
@@ -59,7 +59,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error ? (
-          <p className="text-xs text-rose-400 font-medium tracking-tight">{error}</p>
+          <p className="text-xs text-rose-600 font-medium tracking-tight">{error}</p>
         ) : helperText ? (
           <p className="text-xs text-slate-500">{helperText}</p>
         ) : null}

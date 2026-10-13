@@ -13,7 +13,7 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
       {/* Sidebar navigation */}
       <Sidebar
         isCollapsed={isCollapsed}

@@ -12,10 +12,10 @@ export const SidebarUserProfile: React.FC<SidebarUserProfileProps> = ({ isCollap
   const { user } = useAppSelector((state) => state.auth);
 
   return (
-    <div className="p-3 border-t border-slate-800 shrink-0">
+    <div className="p-3 border-t border-slate-200 shrink-0">
       <Link
         href="/settings/profile"
-        className={`flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800/60 transition-colors ${
+        className={`flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 transition-colors ${
           isCollapsed ? 'justify-center' : ''
         }`}
       >
@@ -24,10 +24,10 @@ export const SidebarUserProfile: React.FC<SidebarUserProfileProps> = ({ isCollap
         </div>
         {!isCollapsed && (
           <div className="truncate">
-            <div className="text-xs font-medium text-slate-200 truncate">
+            <div className="text-xs font-medium text-slate-800 truncate">
               {user?.name || 'Authenticated User'}
             </div>
-            <div className="text-[10px] text-slate-400 truncate">
+            <div className="text-[10px] text-slate-500 truncate">
               {user?.email || 'user@firm.com'}
             </div>
           </div>

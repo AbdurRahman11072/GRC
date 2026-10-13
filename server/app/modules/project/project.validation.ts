@@ -133,9 +133,13 @@ export const addMemberValidationSchema = z.object({
     id: z.string().uuid('Invalid project ID format'),
   }),
   body: z.object({
-    userId: z.string().uuid('Invalid user ID format'),
-    teamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
-    departmentId: z.string().uuid('Invalid department ID format').optional(),
+    userId: z.string().uuid('Invalid user ID format').optional(),
+    name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+    email: z.string().email('Invalid email address').optional(),
+    password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+    designation: z.string().optional(),
+    phone: z.string().optional(),
+    teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
   }),
 });
 
@@ -148,8 +152,7 @@ export const batchAddMembersValidationSchema = z.object({
       .array(
         z.object({
           userId: z.string().uuid('Invalid user ID format'),
-          teamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']),
-          departmentId: z.string().uuid('Invalid department ID format').optional(),
+          teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
         })
       )
       .min(1, 'At least one member is required'),
@@ -161,8 +164,7 @@ export const getMembersValidationSchema = z.object({
     id: z.string().uuid('Invalid project ID format'),
   }),
   query: z.object({
-    teamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']).optional(),
-    departmentId: z.string().uuid().optional(),
+    teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']).optional(),
   }),
 });
 
@@ -172,8 +174,7 @@ export const updateMemberValidationSchema = z.object({
     memberId: z.string().uuid('Invalid member ID format'),
   }),
   body: z.object({
-    teamBucket: z.enum(['ORG_TEAM_1', 'ORG_TEAM_2', 'CLIENT_TEAM', 'AUDITEE_TEAM']).optional(),
-    departmentId: z.string().uuid('Invalid department ID format').optional().nullable(),
+    teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']).optional(),
   }),
 });
 

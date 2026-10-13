@@ -5,13 +5,14 @@ export interface IProject {
   projectType: string;
   clientId: string;
   auditeeId: string;
-  client?: { id: string; name: string; code?: string | null };
-  auditee?: { id: string; name: string; code?: string | null };
+  client?: ICrmEntity;
+  auditee?: ICrmEntity;
   startDate?: string | null;
   endDate?: string | null;
   projectObjective?: string | null;
   projectScope?: string | null;
   status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD';
+  members?: IProjectMember[];
   createdAt: string;
   updatedAt: string;
 }
@@ -46,4 +47,68 @@ export interface ICreateCrmEntityPayload {
   address?: string;
   website?: string;
   phone?: string;
+}
+
+export type ProjectRole = 'ADMINISTRATOR' | 'ORG_MEMBER' | 'CLIENT' | 'AUDITEE';
+
+export interface IProjectDepartment {
+  id: string;
+  projectId: string;
+  name: string;
+  code: string;
+  description?: string | null;
+  createdAt: string;
+}
+
+export interface IProjectMember {
+  id: string;
+  projectId: string;
+  userId: string;
+  teamBucket: ProjectRole;
+  user?: { id: string; name: string; email: string; designation?: string | null };
+  provisionedPassword?: string;
+  createdAt: string;
+}
+
+export interface IAddProjectMemberPayload {
+  projectId: string;
+  userId?: string;
+  name?: string;
+  email?: string;
+  password?: string;
+  designation?: string;
+  phone?: string;
+  teamBucket: ProjectRole;
+  departmentId?: string | null;
+}
+
+export interface IDRTTicket {
+  id: string;
+  projectId: string;
+  requestCode: string;
+  assignedTeamBucket: ProjectRole;
+  department?: string | null;
+  description: string;
+  dateOfRequest?: string | null;
+  expectedDateOfReceipt?: string | null;
+  allocatedWeight?: number | null;
+  workflowStatus: 'OPEN' | 'SUBMITTED' | 'REVISION_REQUESTED' | 'ACCEPTED';
+  reviewOutcome: 'PENDING' | 'PARTIAL' | 'DONE' | 'NOT_AVAILABLE' | 'NOT_APPLICABLE';
+  excessDays: number;
+  isOverdue: boolean;
+  tors?: Array<{ torId: string; tor?: { id: string; code: string; title: string; department?: string | null } }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ICreateDRTTicketPayload {
+  projectId: string;
+  requestCode: string;
+  assignedTeamBucket: ProjectRole;
+  department?: string | null;
+  description: string;
+  dateOfRequest?: string;
+  expectedDateOfReceipt?: string;
+  allocatedWeight?: number;
+  torIds?: string[];
 }

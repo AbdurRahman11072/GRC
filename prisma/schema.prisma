@@ -33,6 +33,8 @@ model User {
   orgMemberships     OrganizationMember[]
   projectMemberships ProjectMember[]
   createdTors        Tor[]                @relation("TorCreator")
+  torAssignments     TorMemberAssignment[]
+  torDocuments       TorDocument[]
   drtSubmissions     DRTSubmission[]
   drtComments        DRTComment[]
   activityLogs       SystemActivityLog[]
@@ -142,7 +144,6 @@ model Project {
   client            EntityCRM               @relation("ProjectClient", fields: [clientId], references: [id])
   auditee           EntityCRM               @relation("ProjectAuditee", fields: [auditeeId], references: [id])
   members           ProjectMember[]
-  departments       ProjectDepartment[]
   tors              Tor[]
   drtTickets        DRTTicket[]
   assessmentPeriods AssessmentPeriod[]
@@ -157,26 +158,10 @@ model Project {
 }
 
 enum TeamBucket {
-  ORG_TEAM_1
-  ORG_TEAM_2
-  CLIENT_TEAM
-  AUDITEE_TEAM
-}
-
-model ProjectDepartment {
-  id          String   @id @default(uuid())
-  projectId   String
-  name        String   // e.g. "Marketing", "Sales", "Engineering", "IT", "Legal", "Finance"
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  members    ProjectMember[]
-  drtTickets DRTTicket[]
-
-  @@unique([projectId, name])
-  @@index([projectId])
+  ADMINISTRATOR
+  ORG_MEMBER
+  CLIENT
+  AUDITEE
 }
 
 model ProjectMember {
@@ -184,13 +169,11 @@ model ProjectMember {
   projectId    String
   userId       String
   teamBucket   TeamBucket
-  departmentId String?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
   project    Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  department ProjectDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, userId])
   @@index([projectId])
@@ -208,28 +191,66 @@ model Tor {
   code        String   // e.g., "1.1", "1.1.2"
   title       String
   description String?
-  sortOrder   Int      @default(0)
-  createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  department         String?   // Target auditee department to ask for specific DRT data (e.g., IT, Network, Billing, Legal)
+  submissionDeadline DateTime? // Deadline for document submission
+  sortOrder          Int       @default(0)
+  createdById        String
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent        Tor?              @relation("TorHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children      Tor[]             @relation("TorHierarchy")
-  creator       User              @relation("TorCreator", fields: [createdById], references: [id])
-  streamWeights TorStreamWeight[]
-  drtMappings   DRTTicketToR[]
-  findings      AuditFinding[]
+  project         Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent          Tor?                  @relation("TorHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children        Tor[]                 @relation("TorHierarchy")
+  creator         User                  @relation("TorCreator", fields: [createdById], references: [id])
+  streamWeights   TorStreamWeight[]
+  assignedMembers TorMemberAssignment[]
+  documents       TorDocument[]
+  drtMappings     DRTTicketToR[]
+  findings        AuditFinding[]
 
   @@index([projectId])
   @@index([parentId])
   @@index([code])
 }
 
+model TorMemberAssignment {
+  id        String   @id @default(uuid())
+  torId     String
+  userId    String
+  createdAt DateTime @default(now())
+
+  tor  Tor  @relation(fields: [torId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([torId, userId])
+  @@index([torId])
+  @@index([userId])
+}
+
+model TorDocument {
+  id           String   @id @default(uuid())
+  torId        String
+  uploadedById String
+  fileName     String
+  fileUrl      String?
+  fileSize     Int?
+  fileType     String?
+  notes        String?
+  status       String   @default("SUBMITTED") // SUBMITTED, ACCEPTED, REVISION_REQUESTED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tor        Tor  @relation(fields: [torId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([torId])
+  @@index([uploadedById])
+}
+
 model TorStreamWeight {
   id                         String     @id @default(uuid())
   torId                      String
-  streamBucket               TeamBucket // CLIENT_TEAM_1 or CLIENT_TEAM_2
+  streamBucket               TeamBucket // Stream bucket
   dataCollectionAllocated    Float      @default(0.0)
   dataAnalysisAllocated      Float      @default(0.0)
   dataAnalysisObtained       Float      @default(0.0)
@@ -261,8 +282,8 @@ model DRTTicket {
   id                    String             @id @default(uuid())
   projectId             String
   requestCode           String             // e.g., "M1001", "L1001"
-  assignedTeamBucket    TeamBucket         // CLIENT_TEAM_1 or CLIENT_TEAM_2
-  departmentId          String?
+  assignedTeamBucket    TeamBucket         // AUDITEE or CLIENT
+  department            String?            // Target auditee department
   description           String
   dateOfRequest         DateTime?
   expectedDateOfReceipt DateTime?
@@ -275,7 +296,6 @@ model DRTTicket {
   updatedAt             DateTime           @updatedAt
 
   project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  department     ProjectDepartment?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   torMappings    DRTTicketToR[]
   periodStatuses DRTTicketPeriodStatus[]
   submissions    DRTSubmission[]
@@ -284,7 +304,7 @@ model DRTTicket {
   @@unique([projectId, requestCode])
   @@index([projectId])
   @@index([assignedTeamBucket])
-  @@index([departmentId])
+  @@index([department])
   @@index([lifecycleStatus])
   @@index([reviewStatus])
 }

@@ -12,7 +12,7 @@ export interface ICreateTicketPayload {
   projectId: string;
   requestCode: string;
   assignedTeamBucket: TeamBucket;
-  departmentId?: string | null;
+  department?: string | null;
   description: string;
   dateOfRequest?: string;
   expectedDateOfReceipt?: string;
@@ -24,7 +24,7 @@ export interface IUpdateTicketPayload {
   requestCode?: string;
   description?: string;
   assignedTeamBucket?: TeamBucket;
-  departmentId?: string | null;
+  department?: string | null;
   dateOfRequest?: string | null;
   expectedDateOfReceipt?: string | null;
   allocatedWeight?: number;
@@ -37,7 +37,7 @@ export interface IDRTQueryOptions {
   lifecycleStatus?: DRTLifecycleStatus;
   reviewStatus?: DRTReviewStatus;
   assignedTeamBucket?: TeamBucket;
-  departmentId?: string;
+  department?: string;
   torId?: string;
 }
 
@@ -70,38 +70,6 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
     );
   }
 
-  // Validate departmentId if provided
-  if (payload.departmentId) {
-    const validDept = await prisma.projectDepartment.findFirst({
-      where: { id: payload.departmentId, projectId: payload.projectId },
-    });
-
-    if (!validDept) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        'Specified department does not exist in this project'
-      );
-    }
-  }
-
-  // Validate torIds if provided
-  if (payload.torIds && payload.torIds.length > 0) {
-    const existingTors = await prisma.tor.findMany({
-      where: {
-        id: { in: payload.torIds },
-        projectId: payload.projectId,
-      },
-      select: { id: true },
-    });
-
-    if (existingTors.length !== payload.torIds.length) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        'One or more specified ToR IDs do not exist in this project'
-      );
-    }
-  }
-
   // Create ticket in transaction with initial ToR mappings
   const ticket = await prisma.$transaction(async (tx) => {
     const createdTicket = await tx.dRTTicket.create({
@@ -109,7 +77,7 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
         projectId: payload.projectId,
         requestCode,
         assignedTeamBucket: payload.assignedTeamBucket,
-        departmentId: payload.departmentId || null,
+        department: payload.department ? payload.department.trim() : null,
         description: payload.description.trim(),
         dateOfRequest: payload.dateOfRequest ? new Date(payload.dateOfRequest) : new Date(),
         expectedDateOfReceipt: payload.expectedDateOfReceipt
@@ -170,8 +138,8 @@ const getTickets = async (
     whereClause.assignedTeamBucket = options.assignedTeamBucket;
   }
 
-  if (options.departmentId) {
-    whereClause.departmentId = options.departmentId;
+  if (options.department) {
+    whereClause.department = options.department;
   }
 
   if (options.torId) {
@@ -196,12 +164,6 @@ const getTickets = async (
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        department: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
         torMappings: {
           select: {
             tor: {
@@ -252,13 +214,6 @@ const getTicketById = async (orgId: string, id: string) => {
           orgId: true,
           projectName: true,
           status: true,
-        },
-      },
-      department: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
         },
       },
       torMappings: {
@@ -346,20 +301,6 @@ const updateTicket = async (
     }
   }
 
-  // Validate departmentId if updated
-  if (payload.departmentId && payload.departmentId !== existingTicket.departmentId) {
-    const validDept = await prisma.projectDepartment.findFirst({
-      where: { id: payload.departmentId, projectId: existingTicket.projectId },
-    });
-
-    if (!validDept) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        'Specified department does not exist in this project'
-      );
-    }
-  }
-
   const updated = await prisma.dRTTicket.update({
     where: { id },
     data: {
@@ -368,7 +309,7 @@ const updateTicket = async (
       ...(payload.assignedTeamBucket !== undefined
         ? { assignedTeamBucket: payload.assignedTeamBucket }
         : {}),
-      ...(payload.departmentId !== undefined ? { departmentId: payload.departmentId } : {}),
+      ...(payload.department !== undefined ? { department: payload.department ? payload.department.trim() : null } : {}),
       ...(payload.dateOfRequest !== undefined
         ? { dateOfRequest: payload.dateOfRequest ? new Date(payload.dateOfRequest) : null }
         : {}),

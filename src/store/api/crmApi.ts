@@ -3,6 +3,7 @@ import type { ApiResponse } from '../../types/auth.types';
 import type { ICrmEntity, ICreateCrmEntityPayload } from '../../types/project.types';
 
 export const crmApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     getEntities: builder.query<
       ApiResponse<ICrmEntity[]>,
@@ -29,7 +30,19 @@ export const crmApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['CRM'],
     }),
+
+    updateEntity: builder.mutation<
+      ApiResponse<ICrmEntity>,
+      { id: string; body: Partial<ICreateCrmEntityPayload> }
+    >({
+      query: ({ id, body }) => ({
+        url: `/crm/entities/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['CRM', 'Project'],
+    }),
   }),
 });
 
-export const { useGetEntitiesQuery, useCreateEntityMutation } = crmApi;
+export const { useGetEntitiesQuery, useCreateEntityMutation, useUpdateEntityMutation } = crmApi;

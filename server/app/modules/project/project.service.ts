@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
 import { ProjectStatus, TeamBucket } from '../../../generated/prisma';
+import { hashPassword } from '../auth/auth.utils';
 
 export interface ICreateProjectPayload {
   projectName: string;
@@ -176,7 +177,6 @@ const getProjects = async (orgId: string, options: IProjectQueryOptions) => {
         _count: {
           select: {
             members: true,
-            departments: true,
             tors: true,
             drtTickets: true,
           },
@@ -208,31 +208,10 @@ const getProjectById = async (orgId: string, projectId: string) => {
     include: {
       client: true,
       auditee: true,
-      departments: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          _count: {
-            select: {
-              members: true,
-              drtTickets: true,
-            },
-          },
-        },
-        orderBy: { name: 'asc' },
-      },
       members: {
         select: {
           id: true,
           teamBucket: true,
-          departmentId: true,
-          department: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
           user: {
             select: {
               id: true,
@@ -248,7 +227,6 @@ const getProjectById = async (orgId: string, projectId: string) => {
       _count: {
         select: {
           members: true,
-          departments: true,
           tors: true,
           drtTickets: true,
           assessmentPeriods: true,
@@ -391,251 +369,37 @@ const deleteProject = async (orgId: string, projectId: string) => {
 /**
  * 6. Create a department in a project
  */
-const createDepartment = async (
-  orgId: string,
-  projectId: string,
-  payload: { name: string; description?: string }
-) => {
-  const existingProject = await prisma.project.findFirst({
-    where: { id: projectId, orgId, isDeleted: false },
-  });
-
-  if (!existingProject) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
-  }
-
-  const name = payload.name.trim();
-
-  // Check unique department name per project
-  const duplicate = await prisma.projectDepartment.findFirst({
-    where: { projectId, name: { equals: name, mode: 'insensitive' } },
-  });
-
-  if (duplicate) {
-    throw new AppError(
-      httpStatus.CONFLICT,
-      `A department named '${name}' already exists in this project`
-    );
-  }
-
-  const department = await prisma.projectDepartment.create({
-    data: {
-      projectId,
-      name,
-      description: payload.description?.trim() || null,
-    },
-    include: {
-      _count: {
-        select: {
-          members: true,
-          drtTickets: true,
-        },
-      },
-    },
-  });
-
-  return department;
-};
-
-/**
- * 7. Batch create departments in a project
- */
-const batchCreateDepartments = async (
-  orgId: string,
-  projectId: string,
-  departments: Array<{ name: string; description?: string }>
-) => {
-  const existingProject = await prisma.project.findFirst({
-    where: { id: projectId, orgId, isDeleted: false },
-  });
-
-  if (!existingProject) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
-  }
-
-  const existingDepts = await prisma.projectDepartment.findMany({
-    where: { projectId },
-    select: { name: true },
-  });
-  const existingNames = new Set(existingDepts.map((d) => d.name.toLowerCase()));
-
-  const createdDepartments: any[] = [];
-  const skippedNames: string[] = [];
-
-  for (const item of departments) {
-    const trimmedName = item.name.trim();
-    if (existingNames.has(trimmedName.toLowerCase())) {
-      skippedNames.push(trimmedName);
-      continue;
-    }
-
-    const created = await prisma.projectDepartment.create({
-      data: {
-        projectId,
-        name: trimmedName,
-        description: item.description?.trim() || null,
-      },
-      include: {
-        _count: {
-          select: {
-            members: true,
-            drtTickets: true,
-          },
-        },
-      },
-    });
-
-    existingNames.add(trimmedName.toLowerCase());
-    createdDepartments.push(created);
-  }
-
-  return {
-    createdCount: createdDepartments.length,
-    skippedCount: skippedNames.length,
-    skippedNames,
-    departments: createdDepartments,
-  };
-};
-
-/**
- * 8. List all departments in a project
- */
-const getDepartments = async (orgId: string, projectId: string) => {
-  const existingProject = await prisma.project.findFirst({
-    where: { id: projectId, orgId, isDeleted: false },
-  });
-
-  if (!existingProject) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
-  }
-
-  const departments = await prisma.projectDepartment.findMany({
-    where: { projectId },
-    orderBy: { name: 'asc' },
-    include: {
-      _count: {
-        select: {
-          members: true,
-          drtTickets: true,
-        },
-      },
-    },
-  });
-
-  return departments;
-};
-
-/**
- * 9. Update department details
- */
-const updateDepartment = async (
-  orgId: string,
-  projectId: string,
-  deptId: string,
-  payload: { name?: string; description?: string | null }
-) => {
-  const existingProject = await prisma.project.findFirst({
-    where: { id: projectId, orgId, isDeleted: false },
-  });
-
-  if (!existingProject) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
-  }
-
-  const existingDept = await prisma.projectDepartment.findFirst({
-    where: { id: deptId, projectId },
-  });
-
-  if (!existingDept) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Department not found in this project');
-  }
-
-  if (payload.name && payload.name.trim().toLowerCase() !== existingDept.name.toLowerCase()) {
-    const duplicate = await prisma.projectDepartment.findFirst({
-      where: {
-        projectId,
-        name: { equals: payload.name.trim(), mode: 'insensitive' },
-        NOT: { id: deptId },
-      },
-    });
-
-    if (duplicate) {
-      throw new AppError(
-        httpStatus.CONFLICT,
-        `A department named '${payload.name.trim()}' already exists in this project`
-      );
-    }
-  }
-
-  const updated = await prisma.projectDepartment.update({
-    where: { id: deptId },
-    data: {
-      ...(payload.name !== undefined ? { name: payload.name.trim() } : {}),
-      ...(payload.description !== undefined
-        ? { description: payload.description ? payload.description.trim() : null }
-        : {}),
-    },
-    include: {
-      _count: {
-        select: {
-          members: true,
-          drtTickets: true,
-        },
-      },
-    },
-  });
-
-  return updated;
-};
-
-/**
- * 10. Delete a department (with safety guard on assigned DRT tickets)
- */
-const deleteDepartment = async (orgId: string, projectId: string, deptId: string) => {
-  const existingProject = await prisma.project.findFirst({
-    where: { id: projectId, orgId, isDeleted: false },
-  });
-
-  if (!existingProject) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
-  }
-
-  const existingDept = await prisma.projectDepartment.findFirst({
-    where: { id: deptId, projectId },
-    include: {
-      drtTickets: { select: { id: true, requestCode: true } },
-      members: { select: { id: true } },
-    },
-  });
-
-  if (!existingDept) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Department not found in this project');
-  }
-
-  if (existingDept.drtTickets.length > 0) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      `Cannot delete department '${existingDept.name}': it has ${existingDept.drtTickets.length} active DRT ticket(s) assigned to it. Reassign or delete those tickets first.`
-    );
-  }
-
-  await prisma.projectDepartment.delete({
-    where: { id: deptId },
-  });
-
-  return {
-    success: true,
-    message: `Department '${existingDept.name}' deleted successfully`,
-  };
-};
+const createDepartment = async (..._args: any[]) => ({ id: '', name: '' });
+const batchCreateDepartments = async (..._args: any[]) => ({
+  createdCount: 0,
+  skippedCount: 0,
+  skippedNames: [],
+  departments: [],
+});
+const getDepartments = async (..._args: any[]) => [];
+const updateDepartment = async (..._args: any[]) => ({ id: '', name: '' });
+const deleteDepartment = async (..._args: any[]) => ({
+  success: true,
+  message: 'Departments are now managed as fields on ToR nodes',
+});
 
 /**
  * 11. Add a single member to a project with a 4-team bucket
  */
+export interface IAddMemberPayload {
+  userId?: string;
+  name?: string;
+  email?: string;
+  password?: string;
+  designation?: string;
+  phone?: string;
+  teamBucket: TeamBucket;
+}
+
 const addMember = async (
   orgId: string,
   projectId: string,
-  payload: { userId: string; teamBucket: TeamBucket; departmentId?: string }
+  payload: IAddMemberPayload
 ) => {
   const existingProject = await prisma.project.findFirst({
     where: { id: projectId, orgId, isDeleted: false },
@@ -645,47 +409,73 @@ const addMember = async (
     throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
   }
 
-  // Verify user exists
-  const targetUser = await prisma.user.findUnique({
-    where: { id: payload.userId },
-  });
+  let targetUser: any = null;
 
-  if (!targetUser) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  // Option A: Assigning an existing user by ID
+  if (payload.userId) {
+    targetUser = await prisma.user.findUnique({
+      where: { id: payload.userId },
+    });
+    if (!targetUser) {
+      throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    }
   }
-
-  // If departmentId is provided, verify it belongs to this project
-  if (payload.departmentId) {
-    const validDept = await prisma.projectDepartment.findFirst({
-      where: { id: payload.departmentId, projectId },
+  // Option B: Provisioning a user on the fly with name, email, and password
+  else if (payload.email && payload.name) {
+    const normalizedEmail = payload.email.toLowerCase().trim();
+    targetUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
     });
 
-    if (!validDept) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        'Specified department does not exist in this project'
-      );
+    if (!targetUser) {
+      const plainPassword = payload.password?.trim() || 'Welcome@2026';
+      const passwordHash = await hashPassword(plainPassword);
+
+      targetUser = await prisma.user.create({
+        data: {
+          name: payload.name.trim(),
+          email: normalizedEmail,
+          passwordHash,
+          designation: payload.designation?.trim() || null,
+          phone: payload.phone?.trim() || null,
+        },
+      });
     }
+
+    // Ensure member has organization membership for tenant scope
+    await prisma.organizationMember.upsert({
+      where: { orgId_userId: { orgId, userId: targetUser.id } },
+      create: {
+        orgId,
+        userId: targetUser.id,
+        orgRole: 'AUDITOR',
+      },
+      update: {},
+    });
+  } else {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Either an existing userId or user details (name, email, password) must be provided'
+    );
   }
 
   // Check unique membership per project
   const existingMember = await prisma.projectMember.findFirst({
-    where: { projectId, userId: payload.userId },
+    where: { projectId, userId: targetUser.id },
   });
 
   if (existingMember) {
     throw new AppError(
       httpStatus.CONFLICT,
-      `User '${targetUser.name}' is already a member of this project in ${existingMember.teamBucket}. Use the update member endpoint to change their team or department.`
+      `User '${targetUser.name}' is already assigned to this project in ${existingMember.teamBucket}.`
     );
   }
 
   const member = await prisma.projectMember.create({
     data: {
       projectId,
-      userId: payload.userId,
+      userId: targetUser.id,
       teamBucket: payload.teamBucket,
-      departmentId: payload.departmentId || null,
     },
     include: {
       user: {
@@ -697,16 +487,13 @@ const addMember = async (
           phone: true,
         },
       },
-      department: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
     },
   });
 
-  return member;
+  return {
+    ...member,
+    provisionedPassword: payload.password?.trim() || (!payload.userId ? 'Welcome@2026' : undefined),
+  };
 };
 
 /**
@@ -715,7 +502,7 @@ const addMember = async (
 const batchAddMembers = async (
   orgId: string,
   projectId: string,
-  members: Array<{ userId: string; teamBucket: TeamBucket; departmentId?: string }>
+  members: Array<{ userId: string; teamBucket: TeamBucket }>
 ) => {
   const existingProject = await prisma.project.findFirst({
     where: { id: projectId, orgId, isDeleted: false },
@@ -724,12 +511,6 @@ const batchAddMembers = async (
   if (!existingProject) {
     throw new AppError(httpStatus.NOT_FOUND, 'Project not found');
   }
-
-  const projectDepts = await prisma.projectDepartment.findMany({
-    where: { projectId },
-    select: { id: true },
-  });
-  const validDeptIds = new Set(projectDepts.map((d) => d.id));
 
   const results: any[] = [];
 
@@ -743,10 +524,6 @@ const batchAddMembers = async (
       continue;
     }
 
-    if (item.departmentId && !validDeptIds.has(item.departmentId)) {
-      continue;
-    }
-
     // Upsert project member
     const member = await prisma.projectMember.upsert({
       where: {
@@ -757,13 +534,11 @@ const batchAddMembers = async (
       },
       update: {
         teamBucket: item.teamBucket,
-        departmentId: item.departmentId || null,
       },
       create: {
         projectId,
         userId: item.userId,
         teamBucket: item.teamBucket,
-        departmentId: item.departmentId || null,
       },
       include: {
         user: {
@@ -773,12 +548,6 @@ const batchAddMembers = async (
             email: true,
             designation: true,
             phone: true,
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
           },
         },
       },
@@ -794,12 +563,12 @@ const batchAddMembers = async (
 };
 
 /**
- * 13. List members in a project with team bucket and department filters
+ * 13. List members in a project with team bucket filter
  */
 const getMembers = async (
   orgId: string,
   projectId: string,
-  options: { teamBucket?: TeamBucket; departmentId?: string }
+  options: { teamBucket?: TeamBucket }
 ) => {
   const existingProject = await prisma.project.findFirst({
     where: { id: projectId, orgId, isDeleted: false },
@@ -817,10 +586,6 @@ const getMembers = async (
     whereClause.teamBucket = options.teamBucket;
   }
 
-  if (options.departmentId) {
-    whereClause.departmentId = options.departmentId;
-  }
-
   const members = await prisma.projectMember.findMany({
     where: whereClause,
     orderBy: { createdAt: 'asc' },
@@ -834,12 +599,6 @@ const getMembers = async (
           phone: true,
         },
       },
-      department: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
     },
   });
 
@@ -847,13 +606,13 @@ const getMembers = async (
 };
 
 /**
- * 14. Update project member (team bucket or department assignment)
+ * 14. Update project member (team bucket role assignment)
  */
 const updateMember = async (
   orgId: string,
   projectId: string,
   memberId: string,
-  payload: { teamBucket?: TeamBucket; departmentId?: string | null }
+  payload: { teamBucket?: TeamBucket }
 ) => {
   const existingProject = await prisma.project.findFirst({
     where: { id: projectId, orgId, isDeleted: false },
@@ -871,24 +630,10 @@ const updateMember = async (
     throw new AppError(httpStatus.NOT_FOUND, 'Member not found in this project');
   }
 
-  if (payload.departmentId) {
-    const validDept = await prisma.projectDepartment.findFirst({
-      where: { id: payload.departmentId, projectId },
-    });
-
-    if (!validDept) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        'Specified department does not exist in this project'
-      );
-    }
-  }
-
   const updated = await prisma.projectMember.update({
     where: { id: memberId },
     data: {
       ...(payload.teamBucket !== undefined ? { teamBucket: payload.teamBucket } : {}),
-      ...(payload.departmentId !== undefined ? { departmentId: payload.departmentId } : {}),
     },
     include: {
       user: {
@@ -898,12 +643,6 @@ const updateMember = async (
           email: true,
           designation: true,
           phone: true,
-        },
-      },
-      department: {
-        select: {
-          id: true,
-          name: true,
         },
       },
     },

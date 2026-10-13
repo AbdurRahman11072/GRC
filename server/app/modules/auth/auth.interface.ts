@@ -9,6 +9,18 @@ export interface IAuthTokens {
   refreshToken: string;
 }
 
+export interface IUserProjectMembership {
+  id: string;
+  projectId: string;
+  teamBucket: string;
+  project?: {
+    id: string;
+    projectName: string;
+    projectType: string;
+    status: string;
+  };
+}
+
 export interface IUserProfile {
   id: string;
   email: string;
@@ -20,6 +32,7 @@ export interface IUserProfile {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  projectMemberships?: IUserProjectMembership[];
 }
 
 export interface ILoginPayload {
