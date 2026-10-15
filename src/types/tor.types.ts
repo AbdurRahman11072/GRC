@@ -40,6 +40,7 @@ export interface ITorNode {
   code: string;
   title: string;
   description?: string | null;
+  objective?: string | null;
   department?: string | null;
   sortOrder: number;
   submissionDeadline?: string | null;
@@ -70,6 +71,7 @@ export interface ICreateTorPayload {
   code: string;
   title: string;
   description?: string | null;
+  objective?: string | null;
   department?: string | null;
   sortOrder?: number;
 }

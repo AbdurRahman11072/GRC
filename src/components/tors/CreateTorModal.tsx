@@ -33,6 +33,7 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
     defaultValues: {
       code: '',
       title: '',
+      objective: '',
       description: '',
       department: '',
       parentId: defaultParentId || '',
@@ -54,6 +55,7 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
           projectId,
           code: value.code.trim(),
           title: value.title.trim(),
+          objective: value.objective ? value.objective.trim() : undefined,
           description: value.description.trim() || undefined,
           department: value.department ? value.department.trim() : undefined,
           parentId: value.parentId ? value.parentId : null,
@@ -78,7 +80,7 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Add ToR Node (WBS Activity)"
+      title="Add ToR"
       description="Create a Terms of Reference clause or activity within the hierarchical audit scope"
       size="md"
     >
@@ -101,7 +103,7 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
           {(field) => (
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Parent Hierarchy Node
+                Parent ToR
               </label>
               <select
                 value={field.state.value}
@@ -126,7 +128,7 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
               {(field) => (
                 <FormField
                   field={field}
-                  label="Clause / WBS Code *"
+                  label="Tor Code "
                   placeholder="e.g. 1.1 or 2.1.3"
                   required
                 />
@@ -153,9 +155,21 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
           {(field) => (
             <FormField
               field={field}
-              label="Activity / Clause Title *"
+              label="ToR title"
               placeholder="e.g. Core Network Architecture & Redundancy"
               required
+            />
+          )}
+        </form.Field>
+
+        {/* Objective */}
+        <form.Field name="objective">
+          {(field) => (
+            <FormTextarea
+              field={field}
+              label="ToR Objective"
+              placeholder="e.g. Verify regulatory conformance, reliability, and compliance standards..."
+              rows={2}
             />
           )}
         </form.Field>
@@ -165,9 +179,9 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
           {(field) => (
             <FormTextarea
               field={field}
-              label="Scope & Audit Guidance Notes"
+              label="ToR Scope"
               placeholder="Detailed guidelines on what evidence and analysis are required for this ToR item..."
-              rows={3}
+              rows={2}
             />
           )}
         </form.Field>
@@ -177,7 +191,7 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
           {(field) => (
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Target Auditee Department (For DRT Data)
+                Target Auditee Department
               </label>
               <input
                 list="tor-dept-suggestions"

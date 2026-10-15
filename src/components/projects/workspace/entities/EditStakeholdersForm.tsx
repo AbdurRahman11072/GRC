@@ -159,7 +159,7 @@ export const EditStakeholdersForm: React.FC<EditStakeholdersFormProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <EntityFormFields
-          title="Client (Regulator / Commission)"
+          title="Client (Regulator / Authority)"
           badgeText="CLIENT CONFIGURATION"
           badgeVariant="indigo"
           icon={<Shield className="w-4 h-4 text-indigo-600" />}

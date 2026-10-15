@@ -16,6 +16,7 @@ export interface ICreateTorPayload {
   code: string;
   title: string;
   description?: string | null;
+  objective?: string | null;
   department?: string | null;
   sortOrder?: number;
 }
@@ -25,6 +26,7 @@ export interface IUpdateTorPayload {
   code?: string;
   title?: string;
   description?: string | null;
+  objective?: string | null;
   department?: string | null;
   sortOrder?: number;
 }
@@ -36,6 +38,7 @@ export interface ITorTreeNode {
   code: string;
   title: string;
   description: string | null;
+  objective?: string | null;
   department: string | null;
   submissionDeadline?: Date | null;
   sortOrder: number;
@@ -91,6 +94,7 @@ const createTor = async (
       code: payload.code.trim(),
       title: payload.title.trim(),
       description: payload.description?.trim() || null,
+      objective: payload.objective?.trim() || null,
       department: payload.department?.trim() || null,
       sortOrder: payload.sortOrder ?? 0,
       createdById,
@@ -387,6 +391,9 @@ const updateTor = async (
       ...(payload.title !== undefined ? { title: payload.title.trim() } : {}),
       ...(payload.description !== undefined
         ? { description: payload.description ? payload.description.trim() : null }
+        : {}),
+      ...(payload.objective !== undefined
+        ? { objective: payload.objective ? payload.objective.trim() : null }
         : {}),
       ...(payload.department !== undefined
         ? { department: payload.department ? payload.department.trim() : null }

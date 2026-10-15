@@ -57,10 +57,10 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
   const statusLabel = isAccepted
     ? 'ACCEPTED'
     : hasRevision
-    ? 'REVISION_REQUESTED'
-    : hasDocs
-    ? 'SUBMITTED'
-    : 'NOT_SHARED';
+      ? 'REVISION_REQUESTED'
+      : hasDocs
+        ? 'SUBMITTED'
+        : 'NOT_SHARED';
 
   // Format submission deadline
   const deadlineInfo = useMemo(() => {
@@ -103,10 +103,10 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
                 statusLabel === 'ACCEPTED'
                   ? 'success'
                   : statusLabel === 'REVISION_REQUESTED'
-                  ? 'danger'
-                  : statusLabel === 'SUBMITTED'
-                  ? 'indigo'
-                  : 'neutral'
+                    ? 'danger'
+                    : statusLabel === 'SUBMITTED'
+                      ? 'indigo'
+                      : 'neutral'
               }
               size="xs"
               dot
@@ -124,11 +124,10 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
             {/* Submission Deadline Chip */}
             {deadlineInfo && (
               <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${
-                  deadlineInfo.isPast && statusLabel !== 'ACCEPTED'
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${deadlineInfo.isPast && statusLabel !== 'ACCEPTED'
                     ? 'bg-rose-50 text-rose-700 border-rose-200 font-semibold'
                     : 'bg-slate-50 text-slate-600 border-slate-200'
-                }`}
+                  }`}
                 title={`Submission Deadline: ${deadlineInfo.dateStr}`}
               >
                 {deadlineInfo.isPast && statusLabel !== 'ACCEPTED' ? (
@@ -136,7 +135,7 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
                 ) : (
                   <Clock className="w-3 h-3 text-slate-400" />
                 )}
-                {deadlineInfo.isPast && statusLabel !== 'ACCEPTED' ? 'Overdue: ' : 'Due: '}
+                {deadlineInfo.isPast && statusLabel !== 'ACCEPTED' ? 'Overdue: ' : 'Expected : '}
                 {deadlineInfo.dateStr}
               </span>
             )}
@@ -155,33 +154,30 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
           <div className="flex items-center gap-1.5">
             <span
               title={`Org Auditor (Uploads): ${orgMember?.user?.name || orgMember?.user?.email || 'Unassigned'}`}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${
-                orgMember
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${orgMember
                   ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                   : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
-              }`}
+                }`}
             >
               Org: {orgMember?.user?.name?.split(' ')[0] || (orgMember ? 'Assigned' : 'None')}
             </span>
 
             <span
               title={`Client Regulator: ${clientMember?.user?.name || clientMember?.user?.email || 'Unassigned'}`}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${
-                clientMember
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${clientMember
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
-              }`}
+                }`}
             >
               Client: {clientMember?.user?.name?.split(' ')[0] || (clientMember ? 'Assigned' : 'None')}
             </span>
 
             <span
               title={`Auditee Focal: ${auditeeMember?.user?.name || auditeeMember?.user?.email || 'Unassigned'}`}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${
-                auditeeMember
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${auditeeMember
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
-              }`}
+                }`}
             >
               Auditee: {auditeeMember?.user?.name?.split(' ')[0] || (auditeeMember ? 'Assigned' : 'None')}
             </span>

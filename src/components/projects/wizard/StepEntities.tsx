@@ -29,7 +29,7 @@ export const StepEntities: React.FC<StepEntitiesProps> = ({
           <div className="flex items-center gap-2 pb-2 border-b border-cyan-200">
             <Building className="w-4 h-4 text-cyan-700" />
             <h4 className="text-xs font-bold text-cyan-900 uppercase tracking-wider">
-              Client Entity (Regulator / Commission)
+              Client Entity (Regulator / Authority)
             </h4>
           </div>
 
@@ -51,7 +51,7 @@ export const StepEntities: React.FC<StepEntitiesProps> = ({
             {(field: any) => (
               <FormField
                 field={field}
-                label="Client / Commission Name"
+                label="Client / Authority Name"
                 placeholder="e.g. Bangladesh Telecommunication Regulatory Commission (BTRC)"
                 required
               />

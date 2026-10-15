@@ -191,6 +191,7 @@ model Tor {
   code        String   // e.g., "1.1", "1.1.2"
   title       String
   description String?
+  objective   String?   // Audit objective for this ToR clause/activity
   department         String?   // Target auditee department to ask for specific DRT data (e.g., IT, Network, Billing, Legal)
   submissionDeadline DateTime? // Deadline for document submission
   sortOrder          Int       @default(0)

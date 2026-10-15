@@ -89,6 +89,11 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
               ) : null}
             </div>
 
+            {node.objective && (
+              <p className="text-xs text-indigo-700/90 font-medium line-clamp-1">
+                <span className="font-semibold text-indigo-900">Objective:</span> {node.objective}
+              </p>
+            )}
             {node.description && (
               <p className="text-xs text-slate-500 line-clamp-1">
                 {node.description}

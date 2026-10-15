@@ -19,7 +19,7 @@ export const StepScope: React.FC<StepScopeProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      {/* Title & Engagement Type Row */}
+      {/* 1. Title & Engagement Type Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
           <form.Field name="projectName">
@@ -27,7 +27,7 @@ export const StepScope: React.FC<StepScopeProps> = ({
             {(field: any) => (
               <FormField
                 field={field}
-                label="Project Workspace Title"
+                label="Audit Title"
                 placeholder="e.g. BTRC & Fiber@Home IS Audit (2016–2026 Data)"
                 required
               />
@@ -40,7 +40,7 @@ export const StepScope: React.FC<StepScopeProps> = ({
             {(field: any) => (
               <FormField
                 field={field}
-                label="Audit Engagement Type"
+                label="Audit Type"
                 placeholder="e.g. Information Systems Audit"
               />
             )}
@@ -48,7 +48,55 @@ export const StepScope: React.FC<StepScopeProps> = ({
         </div>
       </div>
 
-      {/* Audit Historical Data Coverage Range (e.g. 2016–2026) */}
+      {/* 2. Audit Objective */}
+      <div>
+        <form.Field name="projectObjective">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => (
+            <FormTextarea
+              field={field}
+              label="Audit Objective"
+              placeholder="e.g. Validate regulatory conformance, license conditions, and revenue assurance for BTRC."
+              rows={2}
+              helperText="Core goals, regulatory mandate, and expected outcome of the audit engagement."
+            />
+          )}
+        </form.Field>
+      </div>
+
+      {/* 3. Audit Summary (Scope) */}
+      <div>
+        <form.Field name="projectScope">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => (
+            <FormTextarea
+              field={field}
+              label="Audit Summary"
+              placeholder="Comprehensive IS audit covering operational, infrastructure, billing, and regulatory compliance review."
+              rows={2}
+              helperText="High-level summary of functional and operational audit areas."
+            />
+          )}
+        </form.Field>
+      </div>
+
+      {/* 4. Audit Start Date & End Date */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form.Field name="startDate">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => (
+            <FormField field={field} label="Audit Start Date" type="date" />
+          )}
+        </form.Field>
+        <form.Field name="endDate">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => (
+            <FormField field={field} label="Audit End Date" type="date" />
+          )}
+        </form.Field>
+      </div>
+
+      {/* 5. Historical Data Coverage Date Range (e.g. 2016–2026) */}
       <div className="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200 space-y-3">
         <div className="flex items-center gap-2">
           <CalendarRange className="w-4 h-4 text-indigo-600" />
@@ -96,51 +144,6 @@ export const StepScope: React.FC<StepScopeProps> = ({
             <strong className="text-cyan-950 font-semibold">{auditStartYear} through {auditEndYear}</strong>.
           </span>
         </div>
-      </div>
-
-      {/* Audit Engagement Execution Dates */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <form.Field name="startDate">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <FormField field={field} label="Audit Engagement Start Date" type="date" />
-          )}
-        </form.Field>
-        <form.Field name="endDate">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <FormField field={field} label="Audit Engagement End Date" type="date" />
-          )}
-        </form.Field>
-      </div>
-
-      {/* Scope & Objective in 2-Column Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <form.Field name="projectScope">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <FormTextarea
-              field={field}
-              label="Audit Scope Summary"
-              placeholder="Operational, infrastructure, billing, and regulatory compliance review."
-              rows={3}
-              helperText="High-level scope of functional and operational audit areas."
-            />
-          )}
-        </form.Field>
-
-        <form.Field name="projectObjective">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <FormTextarea
-              field={field}
-              label="Audit Project Objective"
-              placeholder="e.g. Validate regulatory conformance, license conditions, and revenue assurance for BTRC."
-              rows={3}
-              helperText="Core goals, mandate, and expected outcome of the audit engagement."
-            />
-          )}
-        </form.Field>
       </div>
     </div>
   );

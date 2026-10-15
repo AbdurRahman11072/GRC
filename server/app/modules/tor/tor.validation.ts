@@ -13,6 +13,7 @@ export const createTorValidationSchema = z.object({
       .min(2, 'ToR title must be at least 2 characters')
       .max(300, 'ToR title must not exceed 300 characters'),
     description: z.string().optional().nullable(),
+    objective: z.string().optional().nullable(),
     department: z.string().optional().nullable(),
     sortOrder: z.number().int().optional(),
   }),
@@ -57,6 +58,7 @@ export const updateTorValidationSchema = z.object({
       .max(300, 'ToR title must not exceed 300 characters')
       .optional(),
     description: z.string().optional().nullable(),
+    objective: z.string().optional().nullable(),
     department: z.string().optional().nullable(),
     sortOrder: z.number().int().optional(),
   }),
