@@ -34,7 +34,8 @@ model User {
   projectMemberships ProjectMember[]
   createdTors        Tor[]                @relation("TorCreator")
   torAssignments     TorMemberAssignment[]
-  torDocuments       TorDocument[]
+  uploadedDocuments  TorDocument[]        @relation("DocUploader")
+  reviewedDocuments  TorDocument[]        @relation("DocReviewer")
   drtSubmissions     DRTSubmission[]
   drtComments        DRTComment[]
   activityLogs       SystemActivityLog[]
@@ -164,11 +165,20 @@ enum TeamBucket {
   AUDITEE
 }
 
+enum ProjectRole {
+  PROJECT_MANAGER
+  SUPERVISOR
+  FIELD_TEAM
+  CLIENT_REPRESENTATIVE
+  AUDITEE_REPRESENTATIVE
+}
+
 model ProjectMember {
   id           String             @id @default(uuid())
   projectId    String
   userId       String
   teamBucket   TeamBucket
+  projectRole  ProjectRole        @default(FIELD_TEAM)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -178,6 +188,7 @@ model ProjectMember {
   @@unique([projectId, userId])
   @@index([projectId])
   @@index([userId])
+  @@index([projectRole])
 }
 
 // -----------------------------------------------------------------------------
@@ -214,11 +225,19 @@ model Tor {
   @@index([code])
 }
 
+enum AssignmentRole {
+  SUPERVISOR
+  FIELD_MEMBER
+  CLIENT_OBSERVER
+  AUDITEE_FOCAL
+}
+
 model TorMemberAssignment {
-  id        String   @id @default(uuid())
-  torId     String
-  userId    String
-  createdAt DateTime @default(now())
+  id             String         @id @default(uuid())
+  torId          String
+  userId         String
+  assignmentRole AssignmentRole @default(FIELD_MEMBER)
+  createdAt      DateTime       @default(now())
 
   tor  Tor  @relation(fields: [torId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -226,26 +245,32 @@ model TorMemberAssignment {
   @@unique([torId, userId])
   @@index([torId])
   @@index([userId])
+  @@index([assignmentRole])
 }
 
 model TorDocument {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   torId        String
   uploadedById String
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNotes  String?
   fileName     String
   fileUrl      String?
   fileSize     Int?
   fileType     String?
   notes        String?
-  status       String   @default("SUBMITTED") // SUBMITTED, ACCEPTED, REVISION_REQUESTED
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  status       String    @default("SUBMITTED") // SUBMITTED, ACCEPTED, REVISION_REQUESTED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  tor        Tor  @relation(fields: [torId], references: [id], onDelete: Cascade)
-  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  tor        Tor   @relation(fields: [torId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation("DocUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("DocReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([torId])
   @@index([uploadedById])
+  @@index([reviewedById])
 }
 
 model TorStreamWeight {
