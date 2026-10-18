@@ -24,6 +24,7 @@ interface WorkspaceHeaderProps {
   activeTab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
   isOrgAdmin?: boolean;
+  canCreateTor?: boolean;
 }
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
@@ -31,14 +32,15 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   activeTab,
   onTabChange,
   isOrgAdmin = false,
+  canCreateTor = false,
 }) => {
   const tabs = React.useMemo(() => {
     const list: Array<{ id: WorkspaceTab; label: string; icon: React.ReactNode }> = [
       { id: 'overview', label: 'Overview & Stats', icon: <BarChart3 className="w-3.5 h-3.5" /> },
     ];
 
-    // Only administrators can manage client entities and ToR WBS hierarchy
-    if (isOrgAdmin) {
+    // Administrators and Project Managers can manage client entities and ToR WBS hierarchy
+    if (isOrgAdmin || canCreateTor) {
       list.push(
         { id: 'entities', label: 'Client & Auditee', icon: <Building2 className="w-3.5 h-3.5" /> },
         { id: 'tors', label: 'ToR WBS Tree', icon: <Layers className="w-3.5 h-3.5" /> }
@@ -51,7 +53,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
     );
 
     return list;
-  }, [isOrgAdmin]);
+  }, [isOrgAdmin, canCreateTor]);
 
   return (
     <div className="space-y-4 pb-2 border-b border-slate-200">

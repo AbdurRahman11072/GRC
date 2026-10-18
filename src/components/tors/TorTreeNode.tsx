@@ -17,6 +17,8 @@ import type { ITorNode } from '../../types/tor.types';
 export interface TorTreeNodeProps {
   node: ITorNode;
   level?: number;
+  canManageTor?: boolean;
+  canConfigureWeights?: boolean;
   onAddChild: (parentId: string) => void;
   onConfigureWeights: (node: ITorNode) => void;
   onDelete: (nodeId: string) => void;
@@ -25,6 +27,8 @@ export interface TorTreeNodeProps {
 export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
   node,
   level = 0,
+  canManageTor = true,
+  canConfigureWeights = true,
   onAddChild,
   onConfigureWeights,
   onDelete,
@@ -104,35 +108,41 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={() => onConfigureWeights(node)}
-            leftIcon={<SlidersHorizontal className="w-3 h-3 text-cyan-400" />}
-          >
-            Weights
-          </Button>
+          {canConfigureWeights && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => onConfigureWeights(node)}
+              leftIcon={<SlidersHorizontal className="w-3 h-3 text-cyan-400" />}
+            >
+              Weights
+            </Button>
+          )}
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={() => onAddChild(node.id)}
-            leftIcon={<Plus className="w-3 h-3 text-indigo-400" />}
-          >
-            Sub-clause
-          </Button>
+          {canManageTor && (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => onAddChild(node.id)}
+                leftIcon={<Plus className="w-3 h-3 text-indigo-400" />}
+              >
+                Sub-clause
+              </Button>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={() => onDelete(node.id)}
-            className="text-slate-500 hover:text-rose-400"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => onDelete(node.id)}
+                className="text-slate-500 hover:text-rose-400"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -144,6 +154,8 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
               key={child.id}
               node={child}
               level={level + 1}
+              canManageTor={canManageTor}
+              canConfigureWeights={canConfigureWeights}
               onAddChild={onAddChild}
               onConfigureWeights={onConfigureWeights}
               onDelete={onDelete}

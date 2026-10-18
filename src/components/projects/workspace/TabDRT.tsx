@@ -9,6 +9,7 @@ import { DrtTorRow } from './drt/DrtTorRow';
 import { UploadTorDocumentModal } from './drt/UploadTorDocumentModal';
 import { AssignTorMemberModal } from './drt/AssignTorMemberModal';
 import { useGetTorTreeQuery } from '../../../store/api/torApi';
+import { useGetMyProjectPermissionsQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
 import type { ITorNode } from '../../../types/tor.types';
 
@@ -31,6 +32,9 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
     currentUser?.isSuperAdmin ||
     currentOrgMembership?.orgRole === 'OWNER' ||
     currentOrgMembership?.orgRole === 'ADMIN';
+
+  const { data: permData } = useGetMyProjectPermissionsQuery(projectId);
+  const permissions = permData?.data;
 
   const { data: treeData, isLoading } = useGetTorTreeQuery(projectId);
 
@@ -173,6 +177,9 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
               tor={node}
               currentUserId={currentUser?.id}
               isOrgAdmin={isOrgAdmin}
+              canAssignDrt={permissions?.canAssignDrt}
+              canCheckDocument={permissions?.canCheckDocument}
+              canUploadDocument={permissions?.canUploadDocument}
               onOpenUpload={(tor) => setActiveUploadTor(tor)}
               onOpenAssign={(tor) => setActiveAssignTor(tor)}
             />

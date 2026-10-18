@@ -116,6 +116,18 @@ export const torApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['ToR'],
     }),
+
+    checkTorDocument: builder.mutation<
+      ApiResponse<unknown>,
+      import('../../types/tor.types').ICheckTorDocumentPayload
+    >({
+      query: ({ torId, docId, status, reviewNotes }) => ({
+        url: `/tors/${torId}/documents/${docId}/check`,
+        method: 'PATCH',
+        body: { status, reviewNotes },
+      }),
+      invalidatesTags: ['ToR'],
+    }),
   }),
 });
 
@@ -130,4 +142,5 @@ export const {
   useRemoveMemberFromTorMutation,
   useSubmitTorDocumentMutation,
   useUpdateDocumentStatusMutation,
+  useCheckTorDocumentMutation,
 } = torApi;

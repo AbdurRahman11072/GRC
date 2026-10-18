@@ -4,7 +4,7 @@ import React from 'react';
 import { FileText, CheckCircle2, RotateCcw, Clock, Download, ExternalLink } from 'lucide-react';
 import { Badge } from '../../../ui/Badge';
 import { Button } from '../../../ui/Button';
-import { useUpdateDocumentStatusMutation } from '../../../../store/api/torApi';
+import { useCheckTorDocumentMutation } from '../../../../store/api/torApi';
 import type { ITorDocument } from '../../../../types/tor.types';
 
 export interface DrtDocumentListProps {
@@ -18,11 +18,11 @@ export const DrtDocumentList: React.FC<DrtDocumentListProps> = ({
   documents = [],
   canReview = false,
 }) => {
-  const [updateStatus, { isLoading }] = useUpdateDocumentStatusMutation();
+  const [checkDocument, { isLoading }] = useCheckTorDocumentMutation();
 
-  const handleStatusChange = async (docId: string, status: string) => {
+  const handleStatusChange = async (docId: string, status: 'ACCEPTED' | 'REVISION_REQUESTED') => {
     try {
-      await updateStatus({ torId, docId, status }).unwrap();
+      await checkDocument({ torId, docId, status }).unwrap();
     } catch (err) {
       console.error('Failed to update status', err);
     }
@@ -79,10 +79,16 @@ export const DrtDocumentList: React.FC<DrtDocumentListProps> = ({
                 </p>
               )}
 
-              <div className="flex items-center gap-2 pl-6 text-[10px] text-slate-500">
+              <div className="flex items-center gap-2 pl-6 text-[10px] text-slate-500 flex-wrap">
                 <span>Uploaded by: <strong className="text-slate-700">{doc.uploadedBy?.name || 'Team Member'}</strong></span>
                 <span>•</span>
                 <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                {doc.reviewedBy && (
+                  <>
+                    <span>•</span>
+                    <span className="text-indigo-600 font-medium">Checked by: {doc.reviewedBy.name}</span>
+                  </>
+                )}
               </div>
             </div>
 

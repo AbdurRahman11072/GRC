@@ -11,6 +11,7 @@ import {
   Building2,
   Calendar,
   Shield,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
@@ -24,40 +25,26 @@ interface TabTeamProps {
   projectId: string;
 }
 
-const roleMeta: Record<
-  ProjectRole,
-  { label: string; variant: 'indigo' | 'cyan' | 'neutral' | 'success'; permissions: string; icon: React.ReactNode }
-> = {
-  ADMINISTRATOR: {
-    label: 'Administrator',
-    variant: 'indigo',
-    permissions: 'Full Admin & Management',
-    icon: <ShieldAlert className="w-3.5 h-3.5 text-indigo-600" />,
-  },
-  ORG_MEMBER: {
-    label: 'Org Member',
-    variant: 'cyan',
-    permissions: 'Evidence Upload & Analysis',
-    icon: <Briefcase className="w-3.5 h-3.5 text-cyan-700" />,
-  },
-  CLIENT: {
-    label: 'Client (Regulator)',
-    variant: 'neutral',
-    permissions: 'Read-Only Regulatory Oversight',
-    icon: <Shield className="w-3.5 h-3.5 text-amber-700" />,
-  },
-  AUDITEE: {
-    label: 'Auditee Enterprise',
-    variant: 'success',
-    permissions: 'Read-Only SLA Tracking',
-    icon: <Building2 className="w-3.5 h-3.5 text-emerald-700" />,
-  },
+const getMemberRoleMeta = (m: IProjectMember) => {
+  if (m.projectRole === 'PROJECT_MANAGER' || m.teamBucket === 'ADMINISTRATOR') {
+    return { label: 'Project Manager', variant: 'indigo' as const, permissions: 'Full Authority (ToRs, DRTs, Marks, Check)', icon: <ShieldAlert className="w-3.5 h-3.5 text-indigo-600" /> };
+  }
+  if (m.projectRole === 'SUPERVISOR') {
+    return { label: 'Supervisor', variant: 'cyan' as const, permissions: 'Verify Documents & Award Marks', icon: <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> };
+  }
+  if (m.projectRole === 'FIELD_TEAM' || m.teamBucket === 'ORG_MEMBER') {
+    return { label: 'Field Team', variant: 'success' as const, permissions: 'Evidence Upload & Progress Updates', icon: <Users className="w-3.5 h-3.5 text-emerald-600" /> };
+  }
+  if (m.projectRole === 'CLIENT_REPRESENTATIVE' || m.teamBucket === 'CLIENT') {
+    return { label: 'Client (Regulator)', variant: 'neutral' as const, permissions: 'Read-Only Regulatory Oversight', icon: <Shield className="w-3.5 h-3.5 text-amber-700" /> };
+  }
+  return { label: 'Auditee Enterprise', variant: 'success' as const, permissions: 'Read-Only SLA Tracking & Focal Point', icon: <Building2 className="w-3.5 h-3.5 text-emerald-700" /> };
 };
 
 export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<ProjectRole>('ORG_MEMBER');
-  const [filterRole, setFilterRole] = useState<string>('ALL');
+  const [filterCategory, setFilterCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
@@ -70,22 +57,28 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
 
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
-      const matchesRole = filterRole === 'ALL' || m.teamBucket === filterRole;
+      let matchesCategory = true;
+      if (filterCategory === 'MANAGERS') {
+        matchesCategory = m.projectRole === 'PROJECT_MANAGER' || m.teamBucket === 'ADMINISTRATOR';
+      } else if (filterCategory === 'SUPERVISORS') {
+        matchesCategory = m.projectRole === 'SUPERVISOR';
+      } else if (filterCategory === 'FIELD') {
+        matchesCategory = m.projectRole === 'FIELD_TEAM' || (!m.projectRole && m.teamBucket === 'ORG_MEMBER');
+      } else if (filterCategory === 'CLIENT') {
+        matchesCategory = m.projectRole === 'CLIENT_REPRESENTATIVE' || m.teamBucket === 'CLIENT';
+      } else if (filterCategory === 'AUDITEE') {
+        matchesCategory = m.projectRole === 'AUDITEE_REPRESENTATIVE' || m.teamBucket === 'AUDITEE';
+      }
+
       const name = m.user?.name?.toLowerCase() || '';
       const email = m.user?.email?.toLowerCase() || '';
       const query = searchQuery.toLowerCase().trim();
-      return matchesRole && (!query || name.includes(query) || email.includes(query));
+      return matchesCategory && (!query || name.includes(query) || email.includes(query));
     });
-  }, [members, filterRole, searchQuery]);
-
-  const handleOpenAssign = (role: ProjectRole = 'ORG_MEMBER') => {
-    setSelectedRole(role);
-    setIsModalOpen(true);
-  };
+  }, [members, filterCategory, searchQuery]);
 
   return (
     <div className="space-y-4">
-      {/* Action and Filter Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
@@ -95,29 +88,30 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search member or email..."
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 w-48 sm:w-56"
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 w-48 sm:w-56"
             />
           </div>
 
-          {/* Role Filter Pills */}
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-            {(['ALL', 'ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE'] as const).map((r) => {
-              const count = r === 'ALL' ? members.length : members.filter((m) => m.teamBucket === r).length;
-              const label =
-                r === 'ALL' ? 'All' : r === 'ADMINISTRATOR' ? 'Admin' : r === 'ORG_MEMBER' ? 'Org' : r === 'CLIENT' ? 'Client' : 'Auditee';
-              return (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setFilterRole(r)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                    filterRole === r ? 'bg-white text-indigo-700 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {label} ({count})
-                </button>
-              );
-            })}
+            {[
+              { id: 'ALL', label: 'All' },
+              { id: 'MANAGERS', label: 'Managers' },
+              { id: 'SUPERVISORS', label: 'Supervisors' },
+              { id: 'FIELD', label: 'Field' },
+              { id: 'CLIENT', label: 'Client' },
+              { id: 'AUDITEE', label: 'Auditee' },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setFilterCategory(cat.id)}
+                className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  filterCategory === cat.id ? 'bg-white text-indigo-700 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -125,7 +119,10 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => handleOpenAssign('ORG_MEMBER')}
+            onClick={() => {
+              setSelectedRole('ORG_MEMBER');
+              setIsModalOpen(true);
+            }}
             leftIcon={<UserPlus className="w-4 h-4" />}
           >
             + Add Project Member
@@ -133,7 +130,6 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
         )}
       </div>
 
-      {/* Member Table */}
       <Card className="bg-white border-slate-200 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -141,7 +137,7 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
               <tr className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-4">Member</th>
                 <th className="py-3 px-4">Official Email</th>
-                <th className="py-3 px-4">Role Bucket</th>
+                <th className="py-3 px-4">Functional Role</th>
                 <th className="py-3 px-4">Permissions & Authority</th>
                 <th className="py-3 px-4">Date Assigned</th>
               </tr>
@@ -153,7 +149,7 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
                 </tr>
               ) : filteredMembers.length > 0 ? (
                 filteredMembers.map((m: IProjectMember) => {
-                  const meta = roleMeta[m.teamBucket] || roleMeta.ORG_MEMBER;
+                  const meta = getMemberRoleMeta(m);
                   const name = m.user?.name || m.user?.email || 'Unnamed Member';
                   const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
                   const dateStr = m.createdAt ? new Date(m.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -201,20 +197,11 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
                         <Users className="w-5 h-5" />
                       </div>
                       <h4 className="text-sm font-bold text-slate-900">
-                        {searchQuery || filterRole !== 'ALL' ? 'No matching members found' : 'No project members assigned yet'}
+                        {searchQuery || filterCategory !== 'ALL' ? 'No matching members found' : 'No project members assigned yet'}
                       </h4>
                       <p className="text-xs text-slate-500">
-                        {searchQuery || filterRole !== 'ALL'
-                          ? 'Try adjusting your search query or role filter.'
-                          : 'Members assigned to this workspace will appear here.'}
+                        {searchQuery || filterCategory !== 'ALL' ? 'Try adjusting your search query or role filter.' : 'Members assigned to this workspace will appear here.'}
                       </p>
-                      {isOrgAdmin && (
-                        <div className="pt-2">
-                          <Button variant="primary" size="xs" onClick={() => handleOpenAssign('ORG_MEMBER')} leftIcon={<UserPlus className="w-3.5 h-3.5" />}>
-                            + Add First Member
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -224,7 +211,6 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
         </div>
       </Card>
 
-      {/* Member Assignment Modal (Admin Only) */}
       {isOrgAdmin && (
         <AssignMemberModal
           isOpen={isModalOpen}

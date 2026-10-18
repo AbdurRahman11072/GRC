@@ -8,6 +8,7 @@ import { TorTreeNode } from '../../tors/TorTreeNode';
 import { CreateTorModal } from '../../tors/CreateTorModal';
 import { StreamWeightModal } from '../../tors/StreamWeightModal';
 import { useGetTorTreeQuery, useDeleteTorMutation } from '../../../store/api/torApi';
+import { useGetMyProjectPermissionsQuery } from '../../../store/api/projectApi';
 import type { ITorNode } from '../../../types/tor.types';
 
 interface TabToRProps {
@@ -15,6 +16,11 @@ interface TabToRProps {
 }
 
 export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
+  const { data: permData } = useGetMyProjectPermissionsQuery(projectId);
+  const permissions = permData?.data;
+  const canManageTor = permissions ? permissions.canCreateTor : true;
+  const canConfigureWeights = permissions ? permissions.canAwardMarks : true;
+
   const { data: treeData, isLoading } = useGetTorTreeQuery(projectId);
   const rawData = treeData?.data as any;
   const treeNodes: ITorNode[] = Array.isArray(rawData)
@@ -92,14 +98,16 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
           </span>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleOpenAddRoot}
-          leftIcon={<PlusCircle className="w-4 h-4" />}
-        >
-          + Add ToR Clause
-        </Button>
+        {canManageTor && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleOpenAddRoot}
+            leftIcon={<PlusCircle className="w-4 h-4" />}
+          >
+            + Add ToR Clause
+          </Button>
+        )}
       </div>
 
       {/* Tree Node Rendering */}
@@ -113,6 +121,8 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
             <TorTreeNode
               key={rootNode.id}
               node={rootNode}
+              canManageTor={canManageTor}
+              canConfigureWeights={canConfigureWeights}
               onAddChild={handleOpenAddChild}
               onConfigureWeights={(node) => setWeightModalNode(node)}
               onDelete={handleDeleteNode}

@@ -9,7 +9,7 @@ import { TabEntities } from '../../../components/projects/workspace/TabEntities'
 import { TabToR } from '../../../components/projects/workspace/TabToR';
 import { TabDRT } from '../../../components/projects/workspace/TabDRT';
 import { TabTeam } from '../../../components/projects/workspace/TabTeam';
-import { useGetProjectByIdQuery } from '../../../store/api/projectApi';
+import { useGetProjectByIdQuery, useGetMyProjectPermissionsQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
 
 export default function ProjectWorkspacePage() {
@@ -22,15 +22,21 @@ export default function ProjectWorkspacePage() {
   const isOrgAdmin =
     user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
 
+  const { data: permData } = useGetMyProjectPermissionsQuery(projectId, {
+    skip: !projectId,
+  });
+  const permissions = permData?.data;
+  const canAccessTors = isOrgAdmin || Boolean(permissions?.canCreateTor);
+
   const initialTab = (searchParams?.get('tab') as WorkspaceTab) || 'overview';
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
 
-  // Guard: non-admins cannot access ToR WBS or Entities tabs
+  // Guard: non-admins and non-managers cannot access ToR WBS or Entities tabs
   React.useEffect(() => {
-    if (!isOrgAdmin && (activeTab === 'tors' || activeTab === 'entities')) {
+    if (!canAccessTors && (activeTab === 'tors' || activeTab === 'entities')) {
       setActiveTab('overview');
     }
-  }, [isOrgAdmin, activeTab]);
+  }, [canAccessTors, activeTab]);
 
   const { data: projectData, isLoading, error } = useGetProjectByIdQuery(projectId, {
     skip: !projectId,
@@ -60,14 +66,15 @@ export default function ProjectWorkspacePage() {
               activeTab={activeTab}
               onTabChange={setActiveTab}
               isOrgAdmin={isOrgAdmin}
+              canCreateTor={permissions?.canCreateTor}
             />
 
             <div className="pt-2">
               {activeTab === 'overview' && (
                 <TabOverview project={project} onNavigateTab={setActiveTab} />
               )}
-              {activeTab === 'entities' && isOrgAdmin && <TabEntities project={project} />}
-              {activeTab === 'tors' && isOrgAdmin && <TabToR projectId={projectId} />}
+              {activeTab === 'entities' && canAccessTors && <TabEntities project={project} />}
+              {activeTab === 'tors' && canAccessTors && <TabToR projectId={projectId} />}
               {activeTab === 'drt' && <TabDRT projectId={projectId} />}
               {activeTab === 'team' && <TabTeam projectId={projectId} />}
             </div>

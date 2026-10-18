@@ -10,6 +10,8 @@ import {
   Lock,
   Clock,
   AlertTriangle,
+  ShieldAlert,
+  Users,
 } from 'lucide-react';
 import { Card } from '../../../ui/Card';
 import { Button } from '../../../ui/Button';
@@ -21,6 +23,9 @@ export interface DrtTorRowProps {
   tor: ITorNode;
   currentUserId?: string;
   isOrgAdmin?: boolean;
+  canAssignDrt?: boolean;
+  canCheckDocument?: boolean;
+  canUploadDocument?: boolean;
   onOpenUpload: (tor: ITorNode) => void;
   onOpenAssign: (tor: ITorNode) => void;
 }
@@ -29,28 +34,37 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
   tor,
   currentUserId,
   isOrgAdmin = false,
+  canAssignDrt = false,
+  canCheckDocument = false,
+  canUploadDocument = false,
   onOpenUpload,
   onOpenAssign,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-
   const docs = tor.documents || [];
   const assigned = tor.assignedMembers || [];
 
-  // Identify Tri-Party assigned members
-  const orgMember = assigned.find(
-    (m) => m.teamBucket === 'ORG_MEMBER' || m.teamBucket === 'ADMINISTRATOR'
+  const supervisors = assigned.filter(
+    (m) => m.assignmentRole === 'SUPERVISOR' || (!m.assignmentRole && m.projectRole === 'SUPERVISOR')
   );
-  const clientMember = assigned.find((m) => m.teamBucket === 'CLIENT');
-  const auditeeMember = assigned.find((m) => m.teamBucket === 'AUDITEE');
-
-  // Rule: ONLY assigned Org team members (or Org Admins/Owners) can upload documents
-  const isAssignedOrg = Boolean(
-    currentUserId && orgMember && orgMember.userId === currentUserId
+  const fieldMembers = assigned.filter(
+    (m) =>
+      m.assignmentRole === 'FIELD_MEMBER' ||
+      (!m.assignmentRole && (m.teamBucket === 'ORG_MEMBER' || m.projectRole === 'FIELD_TEAM') &&
+        !supervisors.some((s) => s.userId === m.userId))
   );
-  const canUpload = isOrgAdmin || isAssignedOrg;
+  const clientMember = assigned.find(
+    (m) => m.assignmentRole === 'CLIENT_OBSERVER' || m.teamBucket === 'CLIENT'
+  );
+  const auditeeMember = assigned.find(
+    (m) => m.assignmentRole === 'AUDITEE_FOCAL' || m.teamBucket === 'AUDITEE'
+  );
 
-  // Determine overall status
+  const isDirectlyAssigned = Boolean(currentUserId && assigned.some((m) => m.userId === currentUserId));
+  const canUpload = isOrgAdmin || canUploadDocument || isDirectlyAssigned;
+  const canAssign = isOrgAdmin || canAssignDrt;
+  const canReview = isOrgAdmin || canCheckDocument;
+
   const hasDocs = docs.length > 0;
   const isAccepted = hasDocs && docs.every((d) => d.status === 'ACCEPTED');
   const hasRevision = hasDocs && docs.some((d) => d.status === 'REVISION_REQUESTED');
@@ -62,23 +76,17 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
         ? 'SUBMITTED'
         : 'NOT_SHARED';
 
-  // Format submission deadline
   const deadlineInfo = useMemo(() => {
     if (!tor.submissionDeadline) return null;
     const d = new Date(tor.submissionDeadline);
     if (isNaN(d.getTime())) return null;
     const isPast = d.getTime() < Date.now();
-    const dateStr = d.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     return { dateStr, isPast };
   }, [tor.submissionDeadline]);
 
   return (
     <Card className="p-4 bg-white border-slate-200 transition-all hover:border-slate-300 shadow-2xs space-y-3">
-      {/* Main Row Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="space-y-1.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -89,25 +97,10 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
             >
               {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
-
-            <Badge variant="cyan" size="xs">
-              {tor.code}
-            </Badge>
-
-            <span className="text-sm font-bold text-slate-900 truncate">
-              {tor.title}
-            </span>
-
+            <Badge variant="cyan" size="xs">{tor.code}</Badge>
+            <span className="text-sm font-bold text-slate-900 truncate">{tor.title}</span>
             <Badge
-              variant={
-                statusLabel === 'ACCEPTED'
-                  ? 'success'
-                  : statusLabel === 'REVISION_REQUESTED'
-                    ? 'danger'
-                    : statusLabel === 'SUBMITTED'
-                      ? 'indigo'
-                      : 'neutral'
-              }
+              variant={statusLabel === 'ACCEPTED' ? 'success' : statusLabel === 'REVISION_REQUESTED' ? 'danger' : statusLabel === 'SUBMITTED' ? 'indigo' : 'neutral'}
               size="xs"
               dot
             >
@@ -121,74 +114,67 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
               </span>
             )}
 
-            {/* Submission Deadline Chip */}
             {deadlineInfo && (
               <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${deadlineInfo.isPast && statusLabel !== 'ACCEPTED'
-                    ? 'bg-rose-50 text-rose-700 border-rose-200 font-semibold'
-                    : 'bg-slate-50 text-slate-600 border-slate-200'
-                  }`}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${
+                  deadlineInfo.isPast && statusLabel !== 'ACCEPTED' ? 'bg-rose-50 text-rose-700 border-rose-200 font-semibold' : 'bg-slate-50 text-slate-600 border-slate-200'
+                }`}
                 title={`Submission Deadline: ${deadlineInfo.dateStr}`}
               >
-                {deadlineInfo.isPast && statusLabel !== 'ACCEPTED' ? (
-                  <AlertTriangle className="w-3 h-3 text-rose-600" />
-                ) : (
-                  <Clock className="w-3 h-3 text-slate-400" />
-                )}
-                {deadlineInfo.isPast && statusLabel !== 'ACCEPTED' ? 'Overdue: ' : 'Expected : '}
+                {deadlineInfo.isPast && statusLabel !== 'ACCEPTED' ? <AlertTriangle className="w-3 h-3 text-rose-600" /> : <Clock className="w-3 h-3 text-slate-400" />}
+                {deadlineInfo.isPast && statusLabel !== 'ACCEPTED' ? 'Overdue: ' : 'Expected: '}
                 {deadlineInfo.dateStr}
               </span>
             )}
           </div>
 
           {tor.description && (
-            <p className="text-xs text-slate-500 line-clamp-1 pl-6">
-              {tor.description}
-            </p>
+            <p className="text-xs text-slate-500 line-clamp-1 pl-6">{tor.description}</p>
           )}
         </div>
 
-        {/* Action Controls & Assigned Member Pills */}
-        <div className="flex items-center gap-2.5 flex-wrap pl-6 lg:pl-0 shrink-0">
-          {/* Tri-Party Assignee Chips */}
-          <div className="flex items-center gap-1.5">
+        {/* Assigned Member Badges & Actions */}
+        <div className="flex items-center gap-2 flex-wrap pl-6 lg:pl-0 shrink-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Supervisors Pill */}
             <span
-              title={`Org Auditor (Uploads): ${orgMember?.user?.name || orgMember?.user?.email || 'Unassigned'}`}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${orgMember
-                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                  : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
-                }`}
+              title={`Supervisor(s): ${supervisors.map((s) => s.user?.name || s.user?.email).join(', ') || 'Unassigned'}`}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[110px] flex items-center gap-1 ${
+                supervisors.length > 0 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
+              }`}
             >
-              Org: {orgMember?.user?.name?.split(' ')[0] || (orgMember ? 'Assigned' : 'None')}
+              <ShieldAlert className="w-3 h-3 shrink-0" />
+              Sup: {supervisors.length > 0 ? (supervisors.length === 1 ? supervisors[0].user?.name?.split(' ')[0] : `${supervisors.length}`) : 'None'}
             </span>
 
+            {/* Field Team Pill */}
             <span
-              title={`Client Regulator: ${clientMember?.user?.name || clientMember?.user?.email || 'Unassigned'}`}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${clientMember
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
-                }`}
+              title={`Field Team: ${fieldMembers.map((f) => f.user?.name || f.user?.email).join(', ') || 'Unassigned'}`}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[110px] flex items-center gap-1 ${
+                fieldMembers.length > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
+              }`}
+            >
+              <Users className="w-3 h-3 shrink-0" />
+              Field: {fieldMembers.length > 0 ? (fieldMembers.length === 1 ? fieldMembers[0].user?.name?.split(' ')[0] : `${fieldMembers.length}`) : 'None'}
+            </span>
+
+            {/* Client Pill */}
+            <span
+              title={`Client: ${clientMember?.user?.name || clientMember?.user?.email || 'Unassigned'}`}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[90px] ${
+                clientMember ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
+              }`}
             >
               Client: {clientMember?.user?.name?.split(' ')[0] || (clientMember ? 'Assigned' : 'None')}
             </span>
 
-            <span
-              title={`Auditee Focal: ${auditeeMember?.user?.name || auditeeMember?.user?.email || 'Unassigned'}`}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border truncate max-w-[100px] ${auditeeMember
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-slate-50 text-slate-400 border-slate-200 border-dashed'
-                }`}
-            >
-              Auditee: {auditeeMember?.user?.name?.split(' ')[0] || (auditeeMember ? 'Assigned' : 'None')}
-            </span>
-
-            {isOrgAdmin && (
+            {canAssign && (
               <Button
                 type="button"
                 variant="ghost"
                 size="xs"
                 onClick={() => onOpenAssign(tor)}
-                className="text-slate-600 hover:text-indigo-600 ml-1"
+                className="text-slate-600 hover:text-indigo-600"
                 leftIcon={<UserPlus className="w-3 h-3" />}
               >
                 Assign
@@ -198,7 +184,7 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
 
           <div className="h-4 w-px bg-slate-200 hidden sm:block" />
 
-          {/* Upload Document Action */}
+          {/* Upload Button */}
           <div className="relative group">
             <Button
               type="button"
@@ -206,33 +192,22 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
               size="xs"
               onClick={() => canUpload && onOpenUpload(tor)}
               disabled={!canUpload}
-              leftIcon={
-                canUpload ? (
-                  <Upload className="w-3 h-3" />
-                ) : (
-                  <Lock className="w-3 h-3 text-slate-400" />
-                )
-              }
+              leftIcon={canUpload ? <Upload className="w-3 h-3" /> : <Lock className="w-3 h-3 text-slate-400" />}
             >
               {canUpload ? (hasDocs ? 'Update Document' : 'Upload Document') : 'Upload Restricted'}
             </Button>
             {!canUpload && (
               <div className="absolute right-0 bottom-full mb-1 hidden group-hover:block whitespace-nowrap px-2.5 py-1 bg-slate-900 text-slate-100 text-[10px] rounded border border-slate-700 shadow-lg z-20">
-                Only assigned Org team members can upload evidence documents
+                Only assigned Field team members, Supervisors, or Managers can upload documents
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Expanded Document List */}
       {isExpanded && (
         <div className="pt-2 border-t border-slate-100">
-          <DrtDocumentList
-            torId={tor.id}
-            documents={docs}
-            canReview={isOrgAdmin}
-          />
+          <DrtDocumentList torId={tor.id} documents={docs} canReview={canReview} />
         </div>
       )}
     </Card>

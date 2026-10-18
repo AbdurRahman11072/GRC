@@ -20,6 +20,10 @@ export interface ITorDocument {
   notes?: string | null;
   status: 'SUBMITTED' | 'ACCEPTED' | 'REVISION_REQUESTED';
   uploadedBy?: { id: string; name: string; email: string };
+  reviewedById?: string | null;
+  reviewedAt?: string | null;
+  reviewNotes?: string | null;
+  reviewedBy?: { id: string; name: string; email: string; designation?: string | null } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,7 +32,9 @@ export interface ITorMemberAssignment {
   id: string;
   torId: string;
   userId: string;
+  assignmentRole?: 'SUPERVISOR' | 'FIELD_MEMBER' | 'CLIENT_OBSERVER' | 'AUDITEE_FOCAL';
   teamBucket?: ProjectRole;
+  projectRole?: 'PROJECT_MANAGER' | 'SUPERVISOR' | 'FIELD_TEAM' | 'CLIENT_REPRESENTATIVE' | 'AUDITEE_REPRESENTATIVE';
   user?: { id: string; name: string; email: string; designation?: string | null };
   createdAt: string;
 }
@@ -59,10 +65,19 @@ export interface ITorNode {
 
 export interface IAssignTrioPayload {
   torId: string;
+  supervisorIds?: string[];
+  fieldMemberIds?: string[];
   orgMemberId?: string | null;
   clientMemberId?: string | null;
   auditeeMemberId?: string | null;
   submissionDeadline?: string | null;
+}
+
+export interface ICheckTorDocumentPayload {
+  torId: string;
+  docId: string;
+  status: 'ACCEPTED' | 'REVISION_REQUESTED';
+  reviewNotes?: string | null;
 }
 
 export interface ICreateTorPayload {
