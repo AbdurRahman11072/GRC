@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Building, ShieldCheck, Users, Mail, Phone } from 'lucide-react';
+import { useStore } from '@tanstack/react-form';
+import { Building, ShieldCheck } from 'lucide-react';
 import { FormField } from '../../form/FormField';
 import { FormSelect } from '../../form/FormSelect';
 import { Badge } from '../../ui/Badge';
@@ -20,9 +21,9 @@ export const StepEntities: React.FC<StepEntitiesProps> = ({
   auditeeEntities,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const selectedClientId = form.useStore((s: any) => s.values.selectedClientId);
+  const selectedClientId = useStore(form.store, (s: any) => s.values.selectedClientId);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const selectedAuditeeId = form.useStore((s: any) => s.values.selectedAuditeeId);
+  const selectedAuditeeId = useStore(form.store, (s: any) => s.values.selectedAuditeeId);
 
   const { data: clientContactsData } = useGetEntityContactsQuery(
     { entityId: selectedClientId },
