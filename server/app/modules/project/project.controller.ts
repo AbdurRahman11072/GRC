@@ -19,7 +19,12 @@ const createProject = asyncHandler(async (req: Request, res: Response) => {
 
 const getProjects = asyncHandler(async (req: Request, res: Response) => {
   const orgId = req.orgId!;
-  const result = await ProjectService.getProjects(orgId, req.query as any);
+  const result = await ProjectService.getProjects(
+    orgId,
+    req.query as any,
+    req.user?.userId,
+    req.orgRole
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

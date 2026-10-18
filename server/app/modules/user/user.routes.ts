@@ -30,6 +30,15 @@ router.patch(
   UserController.updateMyProfile
 );
 
+// 4. Current user changes their password
+router.post(
+  '/change-password',
+  authMiddleware(),
+  validateRequest(UserValidation.changePasswordValidationSchema),
+  UserController.changePassword
+);
+
+
 // 4. Admin updates user profile or org role
 router.patch(
   '/:id',

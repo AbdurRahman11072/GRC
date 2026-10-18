@@ -19,10 +19,18 @@ import { CreateTorModal } from '../../components/tors/CreateTorModal';
 import { StreamWeightModal } from '../../components/tors/StreamWeightModal';
 import { useGetProjectsQuery } from '../../store/api/projectApi';
 import { useGetTorTreeQuery, useDeleteTorMutation } from '../../store/api/torApi';
+import { useAppSelector } from '../../store/hooks';
 import type { ITorNode } from '../../types/tor.types';
 
 export default function TorsPage() {
-  const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery();
+  const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
+  const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
+  const isOrgAdmin =
+    user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
+
+  const { data: projectsData, isLoading: isLoadingProjects } = useGetProjectsQuery(undefined, {
+    skip: !isOrgAdmin,
+  });
   const projects = projectsData?.data || [];
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -30,7 +38,7 @@ export default function TorsPage() {
 
   const { data: treeData, isLoading: isLoadingTree } = useGetTorTreeQuery(
     activeProjectId,
-    { skip: !activeProjectId }
+    { skip: !activeProjectId || !isOrgAdmin }
   );
   const rawData = treeData?.data as any;
   const treeNodes: ITorNode[] = Array.isArray(rawData)
@@ -46,32 +54,38 @@ export default function TorsPage() {
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
   const [weightModalNode, setWeightModalNode] = useState<ITorNode | null>(null);
 
-  // Flatten tree for parent selection
-  const flattenNodes = (nodes: ITorNode[]): ITorNode[] => {
-    if (!Array.isArray(nodes)) return [];
-    let result: ITorNode[] = [];
-    nodes.forEach((n) => {
-      result.push(n);
-      if (n.children && n.children.length > 0) {
-        result = result.concat(flattenNodes(n.children));
-      }
-    });
-    return result;
-  };
-  const flatNodes = flattenNodes(treeNodes);
+  if (!isOrgAdmin) {
+    return (
+      <Shell>
+        <div className="py-24 text-center space-y-3 max-w-md mx-auto">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Building className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900">Access Restricted</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Terms of Reference (ToR) WBS structure is restricted to Organization Administrators. Please use your Dashboard to view and upload against your assigned DRT tasks.
+          </p>
+        </div>
+      </Shell>
+    );
+  }
 
-  // Macro marks calculations
+  // Flatten tree for parent selection
+  const flatNodes = React.useMemo(() => {
+    const list: ITorNode[] = [];
+    const walk = (nodes: ITorNode[]) => {
+      nodes.forEach((n) => {
+        list.push(n);
+        if (n.children?.length) walk(n.children);
+      });
+    };
+    walk(treeNodes);
+    return list;
+  }, [treeNodes]);
+
   const totalNodesCount = flatNodes.length;
-  const totalCollectionMarks = flatNodes.reduce(
-    (acc, n) =>
-      acc + (n.streamWeights || []).reduce((wAcc, w) => wAcc + (w.dataCollectionAllocated || 0), 0),
-    0
-  );
-  const totalAnalysisMarks = flatNodes.reduce(
-    (acc, n) =>
-      acc + (n.streamWeights || []).reduce((wAcc, w) => wAcc + (w.dataAnalysisAllocated || 0), 0),
-    0
-  );
+  const totalCollectionMarks = flatNodes.reduce((acc, n) => acc + (n.streamWeights || []).reduce((wA, w) => wA + (w.dataCollectionAllocated || 0), 0), 0);
+  const totalAnalysisMarks = flatNodes.reduce((acc, n) => acc + (n.streamWeights || []).reduce((wA, w) => wA + (w.dataAnalysisAllocated || 0), 0), 0);
 
   const handleOpenAddRoot = () => {
     setActiveParentId(null);

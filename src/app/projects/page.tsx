@@ -20,10 +20,16 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { useRouter } from 'next/navigation';
 import { CreateProjectModal } from '../../components/projects/CreateProjectModal';
 import { useGetProjectsQuery } from '../../store/api/projectApi';
+import { useAppSelector } from '../../store/hooks';
 
 export default function ProjectsPage() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
+  const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
+  const isOrgAdmin =
+    user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
+
   const { data: projectsData, isLoading } = useGetProjectsQuery();
   const projects = projectsData?.data || [];
 
@@ -49,14 +55,16 @@ export default function ProjectsPage() {
             </p>
           </div>
 
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => setIsModalOpen(true)}
-            leftIcon={<PlusCircle className="w-4 h-4" />}
-          >
-            New Audit Project
-          </Button>
+          {isOrgAdmin && (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setIsModalOpen(true)}
+              leftIcon={<PlusCircle className="w-4 h-4" />}
+            >
+              New Audit Project
+            </Button>
+          )}
         </div>
 
         {/* Projects Grid or Empty State Card */}

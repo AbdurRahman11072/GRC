@@ -23,20 +23,35 @@ interface WorkspaceHeaderProps {
   project: IProject;
   activeTab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
+  isOrgAdmin?: boolean;
 }
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   project,
   activeTab,
   onTabChange,
+  isOrgAdmin = false,
 }) => {
-  const tabs: Array<{ id: WorkspaceTab; label: string; icon: React.ReactNode }> = [
-    { id: 'overview', label: 'Overview & Scope', icon: <BarChart3 className="w-3.5 h-3.5" /> },
-    { id: 'entities', label: 'Client & Auditee', icon: <Building2 className="w-3.5 h-3.5" /> },
-    { id: 'tors', label: 'ToR WBS Tree', icon: <Layers className="w-3.5 h-3.5" /> },
-    { id: 'drt', label: 'DRT Requests Hub', icon: <FileCheck className="w-3.5 h-3.5" /> },
-    { id: 'team', label: 'Team Members', icon: <Users className="w-3.5 h-3.5" /> },
-  ];
+  const tabs = React.useMemo(() => {
+    const list: Array<{ id: WorkspaceTab; label: string; icon: React.ReactNode }> = [
+      { id: 'overview', label: 'Overview & Stats', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+    ];
+
+    // Only administrators can manage client entities and ToR WBS hierarchy
+    if (isOrgAdmin) {
+      list.push(
+        { id: 'entities', label: 'Client & Auditee', icon: <Building2 className="w-3.5 h-3.5" /> },
+        { id: 'tors', label: 'ToR WBS Tree', icon: <Layers className="w-3.5 h-3.5" /> }
+      );
+    }
+
+    list.push(
+      { id: 'drt', label: 'DRT Requests Hub', icon: <FileCheck className="w-3.5 h-3.5" /> },
+      { id: 'team', label: 'Team Members', icon: <Users className="w-3.5 h-3.5" /> }
+    );
+
+    return list;
+  }, [isOrgAdmin]);
 
   return (
     <div className="space-y-4 pb-2 border-b border-slate-200">

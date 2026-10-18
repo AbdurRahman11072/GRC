@@ -60,13 +60,18 @@ export const UploadTorDocumentModal: React.FC<UploadTorDocumentModalProps> = ({
   });
 
   if (!tor) return null;
+  const hasExisting = Boolean(tor.documents && tor.documents.length > 0);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Submit Evidence Document"
-      description={`Upload compliance data or document against [${tor.code}] ${tor.title}`}
+      title={hasExisting ? 'Update DRT Evidence Document' : 'Submit Evidence Document'}
+      description={
+        hasExisting
+          ? `Upload an updated version or revision for [${tor.code}] ${tor.title}`
+          : `Upload compliance data or document against [${tor.code}] ${tor.title}`
+      }
       size="md"
     >
       {errorMessage && (
@@ -75,6 +80,16 @@ export const UploadTorDocumentModal: React.FC<UploadTorDocumentModalProps> = ({
           <span>{errorMessage}</span>
         </div>
       )}
+
+      {/* Immutable Audit Trail Policy Notice */}
+      <div className="mb-3 p-2.5 rounded-lg bg-indigo-50 border border-indigo-200 text-[11px] text-indigo-900 flex items-start gap-2">
+        <FileText className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+        <span>
+          {hasExisting
+            ? 'Compliance Audit Policy: You can upload an updated version of this DRT document. Prior uploads are preserved in the permanent audit trail and cannot be deleted.'
+            : 'Compliance Audit Policy: Once uploaded or updated, documents cannot be deleted to guarantee tamper-evident regulatory compliance.'}
+        </span>
+      </div>
 
       {/* Target Department Indicator */}
       {tor.department && (
@@ -145,7 +160,7 @@ export const UploadTorDocumentModal: React.FC<UploadTorDocumentModalProps> = ({
             Cancel
           </Button>
           <Button type="submit" variant="primary" size="sm" isLoading={isLoading} leftIcon={<Upload className="w-4 h-4" />}>
-            Submit Document
+            {hasExisting ? 'Update Document' : 'Submit Document'}
           </Button>
         </div>
       </form>

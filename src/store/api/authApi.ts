@@ -164,6 +164,15 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
+
+    // 7. Change password
+    changePassword: builder.mutation<ApiResponse<{ message: string }>, { currentPassword: string; newPassword: string }>({
+      query: (payload) => ({
+        url: '/users/change-password',
+        method: 'POST',
+        body: payload,
+      }),
+    }),
   }),
 });
 
@@ -175,4 +184,6 @@ export const {
   useLogoutUserMutation,
   useCreateUserMutation,
   useUpdateMeMutation,
+  useChangePasswordMutation,
 } = authApi;
+

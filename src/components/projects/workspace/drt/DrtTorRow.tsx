@@ -214,7 +214,7 @@ export const DrtTorRow: React.FC<DrtTorRowProps> = ({
                 )
               }
             >
-              {canUpload ? 'Upload Document' : 'Upload Restricted'}
+              {canUpload ? (hasDocs ? 'Update Document' : 'Upload Document') : 'Upload Restricted'}
             </Button>
             {!canUpload && (
               <div className="absolute right-0 bottom-full mb-1 hidden group-hover:block whitespace-nowrap px-2.5 py-1 bg-slate-900 text-slate-100 text-[10px] rounded border border-slate-700 shadow-lg z-20">

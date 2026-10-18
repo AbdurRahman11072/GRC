@@ -171,7 +171,12 @@ export default function DashboardPage() {
           <AdminDashboardView projects={projects} />
         )}
         {activeRoleView === 'ORG_MEMBER' && (
-          <OrgMemberDashboardView userName={userName} projects={projects} />
+          <OrgMemberDashboardView
+            userName={userName}
+            projects={projects}
+            currentUserId={user?.id}
+            isOrgAdmin={isOrgAdmin}
+          />
         )}
         {activeRoleView === 'CLIENT' && (
           <ClientDashboardView userName={userName} projects={projects} />

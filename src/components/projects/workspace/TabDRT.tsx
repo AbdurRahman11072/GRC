@@ -49,9 +49,22 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
     return result;
   }, [treeData]);
 
+  // Base accessible nodes: Non-admin org members ONLY see DRTs assigned to them by admin
+  const accessibleNodes = useMemo(() => {
+    if (isOrgAdmin) return flatNodes;
+    return flatNodes.filter((n) =>
+      Boolean(
+        currentUser?.id &&
+          n.assignedMembers?.some(
+            (m) => m.userId === currentUser.id || m.user?.id === currentUser.id
+          )
+      )
+    );
+  }, [flatNodes, currentUser, isOrgAdmin]);
+
   // Filtered ToR items
   const filteredNodes = useMemo(() => {
-    return flatNodes.filter((n) => {
+    return accessibleNodes.filter((n) => {
       // Search query filter
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
@@ -72,19 +85,19 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
       if (filterMode === 'MY_TORS') return isAssignedToMe;
       return true;
     });
-  }, [flatNodes, searchTerm, filterMode, currentUser]);
+  }, [accessibleNodes, searchTerm, filterMode, currentUser]);
 
   // Aggregate stats
   const totalDocs = useMemo(() => {
-    return flatNodes.reduce((acc, n) => acc + (n.documents?.length || 0), 0);
-  }, [flatNodes]);
+    return accessibleNodes.reduce((acc, n) => acc + (n.documents?.length || 0), 0);
+  }, [accessibleNodes]);
 
   const acceptedDocs = useMemo(() => {
-    return flatNodes.reduce((acc, n) => {
+    return accessibleNodes.reduce((acc, n) => {
       const docs = n.documents || [];
       return acc + docs.filter((d) => d.status === 'ACCEPTED').length;
     }, 0);
-  }, [flatNodes]);
+  }, [accessibleNodes]);
 
   return (
     <div className="space-y-5">
@@ -93,7 +106,8 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
         <div className="flex items-center gap-4 text-xs text-slate-600 flex-wrap">
           <span className="flex items-center gap-1.5">
             <Layers className="w-4 h-4 text-indigo-600" />
-            Total ToR Clauses: <strong className="text-slate-900">{flatNodes.length}</strong>
+            {isOrgAdmin ? 'Total ToR Clauses: ' : 'Your Assigned DRTs: '}
+            <strong className="text-slate-900">{accessibleNodes.length}</strong>
           </span>
           <span className="flex items-center gap-1.5">
             <FileText className="w-4 h-4 text-cyan-600" />
@@ -121,10 +135,15 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
       {/* Filter Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
         {[
-          { id: 'ALL', label: `All ToRs (${flatNodes.length})` },
+          {
+            id: 'ALL',
+            label: isOrgAdmin
+              ? `All ToRs (${accessibleNodes.length})`
+              : `All Assigned DRTs (${accessibleNodes.length})`,
+          },
           { id: 'SUBMITTED', label: 'With Documents' },
           { id: 'PENDING', label: 'Pending Evidence' },
-          { id: 'MY_TORS', label: 'Assigned to Me' },
+          ...(isOrgAdmin ? [{ id: 'MY_TORS', label: 'Assigned to Me' }] : []),
         ].map((f) => (
           <button
             key={f.id}

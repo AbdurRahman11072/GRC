@@ -118,7 +118,12 @@ const createProject = async (
 /**
  * 2. List projects with pagination, search, and filters
  */
-const getProjects = async (orgId: string, options: IProjectQueryOptions) => {
+const getProjects = async (
+  orgId: string,
+  options: IProjectQueryOptions,
+  userId?: string,
+  orgRole?: string
+) => {
   const page = Math.max(1, Number(options.page) || 1);
   const limit = Math.max(1, Math.min(100, Number(options.limit) || 20));
   const skip = (page - 1) * limit;
@@ -127,6 +132,15 @@ const getProjects = async (orgId: string, options: IProjectQueryOptions) => {
     orgId,
     isDeleted: false,
   };
+
+  // If caller is an organization member (not OWNER or ADMIN), ONLY show projects they are assigned to
+  if (userId && orgRole !== 'OWNER' && orgRole !== 'ADMIN') {
+    whereClause.members = {
+      some: {
+        userId,
+      },
+    };
+  }
 
   if (options.status) {
     whereClause.status = options.status;
@@ -172,6 +186,20 @@ const getProjects = async (orgId: string, options: IProjectQueryOptions) => {
             name: true,
             entityType: true,
             website: true,
+          },
+        },
+        members: {
+          select: {
+            id: true,
+            teamBucket: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                designation: true,
+              },
+            },
           },
         },
         _count: {

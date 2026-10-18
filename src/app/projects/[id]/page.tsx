@@ -10,14 +10,27 @@ import { TabToR } from '../../../components/projects/workspace/TabToR';
 import { TabDRT } from '../../../components/projects/workspace/TabDRT';
 import { TabTeam } from '../../../components/projects/workspace/TabTeam';
 import { useGetProjectByIdQuery } from '../../../store/api/projectApi';
+import { useAppSelector } from '../../../store/hooks';
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const projectId = params?.id as string;
 
+  const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
+  const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
+  const isOrgAdmin =
+    user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
+
   const initialTab = (searchParams?.get('tab') as WorkspaceTab) || 'overview';
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
+
+  // Guard: non-admins cannot access ToR WBS or Entities tabs
+  React.useEffect(() => {
+    if (!isOrgAdmin && (activeTab === 'tors' || activeTab === 'entities')) {
+      setActiveTab('overview');
+    }
+  }, [isOrgAdmin, activeTab]);
 
   const { data: projectData, isLoading, error } = useGetProjectByIdQuery(projectId, {
     skip: !projectId,
@@ -46,14 +59,15 @@ export default function ProjectWorkspacePage() {
               project={project}
               activeTab={activeTab}
               onTabChange={setActiveTab}
+              isOrgAdmin={isOrgAdmin}
             />
 
             <div className="pt-2">
               {activeTab === 'overview' && (
                 <TabOverview project={project} onNavigateTab={setActiveTab} />
               )}
-              {activeTab === 'entities' && <TabEntities project={project} />}
-              {activeTab === 'tors' && <TabToR projectId={projectId} />}
+              {activeTab === 'entities' && isOrgAdmin && <TabEntities project={project} />}
+              {activeTab === 'tors' && isOrgAdmin && <TabToR projectId={projectId} />}
               {activeTab === 'drt' && <TabDRT projectId={projectId} />}
               {activeTab === 'team' && <TabTeam projectId={projectId} />}
             </div>

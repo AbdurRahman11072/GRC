@@ -17,6 +17,7 @@ import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
 import { AssignMemberModal } from './AssignMemberModal';
 import { useGetProjectMembersQuery } from '../../../store/api/projectApi';
+import { useAppSelector } from '../../../store/hooks';
 import type { ProjectRole, IProjectMember } from '../../../types/project.types';
 
 interface TabTeamProps {
@@ -25,12 +26,7 @@ interface TabTeamProps {
 
 const roleMeta: Record<
   ProjectRole,
-  {
-    label: string;
-    variant: 'indigo' | 'cyan' | 'neutral' | 'success';
-    permissions: string;
-    icon: React.ReactNode;
-  }
+  { label: string; variant: 'indigo' | 'cyan' | 'neutral' | 'success'; permissions: string; icon: React.ReactNode }
 > = {
   ADMINISTRATOR: {
     label: 'Administrator',
@@ -64,6 +60,11 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
   const [filterRole, setFilterRole] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
+  const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
+  const isOrgAdmin =
+    user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
+
   const { data: membersData, isLoading } = useGetProjectMembersQuery(projectId);
   const members = membersData?.data || [];
 
@@ -73,8 +74,7 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
       const name = m.user?.name?.toLowerCase() || '';
       const email = m.user?.email?.toLowerCase() || '';
       const query = searchQuery.toLowerCase().trim();
-      const matchesSearch = !query || name.includes(query) || email.includes(query);
-      return matchesRole && matchesSearch;
+      return matchesRole && (!query || name.includes(query) || email.includes(query));
     });
   }, [members, filterRole, searchQuery]);
 
@@ -104,24 +104,14 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
             {(['ALL', 'ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE'] as const).map((r) => {
               const count = r === 'ALL' ? members.length : members.filter((m) => m.teamBucket === r).length;
               const label =
-                r === 'ALL'
-                  ? 'All'
-                  : r === 'ADMINISTRATOR'
-                  ? 'Admin'
-                  : r === 'ORG_MEMBER'
-                  ? 'Org'
-                  : r === 'CLIENT'
-                  ? 'Client'
-                  : 'Auditee';
+                r === 'ALL' ? 'All' : r === 'ADMINISTRATOR' ? 'Admin' : r === 'ORG_MEMBER' ? 'Org' : r === 'CLIENT' ? 'Client' : 'Auditee';
               return (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setFilterRole(r)}
                   className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                    filterRole === r
-                      ? 'bg-white text-indigo-700 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
+                    filterRole === r ? 'bg-white text-indigo-700 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {label} ({count})
@@ -131,14 +121,16 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
           </div>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => handleOpenAssign('ORG_MEMBER')}
-          leftIcon={<UserPlus className="w-4 h-4" />}
-        >
-          + Add Project Member
-        </Button>
+        {isOrgAdmin && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => handleOpenAssign('ORG_MEMBER')}
+            leftIcon={<UserPlus className="w-4 h-4" />}
+          >
+            + Add Project Member
+          </Button>
+        )}
       </div>
 
       {/* Member Table */}
@@ -157,72 +149,41 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
             <tbody className="divide-y divide-slate-100 text-xs">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
-                    Loading project members...
-                  </td>
+                  <td colSpan={5} className="py-12 text-center text-slate-400">Loading project members...</td>
                 </tr>
               ) : filteredMembers.length > 0 ? (
                 filteredMembers.map((m: IProjectMember) => {
                   const meta = roleMeta[m.teamBucket] || roleMeta.ORG_MEMBER;
                   const name = m.user?.name || m.user?.email || 'Unnamed Member';
-                  const initials = name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .toUpperCase()
-                    .slice(0, 2);
-
-                  const dateStr = m.createdAt
-                    ? new Date(m.createdAt).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : '—';
+                  const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+                  const dateStr = m.createdAt ? new Date(m.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
                   return (
                     <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
-                      {/* Name & Initials */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 truncate">
-                              {name}
-                            </div>
-                            <div className="text-[11px] text-slate-500 truncate">
-                              {m.user?.designation || 'Team Representative'}
-                            </div>
+                            <div className="font-semibold text-slate-900 truncate">{name}</div>
+                            <div className="text-[11px] text-slate-500 truncate">{m.user?.designation || 'Team Representative'}</div>
                           </div>
                         </div>
                       </td>
-
-                      {/* Official Email */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5 text-slate-600">
                           <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span className="font-mono text-[11px] truncate">{m.user?.email || '—'}</span>
                         </div>
                       </td>
-
-                      {/* Team Bucket Badge */}
                       <td className="py-3 px-4">
                         <div className="inline-flex items-center gap-1.5">
                           {meta.icon}
-                          <Badge variant={meta.variant} size="xs">
-                            {meta.label}
-                          </Badge>
+                          <Badge variant={meta.variant} size="xs">{meta.label}</Badge>
                         </div>
                       </td>
-
-                      {/* Permissions Description */}
-                      <td className="py-3 px-4 text-slate-600 text-[11px]">
-                        {meta.permissions}
-                      </td>
-
-                      {/* Date Assigned */}
+                      <td className="py-3 px-4 text-slate-600 text-[11px]">{meta.permissions}</td>
                       <td className="py-3 px-4 text-slate-500 text-[11px] whitespace-nowrap">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-slate-400" />
@@ -240,25 +201,20 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
                         <Users className="w-5 h-5" />
                       </div>
                       <h4 className="text-sm font-bold text-slate-900">
-                        {searchQuery || filterRole !== 'ALL'
-                          ? 'No matching members found'
-                          : 'No project members assigned yet'}
+                        {searchQuery || filterRole !== 'ALL' ? 'No matching members found' : 'No project members assigned yet'}
                       </h4>
                       <p className="text-xs text-slate-500">
                         {searchQuery || filterRole !== 'ALL'
                           ? 'Try adjusting your search query or role filter.'
-                          : 'Add administrators, audit firm auditors, regulators, or auditee staff to this workspace.'}
+                          : 'Members assigned to this workspace will appear here.'}
                       </p>
-                      <div className="pt-2">
-                        <Button
-                          variant="primary"
-                          size="xs"
-                          onClick={() => handleOpenAssign('ORG_MEMBER')}
-                          leftIcon={<UserPlus className="w-3.5 h-3.5" />}
-                        >
-                          + Add First Member
-                        </Button>
-                      </div>
+                      {isOrgAdmin && (
+                        <div className="pt-2">
+                          <Button variant="primary" size="xs" onClick={() => handleOpenAssign('ORG_MEMBER')} leftIcon={<UserPlus className="w-3.5 h-3.5" />}>
+                            + Add First Member
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -268,13 +224,15 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
         </div>
       </Card>
 
-      {/* Member Assignment Modal */}
-      <AssignMemberModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        projectId={projectId}
-        defaultRole={selectedRole}
-      />
+      {/* Member Assignment Modal (Admin Only) */}
+      {isOrgAdmin && (
+        <AssignMemberModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          projectId={projectId}
+          defaultRole={selectedRole}
+        />
+      )}
     </div>
   );
 };

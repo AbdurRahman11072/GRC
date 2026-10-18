@@ -3,10 +3,6 @@ import {
   LayoutDashboard,
   FolderKanban,
   Building2,
-  Layers,
-  FileCheck,
-  GitBranch,
-  Network,
   Users,
   Settings,
   UserCircle,
@@ -41,31 +37,6 @@ export const navSections: NavSection[] = [
         name: 'CRM Directory',
         href: '/crm/entities',
         icon: Building2,
-      },
-    ],
-  },
-  {
-    title: 'Compliance Engine',
-    items: [
-      {
-        name: 'ToR Management',
-        href: '/tors',
-        icon: Layers,
-      },
-      {
-        name: 'DRT Requests',
-        href: '/drt',
-        icon: FileCheck,
-      },
-      {
-        name: '4-Team Roster',
-        href: '/team',
-        icon: GitBranch,
-      },
-      {
-        name: 'Departments',
-        href: '/departments',
-        icon: Network,
       },
     ],
   },

@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
 import { OrgRole } from '../../../generated/prisma';
+import { hashPassword, verifyPassword } from '../auth/auth.utils';
 
 export interface IUpdateProfilePayload {
   name?: string;
@@ -163,6 +164,35 @@ const updateProfile = async (userId: string, payload: IUpdateProfilePayload) => 
   });
 
   return updatedUser;
+};
+
+/**
+ * 2b. Change password for authenticated user
+ */
+const changePassword = async (
+  userId: string,
+  payload: { currentPassword: string; newPassword: string }
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  const isValid = await verifyPassword(payload.currentPassword, user.passwordHash);
+  if (!isValid) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Current password is incorrect');
+  }
+
+  const passwordHash = await hashPassword(payload.newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash },
+  });
+
+  return { message: 'Password changed successfully' };
 };
 
 /**
@@ -335,6 +365,7 @@ const getAllUsers = async (
 export const UserService = {
   getUsersByOrg,
   updateProfile,
+  changePassword,
   adminUpdateUser,
   getAllUsers,
 };

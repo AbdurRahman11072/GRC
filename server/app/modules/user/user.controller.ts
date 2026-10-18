@@ -74,9 +74,22 @@ const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const result = await UserService.changePassword(userId, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Password changed successfully',
+    data: result,
+  });
+});
+
 export const UserController = {
   getUsersByOrg,
   updateMyProfile,
+  changePassword,
   adminUpdateUser,
   getAllUsers,
 };
