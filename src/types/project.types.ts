@@ -30,6 +30,8 @@ export interface ICreateProjectPayload {
   projectManagerId?: string;
   supervisorIds?: string[];
   fieldTeamIds?: string[];
+  clientContactIds?: string[];
+  auditeeContactIds?: string[];
 }
 
 export interface ICrmEntity {

@@ -73,6 +73,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       projectManagerId: '',
       supervisorIds: [] as string[],
       fieldTeamIds: [] as string[],
+      clientContactIds: [] as string[],
+      auditeeContactIds: [] as string[],
     },
     onSubmit: async ({ value }) => {
       if (step !== 3 || Date.now() - stepChangedAtRef.current < 600) return;
@@ -112,6 +114,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           projectManagerId: value.projectManagerId || undefined,
           supervisorIds: value.supervisorIds.length > 0 ? value.supervisorIds : undefined,
           fieldTeamIds: value.fieldTeamIds.length > 0 ? value.fieldTeamIds : undefined,
+          clientContactIds: value.clientContactIds?.length > 0 ? value.clientContactIds : undefined,
+          auditeeContactIds: value.auditeeContactIds?.length > 0 ? value.auditeeContactIds : undefined,
         }).unwrap();
 
         onClose();

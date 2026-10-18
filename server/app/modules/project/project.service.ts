@@ -17,6 +17,8 @@ export interface ICreateProjectPayload {
   projectManagerId?: string;
   supervisorIds?: string[];
   fieldTeamIds?: string[];
+  clientContactIds?: string[];
+  auditeeContactIds?: string[];
 }
 
 export interface IUpdateProjectPayload {
@@ -164,6 +166,46 @@ const createProject = async (
           projectRole: 'FIELD_TEAM',
         },
       });
+    }
+  }
+
+  if (payload.clientContactIds && payload.clientContactIds.length > 0) {
+    for (const contactId of payload.clientContactIds) {
+      const contact = await prisma.entityContact.findUnique({ where: { id: contactId } });
+      if (contact && contact.userId) {
+        await prisma.projectMember.upsert({
+          where: {
+            projectId_userId: { projectId: project.id, userId: contact.userId },
+          },
+          update: { teamBucket: 'CLIENT', projectRole: 'CLIENT_REPRESENTATIVE' },
+          create: {
+            projectId: project.id,
+            userId: contact.userId,
+            teamBucket: 'CLIENT',
+            projectRole: 'CLIENT_REPRESENTATIVE',
+          },
+        });
+      }
+    }
+  }
+
+  if (payload.auditeeContactIds && payload.auditeeContactIds.length > 0) {
+    for (const contactId of payload.auditeeContactIds) {
+      const contact = await prisma.entityContact.findUnique({ where: { id: contactId } });
+      if (contact && contact.userId) {
+        await prisma.projectMember.upsert({
+          where: {
+            projectId_userId: { projectId: project.id, userId: contact.userId },
+          },
+          update: { teamBucket: 'AUDITEE', projectRole: 'AUDITEE_REPRESENTATIVE' },
+          create: {
+            projectId: project.id,
+            userId: contact.userId,
+            teamBucket: 'AUDITEE',
+            projectRole: 'AUDITEE_REPRESENTATIVE',
+          },
+        });
+      }
     }
   }
 

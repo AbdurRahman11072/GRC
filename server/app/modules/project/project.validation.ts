@@ -20,6 +20,8 @@ export const createProjectValidationSchema = z.object({
     projectManagerId: z.string().uuid('Invalid Project Manager user ID').optional(),
     supervisorIds: z.array(z.string().uuid('Invalid Supervisor user ID')).optional(),
     fieldTeamIds: z.array(z.string().uuid('Invalid Field Team user ID')).optional(),
+    clientContactIds: z.array(z.string().uuid('Invalid Client Contact ID')).optional(),
+    auditeeContactIds: z.array(z.string().uuid('Invalid Auditee Contact ID')).optional(),
   }),
 });
 
