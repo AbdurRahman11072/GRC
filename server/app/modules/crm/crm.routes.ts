@@ -55,5 +55,38 @@ router.delete(
   CRMController.deleteEntity
 );
 
+// -----------------------------------------------------------------------------
+// Entity Contacts & Department Representatives
+// -----------------------------------------------------------------------------
+
+// Add contact to CRM entity
+router.post(
+  '/entities/:id/contacts',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(CRMValidation.createContactValidationSchema),
+  CRMController.createEntityContact
+);
+
+// Get contacts of CRM entity
+router.get(
+  '/entities/:id/contacts',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(CRMValidation.getContactsValidationSchema),
+  CRMController.getEntityContacts
+);
+
+// Delete contact from CRM entity
+router.delete(
+  '/entities/:id/contacts/:contactId',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN'),
+  validateRequest(CRMValidation.deleteContactValidationSchema),
+  CRMController.deleteEntityContact
+);
+
 export const CRMRoutes = router;
 export default router;

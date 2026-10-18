@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
 import { CRMEntityType } from '../../../generated/prisma';
+import { hashPassword } from '../auth/auth.utils';
 
 export interface ICreateCRMEntityPayload {
   name: string;
@@ -208,11 +209,181 @@ const deleteEntity = async (orgId: string, entityId: string) => {
   };
 };
 
+export interface ICreateEntityContactPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  designation?: string;
+  department?: string;
+  password?: string;
+}
+
+/**
+ * 6. Create or link a focal contact / department representative for a CRM entity
+ */
+const createEntityContact = async (
+  orgId: string,
+  entityId: string,
+  payload: ICreateEntityContactPayload
+) => {
+  const entity = await prisma.entityCRM.findUnique({
+    where: { id: entityId },
+  });
+
+  if (!entity || entity.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'CRM entity not found');
+  }
+
+  const normalizedEmail = payload.email.toLowerCase().trim();
+
+  // Check if contact already exists for this entity
+  const existingContact = await prisma.entityContact.findUnique({
+    where: {
+      entityId_email: {
+        entityId,
+        email: normalizedEmail,
+      },
+    },
+  });
+
+  if (existingContact) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      `A contact with email '${normalizedEmail}' already exists for this entity.`
+    );
+  }
+
+  // Find or create User account for this contact so they can sign in
+  let user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  const plainPassword = payload.password?.trim() || 'Welcome@2026';
+  let isNewUser = false;
+
+  if (!user) {
+    const passwordHash = await hashPassword(plainPassword);
+    user = await prisma.user.create({
+      data: {
+        name: payload.name.trim(),
+        email: normalizedEmail,
+        passwordHash,
+        designation: payload.designation?.trim() || null,
+        phone: payload.phone?.trim() || null,
+      },
+    });
+    isNewUser = true;
+  }
+
+  const contact = await prisma.entityContact.create({
+    data: {
+      entityId,
+      userId: user.id,
+      name: payload.name.trim(),
+      email: normalizedEmail,
+      phone: payload.phone?.trim() || null,
+      designation: payload.designation?.trim() || null,
+      department: payload.department?.trim() || null,
+    },
+    include: {
+      entity: {
+        select: {
+          id: true,
+          name: true,
+          entityType: true,
+        },
+      },
+    },
+  });
+
+  return {
+    ...contact,
+    isNewUser,
+    provisionedPassword: isNewUser ? plainPassword : undefined,
+  };
+};
+
+/**
+ * 7. Get contacts for a CRM entity (with optional department filter)
+ */
+const getEntityContacts = async (
+  orgId: string,
+  entityId: string,
+  options?: { department?: string; search?: string }
+) => {
+  const entity = await prisma.entityCRM.findUnique({
+    where: { id: entityId },
+  });
+
+  if (!entity || entity.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'CRM entity not found');
+  }
+
+  const whereClause: any = { entityId };
+
+  if (options?.department) {
+    whereClause.department = options.department;
+  }
+
+  if (options?.search) {
+    const search = options.search.trim();
+    whereClause.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+      { designation: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  const contacts = await prisma.entityContact.findMany({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return contacts;
+};
+
+/**
+ * 8. Delete a contact from a CRM entity
+ */
+const deleteEntityContact = async (
+  orgId: string,
+  entityId: string,
+  contactId: string
+) => {
+  const entity = await prisma.entityCRM.findUnique({
+    where: { id: entityId },
+  });
+
+  if (!entity || entity.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'CRM entity not found');
+  }
+
+  const contact = await prisma.entityContact.findFirst({
+    where: { id: contactId, entityId },
+  });
+
+  if (!contact) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Contact not found for this entity');
+  }
+
+  await prisma.entityContact.delete({
+    where: { id: contactId },
+  });
+
+  return {
+    success: true,
+    message: 'Contact deleted successfully',
+  };
+};
+
 export const CRMService = {
   createEntity,
   getEntities,
   getEntityById,
   updateEntity,
   deleteEntity,
+  createEntityContact,
+  getEntityContacts,
+  deleteEntityContact,
 };
 

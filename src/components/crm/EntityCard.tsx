@@ -8,9 +8,10 @@ import type { ICrmEntity } from '../../types/project.types';
 
 interface EntityCardProps {
   entity: ICrmEntity;
+  onManageContacts?: (entity: ICrmEntity) => void;
 }
 
-export const EntityCard: React.FC<EntityCardProps> = ({ entity }) => {
+export const EntityCard: React.FC<EntityCardProps> = ({ entity, onManageContacts }) => {
   const isClient = entity.entityType === 'CLIENT';
 
   return (
@@ -73,14 +74,20 @@ export const EntityCard: React.FC<EntityCardProps> = ({ entity }) => {
           </div>
         )}
 
-        <div className="pt-2 flex items-center justify-between text-[11px] text-slate-500">
-          <span className="flex items-center gap-1 font-mono">
-            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-            Active Entity
+        <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-100">
+          <span className="flex items-center gap-1 font-mono text-[11px] text-slate-500">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            Active
           </span>
-          <span className="font-mono text-[10px] text-slate-400 truncate max-w-[140px]">
-            {entity.id}
-          </span>
+          {onManageContacts && (
+            <button
+              type="button"
+              onClick={() => onManageContacts(entity)}
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md transition-colors"
+            >
+              Contacts & Team →
+            </button>
+          )}
         </div>
       </CardContent>
     </Card>

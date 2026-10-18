@@ -52,6 +52,30 @@ export interface ICreateCrmEntityPayload {
   phone?: string;
 }
 
+export interface IEntityContact {
+  id: string;
+  entityId: string;
+  userId?: string | null;
+  name: string;
+  email: string;
+  phone?: string | null;
+  designation?: string | null;
+  department?: string | null;
+  provisionedPassword?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ICreateEntityContactPayload {
+  entityId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  designation?: string;
+  department?: string;
+  password?: string;
+}
+
 export type ProjectRole = 'ADMINISTRATOR' | 'ORG_MEMBER' | 'CLIENT' | 'AUDITEE';
 
 export type ProjectFunctionalRole =

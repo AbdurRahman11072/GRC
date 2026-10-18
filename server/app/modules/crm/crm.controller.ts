@@ -68,11 +68,54 @@ const deleteEntity = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const createEntityContact = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const entityId = req.params.id as string;
+  const result = await CRMService.createEntityContact(orgId, entityId, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Entity contact created successfully',
+    data: result,
+  });
+});
+
+const getEntityContacts = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const entityId = req.params.id as string;
+  const result = await CRMService.getEntityContacts(orgId, entityId, req.query as any);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Entity contacts retrieved successfully',
+    data: result,
+  });
+});
+
+const deleteEntityContact = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const entityId = req.params.id as string;
+  const contactId = req.params.contactId as string;
+  const result = await CRMService.deleteEntityContact(orgId, entityId, contactId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
 export const CRMController = {
   createEntity,
   getEntities,
   getEntityById,
   updateEntity,
   deleteEntity,
+  createEntityContact,
+  getEntityContacts,
+  deleteEntityContact,
 };
 

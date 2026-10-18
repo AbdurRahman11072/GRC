@@ -114,3 +114,23 @@ export interface IUpdateMePayload {
   nid?: string;
   designation?: string;
 }
+
+export interface IOrgMemberRecord {
+  memberId: string;
+  orgId: string;
+  orgRole: 'OWNER' | 'ADMIN' | 'AUDITOR' | 'MEMBER';
+  joinedAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    phone?: string | null;
+    nid?: string | null;
+    designation?: string | null;
+    isSuperAdmin: boolean;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+}

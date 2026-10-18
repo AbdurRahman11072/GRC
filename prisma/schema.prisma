@@ -40,6 +40,7 @@ model User {
   drtComments        DRTComment[]
   activityLogs       SystemActivityLog[]
   attachments        Attachment[]
+  entityContacts     EntityContact[]
 
   @@index([email])
 }
@@ -113,8 +114,29 @@ model EntityCRM {
   organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   clientProjects Project[]     @relation("ProjectClient")
   auditeeProjects Project[]    @relation("ProjectAuditee")
+  contacts       EntityContact[]
 
   @@index([orgId])
+}
+
+model EntityContact {
+  id          String        @id @default(uuid())
+  entityId    String
+  userId      String?
+  name        String
+  email       String
+  phone       String?
+  designation String?
+  department  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  entity      EntityCRM     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([entityId, email])
+  @@index([entityId])
+  @@index([userId])
 }
 
 enum ProjectStatus {

@@ -15,10 +15,13 @@ import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
 import { EntityCard } from '../../../components/crm/EntityCard';
 import { CreateEntityModal } from '../../../components/crm/CreateEntityModal';
+import { EntityContactsModal } from '../../../components/crm/EntityContactsModal';
 import { useGetEntitiesQuery } from '../../../store/api/crmApi';
+import type { ICrmEntity } from '../../../types/project.types';
 
 export default function EntitiesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEntityForContacts, setSelectedEntityForContacts] = useState<ICrmEntity | null>(null);
   const [filterType, setFilterType] = useState<'ALL' | 'CLIENT' | 'AUDITEE'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -128,7 +131,11 @@ export default function EntitiesPage() {
         ) : filteredEntities.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredEntities.map((entity) => (
-              <EntityCard key={entity.id} entity={entity} />
+              <EntityCard
+                key={entity.id}
+                entity={entity}
+                onManageContacts={(ent) => setSelectedEntityForContacts(ent)}
+              />
             ))}
           </div>
         ) : (
@@ -159,6 +166,13 @@ export default function EntitiesPage() {
 
       {/* Creation Modal */}
       <CreateEntityModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+      {/* Contacts Management Modal */}
+      <EntityContactsModal
+        isOpen={!!selectedEntityForContacts}
+        onClose={() => setSelectedEntityForContacts(null)}
+        entity={selectedEntityForContacts}
+      />
     </Shell>
   );
 }
