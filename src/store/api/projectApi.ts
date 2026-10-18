@@ -6,6 +6,8 @@ import type {
   IProjectDepartment,
   IProjectMember,
   IAddProjectMemberPayload,
+  IProjectPermissions,
+  IOrgUserMember,
 } from '../../types/project.types';
 
 export const projectApi = baseApi.injectEndpoints({
@@ -93,6 +95,16 @@ export const projectApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['User', 'Project'],
     }),
+
+    getMyProjectPermissions: builder.query<ApiResponse<IProjectPermissions>, string>({
+      query: (projectId) => `/projects/${projectId}/my-permissions`,
+      providesTags: (_result, _error, id) => [{ type: 'Project', id }],
+    }),
+
+    getOrgMembers: builder.query<ApiResponse<IOrgUserMember[]>, string>({
+      query: (orgId) => `/users/organization/${orgId}`,
+      providesTags: ['User'],
+    }),
   }),
 });
 
@@ -106,4 +118,6 @@ export const {
   useAddProjectDepartmentMutation,
   useGetProjectMembersQuery,
   useAddProjectMemberMutation,
+  useGetMyProjectPermissionsQuery,
+  useGetOrgMembersQuery,
 } = projectApi;

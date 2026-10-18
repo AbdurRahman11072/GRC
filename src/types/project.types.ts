@@ -27,6 +27,9 @@ export interface ICreateProjectPayload {
   projectObjective?: string;
   projectScope?: string;
   status?: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD';
+  projectManagerId?: string;
+  supervisorIds?: string[];
+  fieldTeamIds?: string[];
 }
 
 export interface ICrmEntity {
@@ -51,6 +54,34 @@ export interface ICreateCrmEntityPayload {
 
 export type ProjectRole = 'ADMINISTRATOR' | 'ORG_MEMBER' | 'CLIENT' | 'AUDITEE';
 
+export type ProjectFunctionalRole =
+  | 'PROJECT_MANAGER'
+  | 'SUPERVISOR'
+  | 'FIELD_TEAM'
+  | 'CLIENT_REPRESENTATIVE'
+  | 'AUDITEE_REPRESENTATIVE';
+
+export interface IProjectPermissions {
+  isOrgAdmin: boolean;
+  projectRole: ProjectFunctionalRole | null;
+  teamBucket: ProjectRole | null;
+  canCreateTor: boolean;
+  canAssignDrt: boolean;
+  canAwardMarks: boolean;
+  canCheckDocument: boolean;
+  canUploadDocument: boolean;
+}
+
+export interface IOrgUserMember {
+  id: string;
+  name: string;
+  email: string;
+  designation?: string | null;
+  orgRole: string;
+  membershipId?: string;
+  phone?: string | null;
+}
+
 export interface IProjectDepartment {
   id: string;
   projectId: string;
@@ -65,6 +96,7 @@ export interface IProjectMember {
   projectId: string;
   userId: string;
   teamBucket: ProjectRole;
+  projectRole?: ProjectFunctionalRole;
   user?: { id: string; name: string; email: string; designation?: string | null };
   provisionedPassword?: string;
   createdAt: string;
@@ -79,6 +111,7 @@ export interface IAddProjectMemberPayload {
   designation?: string;
   phone?: string;
   teamBucket: ProjectRole;
+  projectRole?: ProjectFunctionalRole;
   departmentId?: string | null;
 }
 

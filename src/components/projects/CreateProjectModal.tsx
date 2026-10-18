@@ -5,10 +5,12 @@ import { useForm } from '@tanstack/react-form';
 import { ArrowRight, ArrowLeft, FolderPlus, AlertCircle } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useCreateProjectMutation } from '../../store/api/projectApi';
+import { useCreateProjectMutation, useGetOrgMembersQuery } from '../../store/api/projectApi';
 import { useGetEntitiesQuery, useCreateEntityMutation } from '../../store/api/crmApi';
+import { useAppSelector } from '../../store/hooks';
 import { StepScope } from './wizard/StepScope';
 import { StepEntities } from './wizard/StepEntities';
+import { StepAuditTeam } from './wizard/StepAuditTeam';
 
 export interface CreateProjectModalProps {
   isOpen: boolean;
@@ -21,11 +23,17 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const stepChangedAtRef = useRef<number>(0);
 
-  // Reset wizard step and error state whenever modal opens
+  const currentOrgId = useAppSelector((state) => state.auth.currentOrgId);
+  const { data: orgMembersData, isLoading: isLoadingMembers } = useGetOrgMembersQuery(
+    currentOrgId || '',
+    { skip: !currentOrgId }
+  );
+  const orgMembers = orgMembersData?.data || [];
+
   useEffect(() => {
     if (isOpen) {
       setStep(1);
@@ -62,22 +70,17 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       selectedAuditeeId: '',
       projectScope: 'Comprehensive IS audit covering operational, billing, and regulatory compliance.',
       projectObjective: 'Validate regulatory conformance and license compliance for BTRC.',
+      projectManagerId: '',
+      supervisorIds: [] as string[],
+      fieldTeamIds: [] as string[],
     },
     onSubmit: async ({ value }) => {
-      // Guard: Strictly prevent project creation unless user is on final Step 2 and clicked submit
-      if (step !== 2) {
-        return;
-      }
-      if (Date.now() - stepChangedAtRef.current < 600) {
-        return;
-      }
-
+      if (step !== 3 || Date.now() - stepChangedAtRef.current < 600) return;
       setErrorMessage(null);
       try {
         let resolvedClientId = value.selectedClientId;
         let resolvedAuditeeId = value.selectedAuditeeId;
 
-        // Resolve or create custom Client entity
         if (!resolvedClientId) {
           const clientRes = await createEntity({
             name: value.customClientName.trim() || 'Regulator Client',
@@ -86,7 +89,6 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           resolvedClientId = clientRes.data.id;
         }
 
-        // Resolve or create custom Auditee entity
         if (!resolvedAuditeeId) {
           const auditeeRes = await createEntity({
             name: value.customAuditeeName.trim() || 'Auditee Enterprise',
@@ -95,7 +97,6 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           resolvedAuditeeId = auditeeRes.data.id;
         }
 
-        // Distinct separation: Audit Period Data Range is recorded in scope
         const dataRangeScope = `Audit Data Coverage: ${value.auditStartYear}–${value.auditEndYear}. ${value.projectScope || ''}`;
 
         const result = await createProject({
@@ -108,6 +109,9 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           projectScope: dataRangeScope,
           projectObjective: value.projectObjective,
           status: 'ACTIVE',
+          projectManagerId: value.projectManagerId || undefined,
+          supervisorIds: value.supervisorIds.length > 0 ? value.supervisorIds : undefined,
+          fieldTeamIds: value.fieldTeamIds.length > 0 ? value.fieldTeamIds : undefined,
         }).unwrap();
 
         onClose();
@@ -120,25 +124,24 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   });
 
   const handleNextStep = () => {
-    // Validate required project name before advancing
-    if (!form.state.values.projectName?.trim()) {
+    if (step === 1 && !form.state.values.projectName?.trim()) {
       setErrorMessage('Project Workspace Title is required');
       return;
     }
     setErrorMessage(null);
     stepChangedAtRef.current = Date.now();
-    setStep(2);
+    setStep((s) => (s < 3 ? ((s + 1) as 1 | 2 | 3) : s));
   };
 
   const handlePreviousStep = () => {
     stepChangedAtRef.current = Date.now();
-    setStep(1);
+    setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3) : s));
   };
 
-  const handleCreateWorkspace = async () => {
-    if (step !== 2 || isCreating) return;
-    if (Date.now() - stepChangedAtRef.current < 600) return;
-    await form.handleSubmit();
+  const stepTitles = {
+    1: 'Scope & Historical Data Period',
+    2: 'Client & Auditee Entities',
+    3: 'Audit Team Assignment',
   };
 
   return (
@@ -146,9 +149,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Create Audit Project Workspace"
-      description={`Step ${step} of 2: ${
-        step === 1 ? 'Scope & Historical Data Period' : 'Client & Auditee Entities'
-      }`}
+      description={`Step ${step} of 3: ${stepTitles[step]}`}
       size="80%"
     >
       {errorMessage && (
@@ -158,26 +159,22 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         </div>
       )}
 
-      {/* Wizard Progress Pill Indicator */}
+      {/* 3-Step Wizard Indicator */}
       <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-200 text-xs">
         <span className={step >= 1 ? 'text-indigo-600 font-semibold' : 'text-slate-400'}>
-          1. Scope & Data Range
+          1. Scope & Data
         </span>
         <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
         <span className={step >= 2 ? 'text-indigo-600 font-semibold' : 'text-slate-400'}>
           2. Client & Auditee
         </span>
+        <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+        <span className={step >= 3 ? 'text-indigo-600 font-semibold' : 'text-slate-400'}>
+          3. Team Setup
+        </span>
       </div>
 
-      <div
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-          }
-        }}
-        className="space-y-4"
-      >
-        {/* Step 1: Retained in DOM to prevent value loss or remount triggers */}
+      <div onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-4">
         <div className={step === 1 ? 'space-y-4' : 'hidden'}>
           <StepScope
             form={form}
@@ -186,7 +183,6 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           />
         </div>
 
-        {/* Step 2: Retained in DOM */}
         <div className={step === 2 ? 'space-y-4' : 'hidden'}>
           <StepEntities
             form={form}
@@ -195,11 +191,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           />
         </div>
 
-        {/* Wizard Footer Controls */}
+        <div className={step === 3 ? 'space-y-4' : 'hidden'}>
+          <StepAuditTeam form={form} members={orgMembers} isLoading={isLoadingMembers} />
+        </div>
+
+        {/* Wizard Footer Navigation */}
         <div className="pt-5 border-t border-slate-200 flex items-center justify-between">
           {step > 1 ? (
             <Button
-              key="btn-step-previous"
               type="button"
               variant="outline"
               size="sm"
@@ -210,25 +209,23 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             </Button>
           ) : <div />}
 
-          {step === 1 ? (
+          {step < 3 ? (
             <Button
-              key="btn-step-next"
               type="button"
               variant="primary"
               size="sm"
               onClick={handleNextStep}
               rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
             >
-              Next: Client & Auditee
+              Next: {step === 1 ? 'Client & Auditee' : 'Audit Team'}
             </Button>
           ) : (
             <Button
-              key="btn-step-submit"
               type="button"
               variant="primary"
               size="sm"
               isLoading={isCreating}
-              onClick={handleCreateWorkspace}
+              onClick={() => form.handleSubmit()}
               leftIcon={<FolderPlus className="w-4 h-4" />}
             >
               Create Project Workspace
