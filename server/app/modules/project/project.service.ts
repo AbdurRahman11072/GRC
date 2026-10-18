@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
-import { ProjectStatus, TeamBucket } from '../../../generated/prisma';
+import { ProjectStatus, TeamBucket, ProjectRole } from '../../../generated/prisma';
 import { hashPassword } from '../auth/auth.utils';
 
 export interface ICreateProjectPayload {
@@ -14,6 +14,9 @@ export interface ICreateProjectPayload {
   projectObjective?: string;
   projectScope?: string;
   status?: ProjectStatus;
+  projectManagerId?: string;
+  supervisorIds?: string[];
+  fieldTeamIds?: string[];
 }
 
 export interface IUpdateProjectPayload {
@@ -111,6 +114,58 @@ const createProject = async (
       },
     },
   });
+
+  // Provision initial team members if specified
+  if (payload.projectManagerId) {
+    await prisma.projectMember.upsert({
+      where: {
+        projectId_userId: { projectId: project.id, userId: payload.projectManagerId },
+      },
+      update: { teamBucket: 'ADMINISTRATOR', projectRole: 'PROJECT_MANAGER' },
+      create: {
+        projectId: project.id,
+        userId: payload.projectManagerId,
+        teamBucket: 'ADMINISTRATOR',
+        projectRole: 'PROJECT_MANAGER',
+      },
+    });
+  }
+
+  if (payload.supervisorIds && payload.supervisorIds.length > 0) {
+    for (const supId of payload.supervisorIds) {
+      if (!supId || supId === payload.projectManagerId) continue;
+      await prisma.projectMember.upsert({
+        where: {
+          projectId_userId: { projectId: project.id, userId: supId },
+        },
+        update: { teamBucket: 'ORG_MEMBER', projectRole: 'SUPERVISOR' },
+        create: {
+          projectId: project.id,
+          userId: supId,
+          teamBucket: 'ORG_MEMBER',
+          projectRole: 'SUPERVISOR',
+        },
+      });
+    }
+  }
+
+  if (payload.fieldTeamIds && payload.fieldTeamIds.length > 0) {
+    for (const fieldId of payload.fieldTeamIds) {
+      if (!fieldId || fieldId === payload.projectManagerId) continue;
+      await prisma.projectMember.upsert({
+        where: {
+          projectId_userId: { projectId: project.id, userId: fieldId },
+        },
+        update: { teamBucket: 'ORG_MEMBER', projectRole: 'FIELD_TEAM' },
+        create: {
+          projectId: project.id,
+          userId: fieldId,
+          teamBucket: 'ORG_MEMBER',
+          projectRole: 'FIELD_TEAM',
+        },
+      });
+    }
+  }
 
   return project;
 };
@@ -422,6 +477,7 @@ export interface IAddMemberPayload {
   designation?: string;
   phone?: string;
   teamBucket: TeamBucket;
+  projectRole?: ProjectRole;
 }
 
 const addMember = async (
@@ -499,11 +555,22 @@ const addMember = async (
     );
   }
 
+  const resolvedRole: ProjectRole =
+    payload.projectRole ||
+    (payload.teamBucket === 'ADMINISTRATOR'
+      ? 'PROJECT_MANAGER'
+      : payload.teamBucket === 'CLIENT'
+      ? 'CLIENT_REPRESENTATIVE'
+      : payload.teamBucket === 'AUDITEE'
+      ? 'AUDITEE_REPRESENTATIVE'
+      : 'FIELD_TEAM');
+
   const member = await prisma.projectMember.create({
     data: {
       projectId,
       userId: targetUser.id,
       teamBucket: payload.teamBucket,
+      projectRole: resolvedRole,
     },
     include: {
       user: {
@@ -530,7 +597,7 @@ const addMember = async (
 const batchAddMembers = async (
   orgId: string,
   projectId: string,
-  members: Array<{ userId: string; teamBucket: TeamBucket }>
+  members: Array<{ userId: string; teamBucket: TeamBucket; projectRole?: ProjectRole }>
 ) => {
   const existingProject = await prisma.project.findFirst({
     where: { id: projectId, orgId, isDeleted: false },
@@ -552,6 +619,16 @@ const batchAddMembers = async (
       continue;
     }
 
+    const resolvedRole: ProjectRole =
+      item.projectRole ||
+      (item.teamBucket === 'ADMINISTRATOR'
+        ? 'PROJECT_MANAGER'
+        : item.teamBucket === 'CLIENT'
+        ? 'CLIENT_REPRESENTATIVE'
+        : item.teamBucket === 'AUDITEE'
+        ? 'AUDITEE_REPRESENTATIVE'
+        : 'FIELD_TEAM');
+
     // Upsert project member
     const member = await prisma.projectMember.upsert({
       where: {
@@ -562,11 +639,13 @@ const batchAddMembers = async (
       },
       update: {
         teamBucket: item.teamBucket,
+        ...(item.projectRole ? { projectRole: item.projectRole } : {}),
       },
       create: {
         projectId,
         userId: item.userId,
         teamBucket: item.teamBucket,
+        projectRole: resolvedRole,
       },
       include: {
         user: {
@@ -640,7 +719,7 @@ const updateMember = async (
   orgId: string,
   projectId: string,
   memberId: string,
-  payload: { teamBucket?: TeamBucket }
+  payload: { teamBucket?: TeamBucket; projectRole?: ProjectRole }
 ) => {
   const existingProject = await prisma.project.findFirst({
     where: { id: projectId, orgId, isDeleted: false },
@@ -662,6 +741,7 @@ const updateMember = async (
     where: { id: memberId },
     data: {
       ...(payload.teamBucket !== undefined ? { teamBucket: payload.teamBucket } : {}),
+      ...(payload.projectRole !== undefined ? { projectRole: payload.projectRole } : {}),
     },
     include: {
       user: {

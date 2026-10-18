@@ -108,6 +108,44 @@ export const deleteStreamWeightValidationSchema = z.object({
   }),
 });
 
+export const assignTorTeamValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ToR ID format'),
+  }),
+  body: z.object({
+    supervisorIds: z.array(z.string().uuid('Invalid Supervisor user ID')).optional(),
+    fieldMemberIds: z.array(z.string().uuid('Invalid Field Member user ID')).optional(),
+    clientMemberId: z.string().uuid('Invalid Client user ID').optional().nullable(),
+    auditeeMemberId: z.string().uuid('Invalid Auditee user ID').optional().nullable(),
+    submissionDeadline: z.string().optional().nullable(),
+    orgMemberId: z.string().uuid().optional().nullable(),
+  }),
+});
+
+export const checkDocumentValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ToR ID format'),
+    docId: z.string().uuid('Invalid Document ID format'),
+  }),
+  body: z.object({
+    status: z.enum(['ACCEPTED', 'REVISION_REQUESTED']),
+    reviewNotes: z.string().optional().nullable(),
+  }),
+});
+
+export const submitTorDocumentValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ToR ID format'),
+  }),
+  body: z.object({
+    fileName: z.string().min(1, 'File name is required'),
+    fileUrl: z.string().optional().nullable(),
+    fileSize: z.number().optional().nullable(),
+    fileType: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  }),
+});
+
 export const TorValidation = {
   createTorValidationSchema,
   getTorTreeValidationSchema,
@@ -118,5 +156,9 @@ export const TorValidation = {
   setStreamWeightsValidationSchema,
   getStreamWeightsValidationSchema,
   deleteStreamWeightValidationSchema,
+  assignTorTeamValidationSchema,
+  checkDocumentValidationSchema,
+  submitTorDocumentValidationSchema,
 };
+
 

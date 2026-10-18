@@ -35,6 +35,15 @@ router.get(
   ProjectController.getProjectById
 );
 
+// Get current user's role and capability context for this project
+router.get(
+  '/:id/my-permissions',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(ProjectValidation.getProjectByIdValidationSchema),
+  ProjectController.getMyProjectPermissions
+);
+
 // Update project workspace (OWNER, ADMIN, AUDITOR)
 router.patch(
   '/:id',

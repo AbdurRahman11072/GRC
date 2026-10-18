@@ -110,12 +110,13 @@ router.post(
   TorController.assignMemberToTor
 );
 
-// Assign Tri-Party Members (Org, Client, Auditee) & Deadline
+// Assign Tri-Party Members (Supervisors, Field Members, Client, Auditee) & Deadline
 router.post(
   '/:id/assign-trio',
   authMiddleware(),
   tenantMiddleware(),
   requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(TorValidation.assignTorTeamValidationSchema),
   TorController.assignTrioMembers
 );
 
@@ -133,7 +134,18 @@ router.post(
   '/:id/documents',
   authMiddleware(),
   tenantMiddleware(),
+  validateRequest(TorValidation.submitTorDocumentValidationSchema),
   TorController.submitTorDocument
+);
+
+// Check / Review document (Supervisor, Project Manager, Org Admin)
+router.patch(
+  '/:id/documents/:docId/check',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(TorValidation.checkDocumentValidationSchema),
+  TorController.checkTorDocument
 );
 
 // Update document review status

@@ -17,6 +17,9 @@ export const createProjectValidationSchema = z.object({
     projectObjective: z.string().optional(),
     projectScope: z.string().optional(),
     status: z.enum(['DRAFT', 'ACTIVE', 'COMPLETED', 'ON_HOLD']).optional(),
+    projectManagerId: z.string().uuid('Invalid Project Manager user ID').optional(),
+    supervisorIds: z.array(z.string().uuid('Invalid Supervisor user ID')).optional(),
+    fieldTeamIds: z.array(z.string().uuid('Invalid Field Team user ID')).optional(),
   }),
 });
 
@@ -140,6 +143,9 @@ export const addMemberValidationSchema = z.object({
     designation: z.string().optional(),
     phone: z.string().optional(),
     teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
+    projectRole: z
+      .enum(['PROJECT_MANAGER', 'SUPERVISOR', 'FIELD_TEAM', 'CLIENT_REPRESENTATIVE', 'AUDITEE_REPRESENTATIVE'])
+      .optional(),
   }),
 });
 
@@ -153,6 +159,9 @@ export const batchAddMembersValidationSchema = z.object({
         z.object({
           userId: z.string().uuid('Invalid user ID format'),
           teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
+          projectRole: z
+            .enum(['PROJECT_MANAGER', 'SUPERVISOR', 'FIELD_TEAM', 'CLIENT_REPRESENTATIVE', 'AUDITEE_REPRESENTATIVE'])
+            .optional(),
         })
       )
       .min(1, 'At least one member is required'),
@@ -175,6 +184,9 @@ export const updateMemberValidationSchema = z.object({
   }),
   body: z.object({
     teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']).optional(),
+    projectRole: z
+      .enum(['PROJECT_MANAGER', 'SUPERVISOR', 'FIELD_TEAM', 'CLIENT_REPRESENTATIVE', 'AUDITEE_REPRESENTATIVE'])
+      .optional(),
   }),
 });
 

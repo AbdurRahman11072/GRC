@@ -1,7 +1,13 @@
 import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma';
 import { AppError } from '../../error/AppError';
-import { TeamBucket } from '../../../generated/prisma';
+import { TeamBucket, AssignmentRole } from '../../../generated/prisma';
+import {
+  assertCanCreateTor,
+  assertCanAssignDrt,
+  assertCanAwardMarks,
+  assertCanCheckDocument,
+} from '../project/project.permissions';
 
 export interface IStreamWeightItem {
   streamBucket: TeamBucket;
@@ -64,6 +70,9 @@ const createTor = async (
   createdById: string,
   payload: ICreateTorPayload
 ) => {
+  // Enforce role permission: Only Org Admin or Project Manager can create ToR
+  await assertCanCreateTor(orgId, payload.projectId, createdById);
+
   // Verify project belongs to tenant
   const project = await prisma.project.findFirst({
     where: { id: payload.projectId, orgId, isDeleted: false },
@@ -160,6 +169,14 @@ const getTorTree = async (orgId: string, projectId: string) => {
               email: true,
             },
           },
+          reviewedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              designation: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       },
@@ -173,12 +190,13 @@ const getTorTree = async (orgId: string, projectId: string) => {
     },
   });
 
-  // Fetch project members to map teamBucket to each assigned member
+  // Fetch project members to map teamBucket and projectRole to each assigned member
   const projectMembers = await prisma.projectMember.findMany({
     where: { projectId },
-    select: { userId: true, teamBucket: true },
+    select: { userId: true, teamBucket: true, projectRole: true },
   });
   const memberTeamMap = new Map(projectMembers.map((m) => [m.userId, m.teamBucket]));
+  const memberRoleMap = new Map(projectMembers.map((m) => [m.userId, m.projectRole]));
 
   // Construct recursive tree
   const nodeMap = new Map<string, ITorTreeNode>();
@@ -186,6 +204,8 @@ const getTorTree = async (orgId: string, projectId: string) => {
     const enrichedAssigned = node.assignedMembers.map((am) => ({
       ...am,
       teamBucket: memberTeamMap.get(am.userId) || 'ORG_MEMBER',
+      projectRole: memberRoleMap.get(am.userId) || 'FIELD_TEAM',
+      assignmentRole: am.assignmentRole,
     }));
 
     nodeMap.set(node.id, {
@@ -349,17 +369,23 @@ const getTorById = async (orgId: string, id: string) => {
 const updateTor = async (
   orgId: string,
   id: string,
-  payload: IUpdateTorPayload
+  payload: IUpdateTorPayload,
+  callerUserId?: string
 ) => {
   const existingTor = await prisma.tor.findUnique({
     where: { id },
     include: {
-      project: { select: { orgId: true } },
+      project: { select: { orgId: true, id: true } },
     },
   });
 
   if (!existingTor || existingTor.project.orgId !== orgId) {
     throw new AppError(httpStatus.NOT_FOUND, 'ToR node not found');
+  }
+
+  // Enforce role permission: Only Org Admin or Project Manager can update ToR
+  if (callerUserId) {
+    await assertCanCreateTor(orgId, existingTor.project.id, callerUserId);
   }
 
   // Prevent self as parent
@@ -419,11 +445,11 @@ const updateTor = async (
 /**
  * 6. Delete ToR node (cascades to children via Prisma schema)
  */
-const deleteTor = async (orgId: string, id: string) => {
+const deleteTor = async (orgId: string, id: string, callerUserId?: string) => {
   const existingTor = await prisma.tor.findUnique({
     where: { id },
     include: {
-      project: { select: { orgId: true } },
+      project: { select: { orgId: true, id: true } },
       _count: {
         select: {
           children: true,
@@ -435,6 +461,11 @@ const deleteTor = async (orgId: string, id: string) => {
 
   if (!existingTor || existingTor.project.orgId !== orgId) {
     throw new AppError(httpStatus.NOT_FOUND, 'ToR node not found');
+  }
+
+  // Enforce role permission: Only Org Admin or Project Manager can delete ToR
+  if (callerUserId) {
+    await assertCanCreateTor(orgId, existingTor.project.id, callerUserId);
   }
 
   await prisma.tor.delete({
@@ -457,17 +488,23 @@ const deleteTor = async (orgId: string, id: string) => {
 const setTorStreamWeights = async (
   orgId: string,
   torId: string,
-  payload: { weights?: IStreamWeightItem[] } | IStreamWeightItem
+  payload: { weights?: IStreamWeightItem[] } | IStreamWeightItem,
+  callerUserId?: string
 ) => {
   const existingTor = await prisma.tor.findUnique({
     where: { id: torId },
     include: {
-      project: { select: { orgId: true } },
+      project: { select: { orgId: true, id: true } },
     },
   });
 
   if (!existingTor || existingTor.project.orgId !== orgId) {
     throw new AppError(httpStatus.NOT_FOUND, 'ToR node not found');
+  }
+
+  // Enforce role permission: Only Org Admin, Project Manager, or Supervisor can award marks
+  if (callerUserId) {
+    await assertCanAwardMarks(orgId, existingTor.project.id, callerUserId);
   }
 
   const items: IStreamWeightItem[] =
@@ -684,9 +721,11 @@ const removeMemberFromTor = async (orgId: string, torId: string, userId: string)
 };
 
 /**
- * 12. Assign Tri-Party Members (Org, Client, Auditee) & Document Submission Deadline
+ * 12. Assign Tri-Party Members (Supervisors, Field Members, Client, Auditee) & Document Submission Deadline
  */
 export interface IAssignTrioPayload {
+  supervisorIds?: string[];
+  fieldMemberIds?: string[];
   orgMemberId?: string | null;
   clientMemberId?: string | null;
   auditeeMemberId?: string | null;
@@ -696,7 +735,8 @@ export interface IAssignTrioPayload {
 const assignTrioMembers = async (
   orgId: string,
   torId: string,
-  payload: IAssignTrioPayload
+  payload: IAssignTrioPayload,
+  callerUserId?: string
 ) => {
   const tor = await prisma.tor.findUnique({
     where: { id: torId },
@@ -708,48 +748,48 @@ const assignTrioMembers = async (
   }
 
   const projectId = tor.project.id;
-  const targetUserIds = [
-    payload.orgMemberId,
-    payload.clientMemberId,
-    payload.auditeeMemberId,
-  ].filter(Boolean) as string[];
 
-  // Validate roles if IDs are provided
-  if (targetUserIds.length > 0) {
-    const projectMembers = await prisma.projectMember.findMany({
-      where: { projectId, userId: { in: targetUserIds } },
-    });
-    const memberMap = new Map(projectMembers.map((m) => [m.userId, m.teamBucket]));
+  // Enforce role permission: Only Org Admin or Project Manager can assign DRT tasks
+  if (callerUserId) {
+    await assertCanAssignDrt(orgId, projectId, callerUserId);
+  }
 
-    if (payload.orgMemberId) {
-      const role = memberMap.get(payload.orgMemberId);
-      if (!role || (role !== 'ORG_MEMBER' && role !== 'ADMINISTRATOR')) {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          'Selected Org Member must belong to ORG_MEMBER or ADMINISTRATOR role.'
-        );
-      }
+  const supervisorIds = new Set<string>();
+  if (payload.supervisorIds && Array.isArray(payload.supervisorIds)) {
+    payload.supervisorIds.forEach((id) => id && supervisorIds.add(id));
+  }
+  // Backwards compatibility for single orgMemberId
+  if (
+    payload.orgMemberId &&
+    supervisorIds.size === 0 &&
+    (!payload.fieldMemberIds || payload.fieldMemberIds.length === 0)
+  ) {
+    supervisorIds.add(payload.orgMemberId);
+  }
+
+  const fieldMemberIds = new Set<string>();
+  if (payload.fieldMemberIds && Array.isArray(payload.fieldMemberIds)) {
+    payload.fieldMemberIds.forEach((id) => id && fieldMemberIds.add(id));
+  }
+
+  const assignmentsToCreate: Array<{ userId: string; assignmentRole: AssignmentRole }> = [];
+
+  for (const sId of supervisorIds) {
+    assignmentsToCreate.push({ userId: sId, assignmentRole: 'SUPERVISOR' });
+  }
+
+  for (const fId of fieldMemberIds) {
+    if (!supervisorIds.has(fId)) {
+      assignmentsToCreate.push({ userId: fId, assignmentRole: 'FIELD_MEMBER' });
     }
+  }
 
-    if (payload.clientMemberId) {
-      const role = memberMap.get(payload.clientMemberId);
-      if (!role || role !== 'CLIENT') {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          'Selected Client Member must belong to CLIENT role.'
-        );
-      }
-    }
+  if (payload.clientMemberId) {
+    assignmentsToCreate.push({ userId: payload.clientMemberId, assignmentRole: 'CLIENT_OBSERVER' });
+  }
 
-    if (payload.auditeeMemberId) {
-      const role = memberMap.get(payload.auditeeMemberId);
-      if (!role || role !== 'AUDITEE') {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          'Selected Auditee Member must belong to AUDITEE role.'
-        );
-      }
-    }
+  if (payload.auditeeMemberId) {
+    assignmentsToCreate.push({ userId: payload.auditeeMemberId, assignmentRole: 'AUDITEE_FOCAL' });
   }
 
   // Parse submission deadline
@@ -772,12 +812,13 @@ const assignTrioMembers = async (
       where: { torId },
     });
 
-    // 3. Insert new trio assignments
-    for (const userId of targetUserIds) {
+    // 3. Insert new assignments with assignmentRole
+    for (const item of assignmentsToCreate) {
       await tx.torMemberAssignment.create({
         data: {
           torId,
-          userId,
+          userId: item.userId,
+          assignmentRole: item.assignmentRole,
         },
       });
     }
@@ -785,14 +826,13 @@ const assignTrioMembers = async (
 
   return {
     success: true,
-    message: 'Tri-party members and submission deadline updated successfully',
+    message: 'DRT team members and submission deadline updated successfully',
   };
 };
 
 /**
  * 13. Submit evidence document against a specific ToR node
- * Enforces rule: ONLY assigned Org team members (or Org Admins/Owners) can upload documents.
- * Client and Auditee members have read-only tracking and cannot upload documents.
+ * Enforces rule: Assigned Field Team members, Supervisors, Project Managers, and Admins can upload documents.
  */
 const submitTorDocument = async (
   orgId: string,
@@ -824,7 +864,6 @@ const submitTorDocument = async (
   });
 
   if (!isOrgAdmin) {
-    // Rule: Must be an Org Team Member or Project Administrator
     if (
       !projectMember ||
       (projectMember.teamBucket !== 'ORG_MEMBER' &&
@@ -836,16 +875,22 @@ const submitTorDocument = async (
       );
     }
 
-    // Must be assigned to this specific ToR (unless Project Administrator)
-    const isAssigned = await prisma.torMemberAssignment.findUnique({
-      where: { torId_userId: { torId, userId: currentUserId } },
-    });
+    const isManagerOrSupervisor =
+      projectMember.projectRole === 'PROJECT_MANAGER' ||
+      projectMember.projectRole === 'SUPERVISOR' ||
+      projectMember.teamBucket === 'ADMINISTRATOR';
 
-    if (!isAssigned && projectMember.teamBucket !== 'ADMINISTRATOR') {
-      throw new AppError(
-        httpStatus.FORBIDDEN,
-        'You can only upload documents against ToR items you are assigned to as the Org member.'
-      );
+    if (!isManagerOrSupervisor) {
+      const isAssigned = await prisma.torMemberAssignment.findUnique({
+        where: { torId_userId: { torId, userId: currentUserId } },
+      });
+
+      if (!isAssigned) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          'You can only upload documents against ToR items you are assigned to as a field member.'
+        );
+      }
     }
   }
 
@@ -875,7 +920,62 @@ const submitTorDocument = async (
 };
 
 /**
- * 13. Update document review status
+ * 14. Check / Verify ToR Document (Accept or Request Revision)
+ * Enforces rule: Only Org Admin, Project Manager, or Supervisor can check documents.
+ */
+const checkTorDocument = async (
+  orgId: string,
+  torId: string,
+  docId: string,
+  currentUserId: string,
+  payload: {
+    status: 'ACCEPTED' | 'REVISION_REQUESTED';
+    reviewNotes?: string | null;
+  }
+) => {
+  const tor = await prisma.tor.findUnique({
+    where: { id: torId },
+    include: { project: { select: { orgId: true, id: true } } },
+  });
+
+  if (!tor || tor.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'ToR node not found');
+  }
+
+  // Enforce role permission: Only Org Admin, Project Manager, or Supervisor can check documents
+  await assertCanCheckDocument(orgId, tor.project.id, currentUserId);
+
+  const document = await prisma.torDocument.findUnique({
+    where: { id: docId },
+  });
+
+  if (!document || document.torId !== torId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Document not found for this ToR');
+  }
+
+  const updated = await prisma.torDocument.update({
+    where: { id: docId },
+    data: {
+      status: payload.status,
+      reviewedById: currentUserId,
+      reviewedAt: new Date(),
+      reviewNotes: payload.reviewNotes?.trim() || null,
+    },
+    include: {
+      uploadedBy: {
+        select: { id: true, name: true, email: true },
+      },
+      reviewedBy: {
+        select: { id: true, name: true, email: true, designation: true },
+      },
+    },
+  });
+
+  return updated;
+};
+
+/**
+ * 15. Update document review status
  */
 const updateDocumentStatus = async (
   orgId: string,
@@ -903,6 +1003,14 @@ const updateDocumentStatus = async (
           email: true,
         },
       },
+      reviewedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          designation: true,
+        },
+      },
     },
   });
 
@@ -923,5 +1031,6 @@ export const TorService = {
   removeMemberFromTor,
   assignTrioMembers,
   submitTorDocument,
+  checkTorDocument,
   updateDocumentStatus,
 };

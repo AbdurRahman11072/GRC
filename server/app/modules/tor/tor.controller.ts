@@ -59,7 +59,8 @@ const getTorById = asyncHandler(async (req: Request, res: Response) => {
 const updateTor = asyncHandler(async (req: Request, res: Response) => {
   const orgId = req.orgId!;
   const id = req.params.id as string;
-  const result = await TorService.updateTor(orgId, id, req.body);
+  const callerUserId = req.user!.userId;
+  const result = await TorService.updateTor(orgId, id, req.body, callerUserId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -72,7 +73,8 @@ const updateTor = asyncHandler(async (req: Request, res: Response) => {
 const deleteTor = asyncHandler(async (req: Request, res: Response) => {
   const orgId = req.orgId!;
   const id = req.params.id as string;
-  const result = await TorService.deleteTor(orgId, id);
+  const callerUserId = req.user!.userId;
+  const result = await TorService.deleteTor(orgId, id, callerUserId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -85,7 +87,8 @@ const deleteTor = asyncHandler(async (req: Request, res: Response) => {
 const setTorStreamWeights = asyncHandler(async (req: Request, res: Response) => {
   const orgId = req.orgId!;
   const id = req.params.id as string;
-  const result = await TorService.setTorStreamWeights(orgId, id, req.body);
+  const callerUserId = req.user!.userId;
+  const result = await TorService.setTorStreamWeights(orgId, id, req.body, callerUserId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -183,13 +186,35 @@ const updateDocumentStatus = asyncHandler(async (req: Request, res: Response) =>
 const assignTrioMembers = asyncHandler(async (req: Request, res: Response) => {
   const orgId = req.orgId!;
   const id = req.params.id as string;
-  const result = await TorService.assignTrioMembers(orgId, id, req.body);
+  const callerUserId = req.user!.userId;
+  const result = await TorService.assignTrioMembers(orgId, id, req.body, callerUserId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: result.message,
     data: null,
+  });
+});
+
+const checkTorDocument = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const docId = req.params.docId as string;
+  const callerUserId = req.user!.userId;
+  const result = await TorService.checkTorDocument(
+    orgId,
+    id,
+    docId,
+    callerUserId,
+    req.body
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Document reviewed successfully',
+    data: result,
   });
 });
 
@@ -207,6 +232,8 @@ export const TorController = {
   removeMemberFromTor,
   assignTrioMembers,
   submitTorDocument,
+  checkTorDocument,
   updateDocumentStatus,
 };
+
 

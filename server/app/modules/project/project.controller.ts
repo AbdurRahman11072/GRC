@@ -3,6 +3,7 @@ import httpStatus from 'http-status';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { sendResponse } from '../../utils/sendResponse';
 import { ProjectService } from './project.service';
+import { getProjectUserContext } from './project.permissions';
 
 const createProject = asyncHandler(async (req: Request, res: Response) => {
   const orgId = req.orgId!;
@@ -212,6 +213,20 @@ const deleteMember = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const getMyProjectPermissions = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const projectId = req.params.id as string;
+  const userId = req.user!.userId;
+  const result = await getProjectUserContext(orgId, projectId, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Project permissions retrieved successfully',
+    data: result,
+  });
+});
+
 export const ProjectController = {
   createProject,
   getProjects,
@@ -228,6 +243,8 @@ export const ProjectController = {
   getMembers,
   updateMember,
   deleteMember,
+  getMyProjectPermissions,
 };
+
 
 
