@@ -17,7 +17,7 @@ import { Card } from '../../ui/Card';
 import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
 import { AssignMemberModal } from './AssignMemberModal';
-import { useGetProjectMembersQuery } from '../../../store/api/projectApi';
+import { useGetProjectMembersQuery, useGetProjectByIdQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
 import type { ProjectRole, IProjectMember } from '../../../types/project.types';
 
@@ -53,7 +53,9 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
     user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
 
   const { data: membersData, isLoading } = useGetProjectMembersQuery(projectId);
+  const { data: projectData } = useGetProjectByIdQuery(projectId);
   const members = membersData?.data || [];
+  const project = projectData?.data;
 
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
@@ -216,7 +218,12 @@ export const TabTeam: React.FC<TabTeamProps> = ({ projectId }) => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           projectId={projectId}
+          clientId={project?.clientId}
+          auditeeId={project?.auditeeId}
+          clientName={project?.client?.name}
+          auditeeName={project?.auditee?.name}
           defaultRole={selectedRole}
+          existingMemberUserIds={members.map((m) => m.userId)}
         />
       )}
     </div>
