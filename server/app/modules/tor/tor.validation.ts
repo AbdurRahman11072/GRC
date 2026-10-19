@@ -146,6 +146,17 @@ export const submitTorDocumentValidationSchema = z.object({
   }),
 });
 
+export const evaluateTorAnalysisValidationSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid ToR ID format'),
+  }),
+  body: z.object({
+    dataAnalysisObtained: z.number().min(0, 'Data analysis obtained marks must be >= 0'),
+    analysisNotes: z.string().optional().nullable(),
+    complianceStatus: z.enum(['COMPLIANT', 'PARTIALLY_COMPLIANT', 'NON_COMPLIANT', 'NOT_APPLICABLE']),
+  }),
+});
+
 export const TorValidation = {
   createTorValidationSchema,
   getTorTreeValidationSchema,
@@ -159,6 +170,8 @@ export const TorValidation = {
   assignTorTeamValidationSchema,
   checkDocumentValidationSchema,
   submitTorDocumentValidationSchema,
+  evaluateTorAnalysisValidationSchema,
 };
+
 
 

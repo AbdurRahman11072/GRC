@@ -157,5 +157,16 @@ router.patch(
   TorController.updateDocumentStatus
 );
 
+// Evaluate ToR Audit Analysis Marks & Compliance Verdict (Supervisor, Project Manager, Org Admin)
+router.post(
+  '/:id/evaluate',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(TorValidation.evaluateTorAnalysisValidationSchema),
+  TorController.evaluateTorAnalysis
+);
+
 export const TorRoutes = router;
 export default router;
+

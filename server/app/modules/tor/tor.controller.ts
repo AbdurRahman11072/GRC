@@ -218,6 +218,20 @@ const checkTorDocument = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+const evaluateTorAnalysis = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const user = { id: req.user!.userId };
+  const result = await TorService.evaluateTorAnalysis(orgId, id, req.body, user);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'ToR audit analysis marks and compliance determination saved successfully',
+    data: result,
+  });
+});
+
 export const TorController = {
   createTor,
   getTorTree,
@@ -234,6 +248,8 @@ export const TorController = {
   submitTorDocument,
   checkTorDocument,
   updateDocumentStatus,
+  evaluateTorAnalysis,
 };
+
 
 

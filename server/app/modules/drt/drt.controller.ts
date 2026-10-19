@@ -121,6 +121,47 @@ const updatePeriodStatuses = asyncHandler(async (req: Request, res: Response) =>
   });
 });
 
+const assignSquad = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const result = await DRTService.assignSquad(orgId, id, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'DRT 4-party squad assigned successfully',
+    data: result,
+  });
+});
+
+const uploadDrtDocument = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const id = req.params.id as string;
+  const user = { id: req.user!.userId };
+  const result = await DRTService.uploadDrtDocument(orgId, id, req.body, user);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'DRT evidence document uploaded successfully',
+    data: result,
+  });
+});
+
+const reviewDrtDocument = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const docId = req.params.docId as string;
+  const user = { id: req.user!.userId };
+  const result = await DRTService.reviewDrtDocument(orgId, docId, req.body, user);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'DRT document review status updated successfully',
+    data: result,
+  });
+});
+
 export const DRTController = {
   createTicket,
   getTickets,
@@ -131,5 +172,9 @@ export const DRTController = {
   updateLifecycleStatus,
   updateReviewStatus,
   updatePeriodStatuses,
+  assignSquad,
+  uploadDrtDocument,
+  reviewDrtDocument,
 };
+
 

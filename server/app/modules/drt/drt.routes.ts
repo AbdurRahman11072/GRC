@@ -98,5 +98,35 @@ router.put(
   DRTController.updatePeriodStatuses
 );
 
+// Assign 4-Party Squad to DRT Ticket
+router.patch(
+  '/tickets/:id/squad',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(DRTValidation.assignSquadValidationSchema),
+  DRTController.assignSquad
+);
+
+// Upload DRT Document (Client or Auditee slot, uploaded by Field Team / Supervisor / PM)
+router.post(
+  '/tickets/:id/documents',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(DRTValidation.uploadDrtDocumentValidationSchema),
+  DRTController.uploadDrtDocument
+);
+
+// Review DRT Document (Accept or Request Revision)
+router.patch(
+  '/documents/:docId/review',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(DRTValidation.reviewDrtDocumentValidationSchema),
+  DRTController.reviewDrtDocument
+);
+
 export const DRTRoutes = router;
 export default router;
+

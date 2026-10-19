@@ -10,18 +10,49 @@ import {
 
 export interface ICreateTicketPayload {
   projectId: string;
+  torId?: string | null;
   requestCode: string;
-  assignedTeamBucket: TeamBucket;
+  title?: string | null;
+  assignedTeamBucket?: TeamBucket;
   department?: string | null;
   description: string;
+  supervisorId?: string | null;
+  fieldMemberId?: string | null;
+  clientContactId?: string | null;
+  auditeeContactId?: string | null;
   dateOfRequest?: string;
   expectedDateOfReceipt?: string;
   allocatedWeight?: number;
   torIds?: string[];
 }
 
+export interface IAssignSquadPayload {
+  supervisorId?: string | null;
+  fieldMemberId?: string | null;
+  clientContactId?: string | null;
+  auditeeContactId?: string | null;
+  expectedDateOfReceipt?: string | null;
+}
+
+export interface IUploadDrtDocPayload {
+  partySide: 'CLIENT' | 'AUDITEE';
+  fileName: string;
+  fileUrl?: string | null;
+  fileSize?: number | null;
+  fileType?: string | null;
+  referenceNumber?: string | null;
+  receivedDate?: string | null;
+  notes?: string | null;
+}
+
+export interface IReviewDrtDocPayload {
+  status: 'ACCEPTED' | 'REVISION_REQUESTED';
+  reviewNotes?: string | null;
+}
+
 export interface IUpdateTicketPayload {
   requestCode?: string;
+  title?: string | null;
   description?: string;
   assignedTeamBucket?: TeamBucket;
   department?: string | null;
@@ -72,13 +103,21 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
 
   // Create ticket in transaction with initial ToR mappings
   const ticket = await prisma.$transaction(async (tx) => {
+    const parentTorId = payload.torId || (payload.torIds && payload.torIds.length > 0 ? payload.torIds[0] : null);
+
     const createdTicket = await tx.dRTTicket.create({
       data: {
         projectId: payload.projectId,
+        torId: parentTorId,
         requestCode,
-        assignedTeamBucket: payload.assignedTeamBucket,
+        title: payload.title ? payload.title.trim() : null,
+        assignedTeamBucket: payload.assignedTeamBucket || TeamBucket.AUDITEE,
         department: payload.department ? payload.department.trim() : null,
         description: payload.description.trim(),
+        supervisorId: payload.supervisorId || null,
+        fieldMemberId: payload.fieldMemberId || null,
+        clientContactId: payload.clientContactId || null,
+        auditeeContactId: payload.auditeeContactId || null,
         dateOfRequest: payload.dateOfRequest ? new Date(payload.dateOfRequest) : new Date(),
         expectedDateOfReceipt: payload.expectedDateOfReceipt
           ? new Date(payload.expectedDateOfReceipt)
@@ -87,17 +126,28 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
       },
     });
 
-    if (payload.torIds && payload.torIds.length > 0) {
+    const allTorIds = new Set<string>();
+    if (parentTorId) allTorIds.add(parentTorId);
+    if (payload.torIds) {
+      payload.torIds.forEach((id) => allTorIds.add(id));
+    }
+
+    if (allTorIds.size > 0) {
       await tx.dRTTicketToR.createMany({
-        data: payload.torIds.map((torId) => ({
+        data: Array.from(allTorIds).map((torId) => ({
           ticketId: createdTicket.id,
           torId,
         })),
+        skipDuplicates: true,
       });
     }
 
     return createdTicket;
   });
+
+  if (ticket.torId) {
+    await recalculateTorCollectionMarks(ticket.torId);
+  }
 
   return getTicketById(orgId, ticket.id);
 };
@@ -164,6 +214,53 @@ const getTickets = async (
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
+        tor: {
+          select: {
+            id: true,
+            code: true,
+            title: true,
+            department: true,
+          },
+        },
+        supervisor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            designation: true,
+          },
+        },
+        fieldMember: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            designation: true,
+          },
+        },
+        clientContact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            designation: true,
+          },
+        },
+        auditeeContact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            designation: true,
+          },
+        },
+        drtDocuments: {
+          include: {
+            uploadedBy: { select: { id: true, name: true, email: true } },
+            reviewedBy: { select: { id: true, name: true, email: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
         torMappings: {
           select: {
             tor: {
@@ -180,6 +277,7 @@ const getTickets = async (
             submissions: true,
             comments: true,
             periodStatuses: true,
+            drtDocuments: true,
           },
         },
       },
@@ -216,6 +314,53 @@ const getTicketById = async (orgId: string, id: string) => {
           status: true,
         },
       },
+      tor: {
+        select: {
+          id: true,
+          code: true,
+          title: true,
+          department: true,
+        },
+      },
+      supervisor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          designation: true,
+        },
+      },
+      fieldMember: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          designation: true,
+        },
+      },
+      clientContact: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          designation: true,
+        },
+      },
+      auditeeContact: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          designation: true,
+        },
+      },
+      drtDocuments: {
+        include: {
+          uploadedBy: { select: { id: true, name: true, email: true } },
+          reviewedBy: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      },
       torMappings: {
         select: {
           tor: {
@@ -246,6 +391,7 @@ const getTicketById = async (orgId: string, id: string) => {
         select: {
           submissions: true,
           comments: true,
+          drtDocuments: true,
         },
       },
     },
@@ -613,6 +759,195 @@ const updatePeriodStatuses = async (
   return getTicketById(orgId, id);
 };
 
+/**
+ * 10. Assign 4-Party Squad to a DRT Ticket
+ */
+const assignSquad = async (
+  orgId: string,
+  ticketId: string,
+  payload: IAssignSquadPayload
+) => {
+  const ticket = await prisma.dRTTicket.findUnique({
+    where: { id: ticketId },
+    include: { project: true },
+  });
+
+  if (!ticket || ticket.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'DRT ticket not found in this organization');
+  }
+
+  const updated = await prisma.dRTTicket.update({
+    where: { id: ticketId },
+    data: {
+      supervisorId: payload.supervisorId !== undefined ? payload.supervisorId : ticket.supervisorId,
+      fieldMemberId: payload.fieldMemberId !== undefined ? payload.fieldMemberId : ticket.fieldMemberId,
+      clientContactId: payload.clientContactId !== undefined ? payload.clientContactId : ticket.clientContactId,
+      auditeeContactId: payload.auditeeContactId !== undefined ? payload.auditeeContactId : ticket.auditeeContactId,
+      expectedDateOfReceipt: payload.expectedDateOfReceipt !== undefined
+        ? (payload.expectedDateOfReceipt ? new Date(payload.expectedDateOfReceipt) : null)
+        : ticket.expectedDateOfReceipt,
+    },
+  });
+
+  return getTicketById(orgId, updated.id);
+};
+
+/**
+ * 11. Upload Document for DRT (Client or Auditee Slot)
+ */
+const uploadDrtDocument = async (
+  orgId: string,
+  ticketId: string,
+  payload: IUploadDrtDocPayload,
+  user: { id: string }
+) => {
+  const ticket = await prisma.dRTTicket.findUnique({
+    where: { id: ticketId },
+    include: { project: true },
+  });
+
+  if (!ticket || ticket.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'DRT ticket not found in this organization');
+  }
+
+  const doc = await prisma.dRTDocument.create({
+    data: {
+      ticketId,
+      partySide: payload.partySide,
+      fileName: payload.fileName,
+      fileUrl: payload.fileUrl || null,
+      fileSize: payload.fileSize || null,
+      fileType: payload.fileType || null,
+      referenceNumber: payload.referenceNumber || null,
+      receivedDate: payload.receivedDate ? new Date(payload.receivedDate) : new Date(),
+      reviewNotes: payload.notes || null,
+      status: 'SUBMITTED',
+      uploadedById: user.id,
+    },
+    include: {
+      uploadedBy: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  // Update ticket lifecycle status to SUBMITTED if currently OPEN
+  if (ticket.lifecycleStatus === 'OPEN') {
+    await prisma.dRTTicket.update({
+      where: { id: ticketId },
+      data: {
+        lifecycleStatus: 'SUBMITTED',
+        actualDateOfReceipt: new Date(),
+      },
+    });
+  }
+
+  if (ticket.torId) {
+    await recalculateTorCollectionMarks(ticket.torId);
+  }
+
+  return doc;
+};
+
+/**
+ * 12. Review DRT Document (Accept or Request Revision)
+ */
+const reviewDrtDocument = async (
+  orgId: string,
+  docId: string,
+  payload: IReviewDrtDocPayload,
+  user: { id: string }
+) => {
+  const doc = await prisma.dRTDocument.findUnique({
+    where: { id: docId },
+    include: {
+      ticket: {
+        include: { project: true },
+      },
+    },
+  });
+
+  if (!doc || doc.ticket.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'DRT document not found in this organization');
+  }
+
+  const updatedDoc = await prisma.dRTDocument.update({
+    where: { id: docId },
+    data: {
+      status: payload.status,
+      reviewNotes: payload.reviewNotes !== undefined ? payload.reviewNotes : doc.reviewNotes,
+      reviewedById: user.id,
+    },
+    include: {
+      uploadedBy: { select: { id: true, name: true, email: true } },
+      reviewedBy: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  // Check all documents for ticket
+  const allDocs = await prisma.dRTDocument.findMany({
+    where: { ticketId: doc.ticketId },
+  });
+
+  const hasClientAccepted = allDocs.some((d) => d.partySide === 'CLIENT' && d.status === 'ACCEPTED');
+  const hasAuditeeAccepted = allDocs.some((d) => d.partySide === 'AUDITEE' && d.status === 'ACCEPTED');
+
+  if (hasClientAccepted || hasAuditeeAccepted) {
+    const isFullAccepted = hasClientAccepted && hasAuditeeAccepted;
+    await prisma.dRTTicket.update({
+      where: { id: doc.ticketId },
+      data: {
+        lifecycleStatus: isFullAccepted ? 'ACCEPTED' : 'SUBMITTED',
+        reviewStatus: isFullAccepted ? 'DONE' : 'PARTIAL',
+      },
+    });
+  } else if (payload.status === 'REVISION_REQUESTED') {
+    await prisma.dRTTicket.update({
+      where: { id: doc.ticketId },
+      data: {
+        lifecycleStatus: 'REVISION_REQUESTED',
+        reviewStatus: 'PARTIAL',
+      },
+    });
+  }
+
+  if (doc.ticket.torId) {
+    await recalculateTorCollectionMarks(doc.ticket.torId);
+  }
+
+  return updatedDoc;
+};
+
+/**
+ * Helper: Recalculate parent ToR Data Collection Marks based on child DRTs
+ */
+export const recalculateTorCollectionMarks = async (torId: string) => {
+  const tor = await prisma.tor.findUnique({
+    where: { id: torId },
+    include: { drtTickets: true },
+  });
+
+  if (!tor || !tor.drtTickets || tor.drtTickets.length === 0) {
+    return;
+  }
+
+  const totalDrtCount = tor.drtTickets.length;
+  const acceptedDrtCount = tor.drtTickets.filter(
+    (t) => t.lifecycleStatus === 'ACCEPTED' || t.reviewStatus === 'DONE'
+  ).length;
+
+  const collectionRate = totalDrtCount > 0 ? acceptedDrtCount / totalDrtCount : 0;
+  const allocated = tor.dataCollectionAllocated > 0 ? tor.dataCollectionAllocated : 5.0;
+  const obtained = Math.round(collectionRate * allocated * 100) / 100;
+
+  await prisma.tor.update({
+    where: { id: torId },
+    data: {
+      dataCollectionObtained: obtained,
+    },
+  });
+};
+
 export const DRTService = {
   createTicket,
   getTickets,
@@ -623,4 +958,9 @@ export const DRTService = {
   updateLifecycleStatus,
   updateReviewStatus,
   updatePeriodStatuses,
+  assignSquad,
+  uploadDrtDocument,
+  reviewDrtDocument,
+  recalculateTorCollectionMarks,
 };
+

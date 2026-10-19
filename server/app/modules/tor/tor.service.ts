@@ -51,6 +51,16 @@ export interface ITorTreeNode {
   createdById: string;
   createdAt: Date;
   updatedAt: Date;
+  dataCollectionAllocated?: number;
+  dataCollectionObtained?: number;
+  dataAnalysisAllocated?: number;
+  dataAnalysisObtained?: number;
+  analysisNotes?: string | null;
+  complianceStatus?: string | null;
+  analyzedById?: string | null;
+  analyzedAt?: Date | null;
+  analyzedBy?: any;
+  drtTickets?: any[];
   streamWeights: any[];
   assignedMembers?: any[];
   documents?: any[];
@@ -148,6 +158,29 @@ const getTorTree = async (orgId: string, projectId: string) => {
     orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
     include: {
       streamWeights: true,
+      analyzedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      drtTickets: {
+        include: {
+          drtDocuments: {
+            include: {
+              uploadedBy: { select: { id: true, name: true, email: true } },
+              reviewedBy: { select: { id: true, name: true, email: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+          supervisor: { select: { id: true, name: true, email: true } },
+          fieldMember: { select: { id: true, name: true, email: true } },
+          clientContact: { select: { id: true, name: true, email: true } },
+          auditeeContact: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
       assignedMembers: {
         include: {
           user: {
@@ -330,6 +363,29 @@ const getTorById = async (orgId: string, id: string) => {
         },
       },
       streamWeights: true,
+      analyzedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      drtTickets: {
+        include: {
+          drtDocuments: {
+            include: {
+              uploadedBy: { select: { id: true, name: true, email: true } },
+              reviewedBy: { select: { id: true, name: true, email: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+          supervisor: { select: { id: true, name: true, email: true } },
+          fieldMember: { select: { id: true, name: true, email: true } },
+          clientContact: { select: { id: true, name: true, email: true } },
+          auditeeContact: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
       drtMappings: {
         include: {
           ticket: {
@@ -1017,6 +1073,54 @@ const updateDocumentStatus = async (
   return updated;
 };
 
+export interface IEvaluateTorAnalysisPayload {
+  dataAnalysisObtained: number;
+  analysisNotes?: string | null;
+  complianceStatus: 'COMPLIANT' | 'PARTIALLY_COMPLIANT' | 'NON_COMPLIANT' | 'NOT_APPLICABLE';
+}
+
+/**
+ * 16. Evaluate ToR Analysis Marks and compliance verdict (Supervisor / PM)
+ */
+const evaluateTorAnalysis = async (
+  orgId: string,
+  torId: string,
+  payload: IEvaluateTorAnalysisPayload,
+  user: { id: string }
+) => {
+  const tor = await prisma.tor.findUnique({
+    where: { id: torId },
+    include: { project: true },
+  });
+
+  if (!tor || tor.project.orgId !== orgId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'ToR node not found in this organization');
+  }
+
+  const updatedTor = await prisma.tor.update({
+    where: { id: torId },
+    data: {
+      dataAnalysisObtained: payload.dataAnalysisObtained,
+      analysisNotes: payload.analysisNotes || null,
+      complianceStatus: payload.complianceStatus,
+      analyzedById: user.id,
+      analyzedAt: new Date(),
+    },
+    include: {
+      analyzedBy: {
+        select: { id: true, name: true, email: true },
+      },
+      drtTickets: {
+        include: {
+          drtDocuments: true,
+        },
+      },
+    },
+  });
+
+  return updatedTor;
+};
+
 export const TorService = {
   createTor,
   getTorTree,
@@ -1033,4 +1137,5 @@ export const TorService = {
   submitTorDocument,
   checkTorDocument,
   updateDocumentStatus,
+  evaluateTorAnalysis,
 };

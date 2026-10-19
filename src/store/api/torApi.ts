@@ -128,6 +128,18 @@ export const torApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['ToR'],
     }),
+
+    evaluateTorAnalysis: builder.mutation<
+      ApiResponse<ITorNode>,
+      import('../../types/tor.types').IEvaluateTorAnalysisPayload
+    >({
+      query: ({ torId, ...body }) => ({
+        url: `/tors/${torId}/evaluate`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['ToR', 'DRT'],
+    }),
   }),
 });
 
@@ -143,4 +155,6 @@ export const {
   useSubmitTorDocumentMutation,
   useUpdateDocumentStatusMutation,
   useCheckTorDocumentMutation,
+  useEvaluateTorAnalysisMutation,
 } = torApi;
+
