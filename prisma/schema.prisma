@@ -41,6 +41,13 @@ model User {
   activityLogs       SystemActivityLog[]
   attachments        Attachment[]
   entityContacts     EntityContact[]
+  supervisedDrtTickets DRTTicket[]        @relation("DrtSupervisor")
+  fieldDrtTickets      DRTTicket[]        @relation("DrtFieldMember")
+  clientDrtTickets     DRTTicket[]        @relation("DrtClientContact")
+  auditeeDrtTickets    DRTTicket[]        @relation("DrtAuditeeContact")
+  uploadedDrtDocs      DRTDocument[]      @relation("DRTDocUploader")
+  reviewedDrtDocs      DRTDocument[]      @relation("DRTDocReviewer")
+  analyzedTors         Tor[]              @relation("TorAnalyzer")
 
   @@index([email])
 }
@@ -232,19 +239,32 @@ model Tor {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
+  // Two-Stage Scoring Engine
+  dataCollectionAllocated Float     @default(0.0)
+  dataCollectionObtained  Float     @default(0.0)
+  dataAnalysisAllocated   Float     @default(0.0)
+  dataAnalysisObtained    Float     @default(0.0)
+  analysisNotes           String?
+  complianceStatus        String?
+  analyzedById            String?
+  analyzedAt              DateTime?
+
   project         Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent          Tor?                  @relation("TorHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children        Tor[]                 @relation("TorHierarchy")
   creator         User                  @relation("TorCreator", fields: [createdById], references: [id])
+  analyzedBy      User?                 @relation("TorAnalyzer", fields: [analyzedById], references: [id], onDelete: SetNull)
   streamWeights   TorStreamWeight[]
   assignedMembers TorMemberAssignment[]
   documents       TorDocument[]
   drtMappings     DRTTicketToR[]
+  drtTickets      DRTTicket[]
   findings        AuditFinding[]
 
   @@index([projectId])
   @@index([parentId])
   @@index([code])
+  @@index([analyzedById])
 }
 
 enum AssignmentRole {
@@ -329,10 +349,19 @@ enum DRTReviewStatus {
 model DRTTicket {
   id                    String             @id @default(uuid())
   projectId             String
+  torId                 String?            // Primary parent ToR clause
   requestCode           String             // e.g., "M1001", "L1001"
+  title                 String?            // Document title requested
   assignedTeamBucket    TeamBucket         // AUDITEE or CLIENT
   department            String?            // Target auditee department
   description           String
+
+  // 4-Party Squad
+  supervisorId          String?
+  fieldMemberId         String?
+  clientContactId       String?
+  auditeeContactId      String?
+
   dateOfRequest         DateTime?
   expectedDateOfReceipt DateTime?
   actualDateOfReceipt   DateTime?
@@ -344,17 +373,59 @@ model DRTTicket {
   updatedAt             DateTime           @updatedAt
 
   project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tor            Tor?                    @relation(fields: [torId], references: [id], onDelete: SetNull)
+  supervisor     User?                   @relation("DrtSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  fieldMember    User?                   @relation("DrtFieldMember", fields: [fieldMemberId], references: [id], onDelete: SetNull)
+  clientContact  User?                   @relation("DrtClientContact", fields: [clientContactId], references: [id], onDelete: SetNull)
+  auditeeContact User?                   @relation("DrtAuditeeContact", fields: [auditeeContactId], references: [id], onDelete: SetNull)
+
   torMappings    DRTTicketToR[]
   periodStatuses DRTTicketPeriodStatus[]
   submissions    DRTSubmission[]
+  drtDocuments   DRTDocument[]           // Two-sided document submissions
   comments       DRTComment[]
 
   @@unique([projectId, requestCode])
   @@index([projectId])
+  @@index([torId])
+  @@index([supervisorId])
+  @@index([fieldMemberId])
   @@index([assignedTeamBucket])
   @@index([department])
   @@index([lifecycleStatus])
   @@index([reviewStatus])
+}
+
+enum DRTPartySide {
+  CLIENT
+  AUDITEE
+}
+
+model DRTDocument {
+  id              String        @id @default(uuid())
+  ticketId        String
+  partySide       DRTPartySide  // CLIENT or AUDITEE
+  fileName        String
+  fileUrl         String?
+  fileSize        Int?
+  fileType        String?
+  referenceNumber String?       // Official letter / circular / memo number
+  receivedDate    DateTime?     // When physical/digital document was received
+  uploadedById    String        // Field member / Supervisor / PM who uploaded
+  reviewedById    String?
+  reviewNotes     String?
+  status          String        @default("SUBMITTED") // SUBMITTED, ACCEPTED, REVISION_REQUESTED
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  ticket          DRTTicket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploadedBy      User          @relation("DRTDocUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+  reviewedBy      User?         @relation("DRTDocReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([partySide])
+  @@index([uploadedById])
+  @@index([reviewedById])
 }
 
 model DRTTicketToR {

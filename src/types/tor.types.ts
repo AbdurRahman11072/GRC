@@ -1,4 +1,4 @@
-import type { ProjectRole } from './project.types';
+import type { ProjectRole, IDRTTicket } from './project.types';
 
 export interface IStreamWeight {
   id?: string;
@@ -52,15 +52,35 @@ export interface ITorNode {
   submissionDeadline?: string | null;
   createdAt: string;
   updatedAt: string;
+
+  // Two-Stage Scoring Engine
+  dataCollectionAllocated?: number;
+  dataCollectionObtained?: number;
+  dataAnalysisAllocated?: number;
+  dataAnalysisObtained?: number;
+  analysisNotes?: string | null;
+  complianceStatus?: string | null;
+  analyzedById?: string | null;
+  analyzedAt?: string | null;
+  analyzedBy?: { id: string; name: string; email: string } | null;
+
   streamWeights?: IStreamWeight[];
   assignedMembers?: ITorMemberAssignment[];
   documents?: ITorDocument[];
+  drtTickets?: IDRTTicket[];
   _count?: {
     children: number;
     drtMappings: number;
     findings: number;
   };
   children?: ITorNode[];
+}
+
+export interface IEvaluateTorAnalysisPayload {
+  torId: string;
+  dataAnalysisObtained: number;
+  analysisNotes?: string | null;
+  complianceStatus: 'COMPLIANT' | 'PARTIALLY_COMPLIANT' | 'NON_COMPLIANT' | 'NOT_APPLICABLE';
 }
 
 export interface IAssignTrioPayload {
