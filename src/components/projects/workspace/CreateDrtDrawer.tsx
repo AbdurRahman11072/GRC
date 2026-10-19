@@ -1,18 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { FilePlus, AlertCircle } from 'lucide-react';
 import { Drawer } from '../../ui/Drawer';
 import { Button } from '../../ui/Button';
 import { FormField, FormTextarea } from '../../form/FormField';
 import { useCreateTicketMutation } from '../../../store/api/drtApi';
-import type { ProjectRole } from '../../../types/project.types';
+import { useGetTorTreeQuery } from '../../../store/api/torApi';
+import { useGetProjectMembersQuery } from '../../../store/api/projectApi';
+import { DrtSquadFields } from './drt/DrtSquadFields';
+import type { ITorNode } from '../../../types/tor.types';
 
 export interface CreateDrtDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
+  defaultTorId?: string | null;
 }
 
 const deptSuggestions = [
@@ -28,40 +32,76 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
   isOpen,
   onClose,
   projectId,
+  defaultTorId,
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createTicket, { isLoading }] = useCreateTicketMutation();
 
+  const { data: treeData } = useGetTorTreeQuery(projectId, { skip: !isOpen });
+  const { data: membersData } = useGetProjectMembersQuery(projectId, { skip: !isOpen });
+
+  const projectMembers = membersData?.data || [];
+  const orgMembers = projectMembers.filter(
+    (m) => m.teamBucket === 'ORG_MEMBER' || m.teamBucket === 'ADMINISTRATOR'
+  );
+  const clientMembers = projectMembers.filter((m) => m.teamBucket === 'CLIENT');
+  const auditeeMembers = projectMembers.filter((m) => m.teamBucket === 'AUDITEE');
+
+  const flatTors: ITorNode[] = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = treeData?.data as any;
+    const tree: ITorNode[] = Array.isArray(raw) ? raw : raw?.tree || [];
+    const list: ITorNode[] = [];
+    const walk = (nodes: ITorNode[]) => {
+      nodes.forEach((n) => {
+        list.push(n);
+        if (n.children && n.children.length > 0) walk(n.children);
+      });
+    };
+    walk(tree);
+    return list;
+  }, [treeData]);
+
   const form = useForm({
     defaultValues: {
+      torId: defaultTorId || '',
       requestCode: '',
-      assignedTeamBucket: 'AUDITEE' as ProjectRole,
+      title: '',
       department: '',
       description: '',
-      dateOfRequest: new Date().toISOString().split('T')[0],
+      supervisorId: '',
+      fieldMemberId: '',
+      clientContactId: '',
+      auditeeContactId: '',
       expectedDateOfReceipt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       allocatedWeight: 1,
     },
     onSubmit: async ({ value }) => {
       setErrorMessage(null);
-      if (!value.requestCode || value.requestCode.trim().length < 1) {
-        setErrorMessage('Request Code (e.g. M1001, S2001) is required');
+      if (!value.requestCode?.trim()) {
+        setErrorMessage('Request Code (e.g. DRT-101, M1001) is required');
         return;
       }
-      if (!value.description || value.description.trim().length < 2) {
-        setErrorMessage('Data request description is required');
+      if (!value.description?.trim()) {
+        setErrorMessage('Evidence requirement description is required');
         return;
       }
 
       try {
         await createTicket({
           projectId,
+          torId: value.torId || undefined,
           requestCode: value.requestCode.trim(),
-          assignedTeamBucket: value.assignedTeamBucket,
+          title: value.title?.trim() || undefined,
+          assignedTeamBucket: 'AUDITEE',
           department: value.department ? value.department.trim() : undefined,
           description: value.description.trim(),
-          dateOfRequest: value.dateOfRequest,
-          expectedDateOfReceipt: value.expectedDateOfReceipt,
+          supervisorId: value.supervisorId || undefined,
+          fieldMemberId: value.fieldMemberId || undefined,
+          clientContactId: value.clientContactId || undefined,
+          auditeeContactId: value.auditeeContactId || undefined,
+          dateOfRequest: new Date().toISOString(),
+          expectedDateOfReceipt: value.expectedDateOfReceipt || undefined,
           allocatedWeight: Number(value.allocatedWeight) || 1,
         }).unwrap();
 
@@ -69,58 +109,60 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
         onClose();
       } catch (err: unknown) {
         const error = err as { data?: { message?: string }; message?: string };
-        setErrorMessage(
-          error.data?.message || error.message || 'Failed to create DRT request ticket'
-        );
+        setErrorMessage(error.data?.message || error.message || 'Failed to create DRT request ticket');
       }
     },
   });
+
+  useEffect(() => {
+    if (isOpen && defaultTorId) form.setFieldValue('torId', defaultTorId);
+  }, [isOpen, defaultTorId, form]);
 
   return (
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
-      title="Create DRT Request Ticket"
-      description="Issue a Data Request Tracking ticket with SLA deadline"
+      title="Fire DRT Document Request"
+      description="Issue a document request ticket under a ToR clause with assigned 4-party squad"
       size="lg"
     >
       {errorMessage && (
-        <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-xs text-rose-400">
+        <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-xs text-rose-500">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }} className="space-y-4">
+        <form.Field name="torId">
+          {(field) => (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Parent Terms of Reference (ToR) Clause
+              </label>
+              <select
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-xs bg-white border border-slate-200 text-slate-800 focus:outline-none focus:border-indigo-600"
+              >
+                <option value="">-- General Project Data Request (No ToR) --</option>
+                {flatTors.map((t) => (
+                  <option key={t.id} value={t.id}>[{t.code}] {t.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </form.Field>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <form.Field name="requestCode">
-            {(field) => (
-              <FormField field={field} label="Request Code *" placeholder="e.g. M1001, S2001" required />
-            )}
+            {(field) => <FormField field={field} label="Request Code *" placeholder="e.g. DRT-101, M1001" required />}
           </form.Field>
-
-          <form.Field name="assignedTeamBucket">
-            {(field) => (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Assigned Team *
-                </label>
-                <select
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value as ProjectRole)}
-                  className="w-full px-3.5 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-indigo-600"
-                >
-                  <option value="AUDITEE">Auditee (Target Enterprise Personnel)</option>
-                  <option value="CLIENT">Client (Regulator Oversight)</option>
-                  <option value="ORG_MEMBER">Org Member (Audit Firm Auditor)</option>
-                  <option value="ADMINISTRATOR">Administrator (Company Management)</option>
-                </select>
-              </div>
-            )}
+          <form.Field name="title">
+            {(field) => <FormField field={field} label="Document Name / Title" placeholder="e.g. NOC Logbook, Rating Dump" />}
           </form.Field>
         </div>
 
-        {/* Target Auditee Department */}
         <form.Field name="department">
           {(field) => (
             <div>
@@ -132,16 +174,11 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 placeholder="e.g. IT & Infrastructure, Billing, Legal"
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600"
+                className="w-full px-3 py-2 rounded-lg text-xs bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600"
               />
               <datalist id="dept-suggestions">
-                {deptSuggestions.map((d) => (
-                  <option key={d} value={d} />
-                ))}
+                {deptSuggestions.map((d) => <option key={d} value={d} />)}
               </datalist>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Informs team members which auditee department to approach for this data.
-              </p>
             </div>
           )}
         </form.Field>
@@ -150,28 +187,27 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
           {(field) => (
             <FormTextarea
               field={field}
-              label="Information / Evidence Required *"
+              label="Evidence Requirement Description *"
               placeholder="Specify the exact documentation, configuration exports, or log records required..."
-              rows={4}
+              rows={3}
               required
             />
           )}
         </form.Field>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <form.Field name="dateOfRequest">
-            {(field) => <FormField field={field} type="date" label="Date of Request" />}
-          </form.Field>
+        <DrtSquadFields form={form} orgMembers={orgMembers} clientMembers={clientMembers} auditeeMembers={auditeeMembers} />
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <form.Field name="expectedDateOfReceipt">
             {(field) => <FormField field={field} type="date" label="Expected Receipt Date (SLA)" />}
           </form.Field>
+          <form.Field name="allocatedWeight">
+            {(field) => <FormField field={field} type="number" label="Relative Weight" placeholder="1" />}
+          </form.Field>
         </div>
 
-        <div className="pt-5 border-t border-slate-200 flex items-center justify-end gap-3">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </Button>
+        <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>Cancel</Button>
           <Button type="submit" variant="primary" size="sm" isLoading={isLoading} leftIcon={<FilePlus className="w-4 h-4" />}>
             Issue DRT Ticket
           </Button>

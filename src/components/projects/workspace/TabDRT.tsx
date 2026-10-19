@@ -1,27 +1,44 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { FileCheck, Search, Filter, Layers, Upload, CheckCircle2, AlertTriangle, FileText } from 'lucide-react';
-import { Card } from '../../ui/Card';
+import {
+  FilePlus,
+  Search,
+  Filter,
+  Layers,
+  FileCheck,
+  AlertTriangle,
+  Clock,
+  ShieldCheck,
+} from 'lucide-react';
 import { Button } from '../../ui/Button';
-import { Badge } from '../../ui/Badge';
-import { DrtTorRow } from './drt/DrtTorRow';
-import { UploadTorDocumentModal } from './drt/UploadTorDocumentModal';
-import { AssignTorMemberModal } from './drt/AssignTorMemberModal';
-import { useGetTorTreeQuery } from '../../../store/api/torApi';
+import { DrtTicketCard } from './drt/DrtTicketCard';
+import { CreateDrtDrawer } from './CreateDrtDrawer';
+import { UploadDrtDocumentModal } from './drt/UploadDrtDocumentModal';
+import { ReviewDrtDocumentModal } from './drt/ReviewDrtDocumentModal';
+import { AssignDrtSquadModal } from './drt/AssignDrtSquadModal';
+import { useGetTicketsQuery } from '../../../store/api/drtApi';
 import { useGetMyProjectPermissionsQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
-import type { ITorNode } from '../../../types/tor.types';
+import type { IDRTTicket, IDRTDocument, DRTPartySide } from '../../../types/project.types';
 
-interface TabDRTProps {
+export interface TabDRTProps {
   projectId: string;
 }
 
 export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterMode, setFilterMode] = useState<'ALL' | 'SUBMITTED' | 'PENDING' | 'MY_TORS'>('ALL');
-  const [activeUploadTor, setActiveUploadTor] = useState<ITorNode | null>(null);
-  const [activeAssignTor, setActiveAssignTor] = useState<ITorNode | null>(null);
+  const [filterMode, setFilterMode] = useState<
+    'ALL' | 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'OVERDUE'
+  >('ALL');
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [uploadTicket, setUploadTicket] = useState<{
+    ticket: IDRTTicket;
+    side: DRTPartySide;
+  } | null>(null);
+  const [reviewDoc, setReviewDoc] = useState<IDRTDocument | null>(null);
+  const [squadTicket, setSquadTicket] = useState<IDRTTicket | null>(null);
 
   const currentUser = useAppSelector((state) => state.auth.user);
   const currentOrgMembership = useAppSelector((state) =>
@@ -36,173 +53,185 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
   const { data: permData } = useGetMyProjectPermissionsQuery(projectId);
   const permissions = permData?.data;
 
-  const { data: treeData, isLoading } = useGetTorTreeQuery(projectId);
+  const canCreateTicket = isOrgAdmin || permissions?.canAssignDrt;
+  const canUpload = isOrgAdmin || permissions?.canUploadDocument;
+  const canReview = isOrgAdmin || permissions?.canCheckDocument;
 
-  // Flatten recursive ToR tree into array of clauses
-  const flatNodes = useMemo(() => {
-    const rawData = treeData?.data as any;
-    const tree = Array.isArray(rawData) ? rawData : rawData?.tree || [];
-    const result: ITorNode[] = [];
-    const flatten = (nodes: ITorNode[]) => {
-      nodes.forEach((n) => {
-        result.push(n);
-        if (n.children && n.children.length > 0) flatten(n.children);
-      });
-    };
-    flatten(tree);
-    return result;
-  }, [treeData]);
+  const { data: ticketsData, isLoading } = useGetTicketsQuery({
+    projectId,
+    search: searchTerm.trim() || undefined,
+  });
 
-  // Base accessible nodes: Non-admin org members ONLY see DRTs assigned to them by admin
-  const accessibleNodes = useMemo(() => {
-    if (isOrgAdmin) return flatNodes;
-    return flatNodes.filter((n) =>
-      Boolean(
-        currentUser?.id &&
-          n.assignedMembers?.some(
-            (m) => m.userId === currentUser.id || m.user?.id === currentUser.id
-          )
-      )
-    );
-  }, [flatNodes, currentUser, isOrgAdmin]);
+  const tickets = ticketsData?.data || [];
 
-  // Filtered ToR items
-  const filteredNodes = useMemo(() => {
-    return accessibleNodes.filter((n) => {
-      // Search query filter
-      if (searchTerm.trim()) {
-        const q = searchTerm.toLowerCase();
-        const matches =
-          n.code.toLowerCase().includes(q) ||
-          n.title.toLowerCase().includes(q) ||
-          (n.department && n.department.toLowerCase().includes(q));
-        if (!matches) return false;
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((t) => {
+      if (filterMode === 'PENDING') return t.workflowStatus === 'OPEN';
+      if (filterMode === 'SUBMITTED') return t.workflowStatus === 'SUBMITTED';
+      if (filterMode === 'ACCEPTED') return t.workflowStatus === 'ACCEPTED';
+      if (filterMode === 'OVERDUE') {
+        return (
+          t.expectedDateOfReceipt &&
+          new Date(t.expectedDateOfReceipt) < new Date() &&
+          t.workflowStatus !== 'ACCEPTED'
+        );
       }
-
-      const docsCount = n.documents?.length || 0;
-      const isAssignedToMe = Boolean(
-        currentUser?.id && n.assignedMembers?.some((m) => m.userId === currentUser.id)
-      );
-
-      if (filterMode === 'SUBMITTED') return docsCount > 0;
-      if (filterMode === 'PENDING') return docsCount === 0;
-      if (filterMode === 'MY_TORS') return isAssignedToMe;
       return true;
     });
-  }, [accessibleNodes, searchTerm, filterMode, currentUser]);
+  }, [tickets, filterMode]);
 
   // Aggregate stats
-  const totalDocs = useMemo(() => {
-    return accessibleNodes.reduce((acc, n) => acc + (n.documents?.length || 0), 0);
-  }, [accessibleNodes]);
-
-  const acceptedDocs = useMemo(() => {
-    return accessibleNodes.reduce((acc, n) => {
-      const docs = n.documents || [];
-      return acc + docs.filter((d) => d.status === 'ACCEPTED').length;
-    }, 0);
-  }, [accessibleNodes]);
+  const totalTickets = tickets.length;
+  const acceptedTickets = tickets.filter((t) => t.workflowStatus === 'ACCEPTED').length;
+  const totalSubmissions = tickets.reduce(
+    (acc, t) => acc + (t.drtDocuments?.length || 0),
+    0
+  );
+  const overdueTickets = tickets.filter(
+    (t) =>
+      t.expectedDateOfReceipt &&
+      new Date(t.expectedDateOfReceipt) < new Date() &&
+      t.workflowStatus !== 'ACCEPTED'
+  ).length;
 
   return (
-    <div className="space-y-5">
-      {/* DRT Metric Summary Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
-        <div className="flex items-center gap-4 text-xs text-slate-600 flex-wrap">
-          <span className="flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-indigo-600" />
-            {isOrgAdmin ? 'Total ToR Clauses: ' : 'Your Assigned DRTs: '}
-            <strong className="text-slate-900">{accessibleNodes.length}</strong>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <FileText className="w-4 h-4 text-cyan-600" />
-            Submitted Documents: <strong className="text-cyan-800">{totalDocs}</strong>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            Accepted: <strong className="text-emerald-700">{acceptedDocs}</strong>
-          </span>
+    <div className="space-y-4">
+      {/* Metrics Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-3 bg-white rounded-xl border border-slate-200">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+            Total Requests
+          </div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{totalTickets}</div>
         </div>
 
-        {/* Search input */}
-        <div className="relative min-w-[240px]">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div className="p-3 bg-white rounded-xl border border-slate-200">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-600" />
+            Evidence Submissions
+          </div>
+          <div className="text-xl font-bold text-cyan-700 mt-1">{totalSubmissions}</div>
+        </div>
+
+        <div className="p-3 bg-white rounded-xl border border-slate-200">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1.5">
+            <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
+            Accepted / Verified
+          </div>
+          <div className="text-xl font-bold text-emerald-700 mt-1">{acceptedTickets}</div>
+        </div>
+
+        <div className="p-3 bg-white rounded-xl border border-slate-200">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+            Overdue SLAs
+          </div>
+          <div className="text-xl font-bold text-rose-600 mt-1">{overdueTickets}</div>
+        </div>
+      </div>
+
+      {/* Control Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white rounded-xl border border-slate-200">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search code, title, or department..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs bg-slate-50 border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600"
+            placeholder="Search code, title, department..."
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:border-indigo-600"
           />
         </div>
-      </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-        {[
-          {
-            id: 'ALL',
-            label: isOrgAdmin
-              ? `All ToRs (${accessibleNodes.length})`
-              : `All Assigned DRTs (${accessibleNodes.length})`,
-          },
-          { id: 'SUBMITTED', label: 'With Documents' },
-          { id: 'PENDING', label: 'Pending Evidence' },
-          ...(isOrgAdmin ? [{ id: 'MY_TORS', label: 'Assigned to Me' }] : []),
-        ].map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilterMode(f.id as any)}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-              filterMode === f.id
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
+            {(['ALL', 'PENDING', 'SUBMITTED', 'ACCEPTED', 'OVERDUE'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setFilterMode(mode)}
+                className={`px-2.5 py-1 rounded-md font-medium capitalize transition-colors ${
+                  filterMode === mode
+                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {mode.toLowerCase()}
+              </button>
+            ))}
+          </div>
 
-      {/* DRT ToRs Table */}
-      {isLoading ? (
-        <div className="py-14 text-center text-xs text-slate-500">
-          Loading Data Request Tracker (ToRs and documents)...
+          {canCreateTicket && (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => setIsCreateOpen(true)}
+              leftIcon={<FilePlus className="w-4 h-4" />}
+            >
+              Fire DRT Request
+            </Button>
+          )}
         </div>
-      ) : filteredNodes.length > 0 ? (
-        <div className="space-y-3">
-          {filteredNodes.map((node) => (
-            <DrtTorRow
-              key={node.id}
-              tor={node}
-              currentUserId={currentUser?.id}
-              isOrgAdmin={isOrgAdmin}
-              canAssignDrt={permissions?.canAssignDrt}
-              canCheckDocument={permissions?.canCheckDocument}
-              canUploadDocument={permissions?.canUploadDocument}
-              onOpenUpload={(tor) => setActiveUploadTor(tor)}
-              onOpenAssign={(tor) => setActiveAssignTor(tor)}
+      </div>
+
+      {/* DRT Ticket Cards List */}
+      {isLoading ? (
+        <div className="p-8 text-center text-xs text-slate-500">Loading DRT requests...</div>
+      ) : filteredTickets.length === 0 ? (
+        <div className="p-8 text-center bg-white rounded-xl border border-dashed border-slate-200">
+          <p className="text-xs text-slate-500">No DRT request tickets match your filter criteria.</p>
+          {canCreateTicket && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3"
+              onClick={() => setIsCreateOpen(true)}
+              leftIcon={<FilePlus className="w-4 h-4" />}
+            >
+              Issue First DRT Ticket
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3">
+          {filteredTickets.map((ticket) => (
+            <DrtTicketCard
+              key={ticket.id}
+              ticket={ticket}
+              onUpload={(t, side) => setUploadTicket({ ticket: t, side })}
+              onReview={(doc) => setReviewDoc(doc)}
+              onManageSquad={(t) => setSquadTicket(t)}
+              canUpload={Boolean(canUpload)}
+              canReview={Boolean(canReview)}
             />
           ))}
         </div>
-      ) : (
-        <Card className="py-12 text-center text-xs text-slate-500 bg-white border-slate-200">
-          No ToR clauses match the selected filter.
-        </Card>
       )}
 
-      {/* Upload Document Modal */}
-      <UploadTorDocumentModal
-        isOpen={Boolean(activeUploadTor)}
-        onClose={() => setActiveUploadTor(null)}
-        tor={activeUploadTor}
+      {/* Modals & Drawers */}
+      <CreateDrtDrawer
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        projectId={projectId}
       />
 
-      {/* Assign Member Modal */}
-      <AssignTorMemberModal
-        isOpen={Boolean(activeAssignTor)}
-        onClose={() => setActiveAssignTor(null)}
-        tor={activeAssignTor}
+      <UploadDrtDocumentModal
+        isOpen={Boolean(uploadTicket)}
+        onClose={() => setUploadTicket(null)}
+        ticket={uploadTicket?.ticket || null}
+        defaultSide={uploadTicket?.side}
+      />
+
+      <ReviewDrtDocumentModal
+        isOpen={Boolean(reviewDoc)}
+        onClose={() => setReviewDoc(null)}
+        document={reviewDoc}
+      />
+
+      <AssignDrtSquadModal
+        isOpen={Boolean(squadTicket)}
+        onClose={() => setSquadTicket(null)}
+        ticket={squadTicket}
         projectId={projectId}
       />
     </div>
