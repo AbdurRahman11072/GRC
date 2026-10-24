@@ -13,8 +13,18 @@ export interface IProject {
   projectScope?: string | null;
   status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD';
   members?: IProjectMember[];
+  assessmentPeriods?: IAssessmentPeriod[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface IAssessmentPeriod {
+  id: string;
+  projectId: string;
+  periodKey: string;
+  weight: number;
+  revenueAmount?: number | null;
+  sortOrder: number;
 }
 
 export interface ICreateProjectPayload {

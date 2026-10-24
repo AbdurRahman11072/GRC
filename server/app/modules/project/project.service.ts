@@ -209,6 +209,33 @@ const createProject = async (
     }
   }
 
+  // Auto-provision normalized AssessmentPeriod records if data coverage range is specified
+  if (payload.projectScope) {
+    const scopeMatch = payload.projectScope.match(/(?:Audit Data Coverage:|\bCoverage:?)\s*(\d{4})\s*[–\-—]\s*(\d{4})/i)
+      || payload.projectScope.match(/(\d{4})\s*[–\-—]\s*(\d{4})/);
+    if (scopeMatch) {
+      const startYear = parseInt(scopeMatch[1], 10);
+      const endYear = parseInt(scopeMatch[2], 10);
+      if (!isNaN(startYear) && !isNaN(endYear) && startYear <= endYear && endYear - startYear <= 40) {
+        const totalYears = endYear - startYear + 1;
+        const equalWeight = Number((1.0 / totalYears).toFixed(4));
+        const periodData = [];
+        for (let y = startYear; y <= endYear; y++) {
+          periodData.push({
+            projectId: project.id,
+            periodKey: String(y),
+            weight: equalWeight,
+            sortOrder: y - startYear,
+          });
+        }
+        await prisma.assessmentPeriod.createMany({
+          data: periodData,
+          skipDuplicates: true,
+        });
+      }
+    }
+  }
+
   return project;
 };
 
@@ -333,6 +360,9 @@ const getProjectById = async (orgId: string, projectId: string) => {
     include: {
       client: true,
       auditee: true,
+      assessmentPeriods: {
+        orderBy: [{ sortOrder: 'asc' }, { periodKey: 'asc' }],
+      },
       members: {
         select: {
           id: true,

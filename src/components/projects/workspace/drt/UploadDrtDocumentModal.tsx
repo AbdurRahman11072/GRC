@@ -13,6 +13,7 @@ export interface UploadDrtDocumentModalProps {
   ticket: IDRTTicket | null;
   defaultSide?: DRTPartySide;
   initialPeriodLabel?: string;
+  auditYears?: string[];
 }
 
 const DEFAULT_YEARS = ['2020', '2021', '2022', '2023', '2024', '2025', '2026'];
@@ -23,6 +24,7 @@ export const UploadDrtDocumentModal: React.FC<UploadDrtDocumentModalProps> = ({
   ticket,
   defaultSide = 'AUDITEE',
   initialPeriodLabel,
+  auditYears,
 }) => {
   const [partySide, setPartySide] = useState<DRTPartySide>(defaultSide);
   const [fileName, setFileName] = useState('');
@@ -59,7 +61,7 @@ export const UploadDrtDocumentModal: React.FC<UploadDrtDocumentModalProps> = ({
   // Derive available audit years
   const availableYears = ticket.periodStatuses && ticket.periodStatuses.length > 0
     ? ticket.periodStatuses.map((p) => p.periodLabel)
-    : DEFAULT_YEARS;
+    : auditYears && auditYears.length > 0 ? auditYears : DEFAULT_YEARS;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

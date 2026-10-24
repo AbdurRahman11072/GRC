@@ -75,7 +75,7 @@ export default function ProjectWorkspacePage() {
               )}
               {activeTab === 'entities' && canAccessTors && <TabEntities project={project} />}
               {activeTab === 'tors' && canAccessTors && <TabToR projectId={projectId} />}
-              {activeTab === 'drt' && <TabDRT projectId={projectId} />}
+              {activeTab === 'drt' && <TabDRT projectId={projectId} project={project} />}
               {activeTab === 'team' && <TabTeam projectId={projectId} />}
             </div>
           </>

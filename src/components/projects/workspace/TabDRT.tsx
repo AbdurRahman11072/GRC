@@ -12,15 +12,17 @@ import { ReviewDrtDocumentModal } from './drt/ReviewDrtDocumentModal';
 import { AssignDrtSquadModal } from './drt/AssignDrtSquadModal';
 import { EditDrtPeriodStatusModal } from './drt/EditDrtPeriodStatusModal';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
-import { useGetMyProjectPermissionsQuery } from '../../../store/api/projectApi';
+import { useGetMyProjectPermissionsQuery, useGetProjectByIdQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
-import type { IDRTTicket, IDRTDocument, DRTPartySide } from '../../../types/project.types';
+import { getProjectAuditYears } from '../../../utils/projectTimeframe';
+import type { IDRTTicket, IDRTDocument, DRTPartySide, IProject } from '../../../types/project.types';
 
 export interface TabDRTProps {
   projectId: string;
+  project?: IProject | null;
 }
 
-export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
+export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState<'ALL' | 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'OVERDUE'>('ALL');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
@@ -47,6 +49,10 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
   const canCreateTicket = isOrgAdmin || permissions?.canAssignDrt;
   const canUpload = isOrgAdmin || permissions?.canUploadDocument;
   const canReview = isOrgAdmin || permissions?.canCheckDocument;
+
+  const { data: projData } = useGetProjectByIdQuery(projectId, { skip: Boolean(project) });
+  const currentProject = project || projData?.data;
+  const auditYears = useMemo(() => getProjectAuditYears(currentProject), [currentProject]);
 
   const { data: ticketsData, isLoading } = useGetTicketsQuery({
     projectId,
@@ -180,6 +186,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
           tickets={filteredTickets}
           canUpload={Boolean(canUpload)}
           canReview={Boolean(canReview)}
+          auditYears={auditYears}
           onUpload={(t, side) => setUploadTicket({ ticket: t, side })}
           onReview={(t, doc) => setReviewTarget({ ticket: t, doc })}
           onManageSquad={(t) => setSquadTicket(t)}
@@ -202,7 +209,12 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
       )}
 
       {/* Modals & Drawers */}
-      <CreateDrtDrawer isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} projectId={projectId} />
+      <CreateDrtDrawer
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        projectId={projectId}
+        auditYears={auditYears}
+      />
 
       <UploadDrtDocumentModal
         isOpen={Boolean(uploadTicket)}
@@ -210,6 +222,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
         ticket={uploadTicket?.ticket || null}
         defaultSide={uploadTicket?.side}
         initialPeriodLabel={uploadTicket?.initialPeriodLabel}
+        auditYears={auditYears}
       />
 
       <ReviewDrtDocumentModal

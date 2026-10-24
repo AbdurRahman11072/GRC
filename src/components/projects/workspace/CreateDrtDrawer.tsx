@@ -19,6 +19,7 @@ export interface CreateDrtDrawerProps {
   onClose: () => void;
   projectId: string;
   defaultTorId?: string | null;
+  auditYears?: string[];
 }
 
 const deptSuggestions = [
@@ -35,11 +36,23 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
   onClose,
   projectId,
   defaultTorId,
+  auditYears,
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const effectiveYears = useMemo(() => {
+    return auditYears && auditYears.length > 0 ? auditYears : DEFAULT_AUDIT_YEARS;
+  }, [auditYears]);
+
   const [timeFrames, setTimeFrames] = useState<ITimeFrameStatusItem[]>(() =>
-    DEFAULT_AUDIT_YEARS.map((y) => ({ periodLabel: y, evidenceStatus: 'IN_PROGRESS', remark: '' }))
+    effectiveYears.map((y) => ({ periodLabel: y, evidenceStatus: 'IN_PROGRESS', remark: '' }))
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeFrames(effectiveYears.map((y) => ({ periodLabel: y, evidenceStatus: 'IN_PROGRESS', remark: '' })));
+      setErrorMessage(null);
+    }
+  }, [isOpen, effectiveYears]);
 
   const [createTicket, { isLoading }] = useCreateTicketMutation();
   const { data: treeData } = useGetTorTreeQuery(projectId, { skip: !isOpen });

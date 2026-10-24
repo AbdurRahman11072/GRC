@@ -9,6 +9,7 @@ export interface DrtTableProps {
   tickets: IDRTTicket[];
   canUpload: boolean;
   canReview: boolean;
+  auditYears?: string[];
   onUpload: (ticket: IDRTTicket, side: DRTPartySide) => void;
   onReview: (ticket: IDRTTicket, doc?: IDRTDocument) => void;
   onManageSquad: (ticket: IDRTTicket) => void;
@@ -19,14 +20,15 @@ export const DrtTable: React.FC<DrtTableProps> = ({
   tickets,
   canUpload,
   canReview,
+  auditYears,
   onUpload,
   onReview,
   onManageSquad,
   onEditPeriodStatus,
 }) => {
-  // Dynamically extract all unique years from period statuses
+  // Dynamically extract all unique years from auditYears and ticket period statuses
   const allYears = useMemo(() => {
-    const yearSet = new Set<string>();
+    const yearSet = new Set<string>(auditYears && auditYears.length > 0 ? auditYears : []);
     tickets.forEach((t) => {
       t.periodStatuses?.forEach((ps) => {
         if (ps.periodLabel) yearSet.add(ps.periodLabel);
@@ -34,9 +36,8 @@ export const DrtTable: React.FC<DrtTableProps> = ({
     });
 
     const sorted = Array.from(yearSet).sort();
-    // Default fallback if no period statuses created yet
-    return sorted.length > 0 ? sorted : ['2020', '2021', '2022', '2023', '2024', '2025', '2026'];
-  }, [tickets]);
+    return sorted.length > 0 ? sorted : (auditYears || ['2020', '2021', '2022', '2023', '2024', '2025', '2026']);
+  }, [tickets, auditYears]);
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-2xs">
