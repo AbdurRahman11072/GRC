@@ -30,6 +30,12 @@ export default function ProjectsPage() {
   const isOrgAdmin =
     user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
 
+  const canCreateProject =
+    user?.isSuperAdmin ||
+    activeOrg?.orgRole === 'OWNER' ||
+    activeOrg?.orgRole === 'ADMIN' ||
+    activeOrg?.orgRole === 'AUDITOR';
+
   const { data: projectsData, isLoading } = useGetProjectsQuery();
   const projects = projectsData?.data || [];
 
@@ -55,7 +61,7 @@ export default function ProjectsPage() {
             </p>
           </div>
 
-          {isOrgAdmin && (
+          {canCreateProject && (
             <Button
               variant="primary"
               size="md"
@@ -137,16 +143,18 @@ export default function ProjectsPage() {
                   There are no audit projects created for this organization yet. Click below to launch the wizard and create your first audit engagement workspace.
                 </p>
               </div>
-              <div className="pt-2">
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={() => setIsModalOpen(true)}
-                  leftIcon={<PlusCircle className="w-4 h-4" />}
-                >
-                  Create Project Workspace
-                </Button>
-              </div>
+              {canCreateProject && (
+                <div className="pt-2">
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() => setIsModalOpen(true)}
+                    leftIcon={<PlusCircle className="w-4 h-4" />}
+                  >
+                    Create Project Workspace
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         )}
