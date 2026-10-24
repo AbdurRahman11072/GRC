@@ -1,22 +1,16 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import {
-  FilePlus,
-  Search,
-  Filter,
-  Layers,
-  FileCheck,
-  AlertTriangle,
-  Clock,
-  ShieldCheck,
-} from 'lucide-react';
+import { FilePlus, Search, Table, LayoutGrid } from 'lucide-react';
 import { Button } from '../../ui/Button';
+import { DrtMetricsBar } from './drt/DrtMetricsBar';
 import { DrtTicketCard } from './drt/DrtTicketCard';
+import { DrtTable } from './drt/DrtTable';
 import { CreateDrtDrawer } from './CreateDrtDrawer';
 import { UploadDrtDocumentModal } from './drt/UploadDrtDocumentModal';
 import { ReviewDrtDocumentModal } from './drt/ReviewDrtDocumentModal';
 import { AssignDrtSquadModal } from './drt/AssignDrtSquadModal';
+import { EditDrtPeriodStatusModal } from './drt/EditDrtPeriodStatusModal';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
 import { useGetMyProjectPermissionsQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
@@ -28,17 +22,14 @@ export interface TabDRTProps {
 
 export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterMode, setFilterMode] = useState<
-    'ALL' | 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'OVERDUE'
-  >('ALL');
+  const [filterMode, setFilterMode] = useState<'ALL' | 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'OVERDUE'>('ALL');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [uploadTicket, setUploadTicket] = useState<{
-    ticket: IDRTTicket;
-    side: DRTPartySide;
-  } | null>(null);
-  const [reviewDoc, setReviewDoc] = useState<IDRTDocument | null>(null);
+  const [uploadTicket, setUploadTicket] = useState<{ ticket: IDRTTicket; side: DRTPartySide; initialPeriodLabel?: string } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ ticket: IDRTTicket; doc?: IDRTDocument } | null>(null);
   const [squadTicket, setSquadTicket] = useState<IDRTTicket | null>(null);
+  const [periodModal, setPeriodModal] = useState<{ ticket: IDRTTicket; year: string } | null>(null);
 
   const currentUser = useAppSelector((state) => state.auth.user);
   const currentOrgMembership = useAppSelector((state) =>
@@ -70,11 +61,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
       if (filterMode === 'SUBMITTED') return t.workflowStatus === 'SUBMITTED';
       if (filterMode === 'ACCEPTED') return t.workflowStatus === 'ACCEPTED';
       if (filterMode === 'OVERDUE') {
-        return (
-          t.expectedDateOfReceipt &&
-          new Date(t.expectedDateOfReceipt) < new Date() &&
-          t.workflowStatus !== 'ACCEPTED'
-        );
+        return t.expectedDateOfReceipt && new Date(t.expectedDateOfReceipt) < new Date() && t.workflowStatus !== 'ACCEPTED';
       }
       return true;
     });
@@ -83,53 +70,20 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
   // Aggregate stats
   const totalTickets = tickets.length;
   const acceptedTickets = tickets.filter((t) => t.workflowStatus === 'ACCEPTED').length;
-  const totalSubmissions = tickets.reduce(
-    (acc, t) => acc + (t.drtDocuments?.length || 0),
-    0
-  );
+  const totalSubmissions = tickets.reduce((acc, t) => acc + (t.drtDocuments?.length || 0), 0);
   const overdueTickets = tickets.filter(
-    (t) =>
-      t.expectedDateOfReceipt &&
-      new Date(t.expectedDateOfReceipt) < new Date() &&
-      t.workflowStatus !== 'ACCEPTED'
+    (t) => t.expectedDateOfReceipt && new Date(t.expectedDateOfReceipt) < new Date() && t.workflowStatus !== 'ACCEPTED'
   ).length;
 
   return (
     <div className="space-y-4">
       {/* Metrics Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3 bg-white rounded-xl border border-slate-200">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-indigo-600" />
-            Total Requests
-          </div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{totalTickets}</div>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-slate-200">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-cyan-600" />
-            Evidence Submissions
-          </div>
-          <div className="text-xl font-bold text-cyan-700 mt-1">{totalSubmissions}</div>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-slate-200">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1.5">
-            <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
-            Accepted / Verified
-          </div>
-          <div className="text-xl font-bold text-emerald-700 mt-1">{acceptedTickets}</div>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-slate-200">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-            Overdue SLAs
-          </div>
-          <div className="text-xl font-bold text-rose-600 mt-1">{overdueTickets}</div>
-        </div>
-      </div>
+      <DrtMetricsBar
+        totalTickets={totalTickets}
+        totalSubmissions={totalSubmissions}
+        acceptedTickets={acceptedTickets}
+        overdueTickets={overdueTickets}
+      />
 
       {/* Control Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white rounded-xl border border-slate-200">
@@ -145,6 +99,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Status Filter Tabs */}
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
             {(['ALL', 'PENDING', 'SUBMITTED', 'ACCEPTED', 'OVERDUE'] as const).map((mode) => (
               <button
@@ -161,6 +116,34 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
             ))}
           </div>
 
+          {/* View Mode Toggle: Table (Spreadsheet) vs Cards */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-2 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
+                viewMode === 'table'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Spreadsheet Table View"
+            >
+              <Table className="w-3.5 h-3.5" />
+              <span>Table</span>
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-2 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
+                viewMode === 'cards'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Cards View"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cards</span>
+            </button>
+          </div>
+
           {canCreateTicket && (
             <Button
               size="sm"
@@ -174,7 +157,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
         </div>
       </div>
 
-      {/* DRT Ticket Cards List */}
+      {/* DRT Data Rendering: Table vs Cards */}
       {isLoading ? (
         <div className="p-8 text-center text-xs text-slate-500">Loading DRT requests...</div>
       ) : filteredTickets.length === 0 ? (
@@ -192,6 +175,16 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
             </Button>
           )}
         </div>
+      ) : viewMode === 'table' ? (
+        <DrtTable
+          tickets={filteredTickets}
+          canUpload={Boolean(canUpload)}
+          canReview={Boolean(canReview)}
+          onUpload={(t, side) => setUploadTicket({ ticket: t, side })}
+          onReview={(t, doc) => setReviewTarget({ ticket: t, doc })}
+          onManageSquad={(t) => setSquadTicket(t)}
+          onEditPeriodStatus={(t, yr) => setPeriodModal({ ticket: t, year: yr })}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-3">
           {filteredTickets.map((ticket) => (
@@ -199,7 +192,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
               key={ticket.id}
               ticket={ticket}
               onUpload={(t, side) => setUploadTicket({ ticket: t, side })}
-              onReview={(doc) => setReviewDoc(doc)}
+              onReview={(t, doc) => setReviewTarget({ ticket: t, doc })}
               onManageSquad={(t) => setSquadTicket(t)}
               canUpload={Boolean(canUpload)}
               canReview={Boolean(canReview)}
@@ -209,30 +202,31 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId }) => {
       )}
 
       {/* Modals & Drawers */}
-      <CreateDrtDrawer
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        projectId={projectId}
-      />
+      <CreateDrtDrawer isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} projectId={projectId} />
 
       <UploadDrtDocumentModal
         isOpen={Boolean(uploadTicket)}
         onClose={() => setUploadTicket(null)}
         ticket={uploadTicket?.ticket || null}
         defaultSide={uploadTicket?.side}
+        initialPeriodLabel={uploadTicket?.initialPeriodLabel}
       />
 
       <ReviewDrtDocumentModal
-        isOpen={Boolean(reviewDoc)}
-        onClose={() => setReviewDoc(null)}
-        document={reviewDoc}
+        isOpen={Boolean(reviewTarget)}
+        onClose={() => setReviewTarget(null)}
+        ticket={reviewTarget?.ticket || null}
+        document={reviewTarget?.doc || null}
       />
 
-      <AssignDrtSquadModal
-        isOpen={Boolean(squadTicket)}
-        onClose={() => setSquadTicket(null)}
-        ticket={squadTicket}
-        projectId={projectId}
+      <AssignDrtSquadModal isOpen={Boolean(squadTicket)} onClose={() => setSquadTicket(null)} ticket={squadTicket} projectId={projectId} />
+
+      <EditDrtPeriodStatusModal
+        isOpen={Boolean(periodModal)}
+        onClose={() => setPeriodModal(null)}
+        ticket={periodModal?.ticket || null}
+        periodLabel={periodModal?.year || null}
+        onOpenUpload={(t, yr) => setUploadTicket({ ticket: t, side: 'AUDITEE', initialPeriodLabel: yr })}
       />
     </div>
   );

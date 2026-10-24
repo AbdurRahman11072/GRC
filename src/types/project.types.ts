@@ -153,6 +153,7 @@ export interface IDRTDocument {
   fileType?: string | null;
   referenceNumber?: string | null;
   receivedDate?: string | null;
+  periodLabel?: string | null;
   uploadedById: string;
   reviewedById?: string | null;
   reviewNotes?: string | null;
@@ -161,6 +162,18 @@ export interface IDRTDocument {
   reviewedBy?: { id: string; name: string; email: string } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type PeriodEvidenceStatus = 'IN_PROGRESS' | 'PARTIAL' | 'COMPLETED' | 'SHARED' | 'NOT_SHARED' | 'NOT_APPLICABLE';
+
+export interface IDRTTicketPeriodStatus {
+  id?: string;
+  ticketId?: string;
+  periodId?: string | null;
+  periodLabel: string;
+  evidenceStatus: PeriodEvidenceStatus;
+  remark?: string | null;
+  period?: { id: string; periodKey: string; weight: number };
 }
 
 export interface IDRTTicket {
@@ -172,6 +185,8 @@ export interface IDRTTicket {
   assignedTeamBucket: ProjectRole;
   department?: string | null;
   description: string;
+  currentRequirement?: string | null;
+  remarks?: string | null;
   supervisorId?: string | null;
   fieldMemberId?: string | null;
   clientContactId?: string | null;
@@ -191,6 +206,7 @@ export interface IDRTTicket {
   tor?: { id: string; code: string; title: string; department?: string | null } | null;
   tors?: Array<{ torId: string; tor?: { id: string; code: string; title: string; department?: string | null } }>;
   drtDocuments?: IDRTDocument[];
+  periodStatuses?: IDRTTicketPeriodStatus[];
   createdAt: string;
   updatedAt: string;
 }
@@ -203,6 +219,8 @@ export interface ICreateDRTTicketPayload {
   assignedTeamBucket?: ProjectRole;
   department?: string | null;
   description: string;
+  currentRequirement?: string | null;
+  remarks?: string | null;
   supervisorId?: string;
   fieldMemberId?: string;
   clientContactId?: string;
@@ -211,4 +229,10 @@ export interface ICreateDRTTicketPayload {
   expectedDateOfReceipt?: string;
   allocatedWeight?: number;
   torIds?: string[];
+  periodStatuses?: Array<{
+    periodId?: string | null;
+    periodLabel: string;
+    evidenceStatus: PeriodEvidenceStatus;
+    remark?: string | null;
+  }>;
 }

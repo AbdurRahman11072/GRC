@@ -14,6 +14,8 @@ export const createTicketValidationSchema = z.object({
     description: z
       .string()
       .min(2, 'Description must be at least 2 characters'),
+    currentRequirement: z.string().optional().nullable(),
+    remarks: z.string().optional().nullable(),
     supervisorId: z.string().uuid('Invalid supervisor ID format').optional().nullable(),
     fieldMemberId: z.string().uuid('Invalid field member ID format').optional().nullable(),
     clientContactId: z.string().uuid('Invalid client contact ID format').optional().nullable(),
@@ -33,6 +35,18 @@ export const createTicketValidationSchema = z.object({
       .min(0, 'Allocated weight must be >= 0')
       .optional(),
     torIds: z.array(z.string().uuid('Invalid ToR ID format')).optional(),
+    periodStatuses: z
+      .array(
+        z.object({
+          periodId: z.string().uuid('Invalid period ID format').optional().nullable(),
+          periodLabel: z.string().min(1, 'Period label is required (e.g. 2020)'),
+          evidenceStatus: z
+            .enum(['IN_PROGRESS', 'PARTIAL', 'COMPLETED', 'SHARED', 'NOT_SHARED', 'NOT_APPLICABLE'])
+            .default('IN_PROGRESS'),
+          remark: z.string().optional().nullable(),
+        })
+      )
+      .optional(),
   }),
 });
 
@@ -151,8 +165,10 @@ export const updatePeriodStatusesValidationSchema = z.object({
     statuses: z
       .array(
         z.object({
-          periodId: z.string().uuid('Invalid period ID format'),
-          evidenceStatus: z.enum(['SHARED', 'PARTIAL', 'NOT_SHARED', 'NOT_APPLICABLE']),
+          periodId: z.string().uuid('Invalid period ID format').optional().nullable(),
+          periodLabel: z.string().min(1, 'Period label is required (e.g. 2020)'),
+          evidenceStatus: z.enum(['IN_PROGRESS', 'PARTIAL', 'COMPLETED', 'SHARED', 'NOT_SHARED', 'NOT_APPLICABLE']),
+          remark: z.string().optional().nullable(),
         })
       )
       .min(1, 'At least one period status is required'),
@@ -168,12 +184,7 @@ export const assignSquadValidationSchema = z.object({
     fieldMemberId: z.string().uuid('Invalid field member ID format').optional().nullable(),
     clientContactId: z.string().uuid('Invalid client contact ID format').optional().nullable(),
     auditeeContactId: z.string().uuid('Invalid auditee contact ID format').optional().nullable(),
-    expectedDateOfReceipt: z
-      .string()
-      .datetime()
-      .optional()
-      .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional())
-      .nullable(),
+    expectedDateOfReceipt: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()).nullable(),
   }),
 });
 
@@ -188,13 +199,11 @@ export const uploadDrtDocumentValidationSchema = z.object({
     fileSize: z.number().optional().nullable(),
     fileType: z.string().optional().nullable(),
     referenceNumber: z.string().optional().nullable(),
-    receivedDate: z
-      .string()
-      .datetime()
-      .optional()
-      .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional())
-      .nullable(),
+    receivedDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()).nullable(),
     notes: z.string().optional().nullable(),
+    periodLabel: z.string().optional().nullable(),
+    periodStatus: z.enum(['IN_PROGRESS', 'PARTIAL', 'COMPLETED', 'SHARED', 'NOT_SHARED', 'NOT_APPLICABLE']).optional().nullable(),
+    periodRemark: z.string().optional().nullable(),
   }),
 });
 
@@ -222,5 +231,3 @@ export const DRTValidation = {
   uploadDrtDocumentValidationSchema,
   reviewDrtDocumentValidationSchema,
 };
-
-

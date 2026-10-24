@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Layers, PlusCircle } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { TorTreeNode } from '../../tors/TorTreeNode';
+import { TorTable } from '../../tors/table/TorTable';
 import { CreateTorModal } from '../../tors/CreateTorModal';
 import { StreamWeightModal } from '../../tors/StreamWeightModal';
 import { TorAnalysisModal } from '../../tors/TorAnalysisModal';
@@ -41,7 +41,7 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
   const [fireDrtTorId, setFireDrtTorId] = useState<string | null>(null);
   const [evaluateTor, setEvaluateTor] = useState<ITorNode | null>(null);
 
-  // Flatten tree for parent selection
+  // Flatten tree for parent selection & macro metrics
   const flattenNodes = (nodes: ITorNode[]): ITorNode[] => {
     if (!Array.isArray(nodes)) return [];
     let result: ITorNode[] = [];
@@ -73,7 +73,7 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
   };
 
   const handleDeleteNode = async (nodeId: string) => {
-    if (confirm('Are you sure you want to delete this ToR node and its sub-clauses?')) {
+    if (confirm('Are you sure you want to delete this ToR clause and all its sub-clauses?')) {
       try {
         await deleteTor(nodeId).unwrap();
       } catch {
@@ -85,20 +85,20 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
   return (
     <div className="space-y-4">
       {/* Tab Header Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-white border border-slate-200 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
         <div className="flex items-center gap-4 text-xs text-slate-600 flex-wrap">
           <span>
-            Total Clauses: <strong className="text-slate-900">{totalNodesCount}</strong>
+            Total Clauses: <strong className="text-slate-900 font-bold">{totalNodesCount}</strong>
           </span>
-          <span>
-            Data Collection:{' '}
-            <strong className="text-indigo-600 font-mono">
+          <span className="flex items-center gap-1.5">
+            Data Collection:
+            <strong className="text-cyan-700 font-mono font-bold bg-cyan-50 border border-cyan-200/80 px-2 py-0.5 rounded-md">
               {totalCollectionObtained.toFixed(1)} / {totalCollectionAllocated.toFixed(1)}
             </strong>
           </span>
-          <span>
-            Data Analysis:{' '}
-            <strong className="text-cyan-700 font-mono">
+          <span className="flex items-center gap-1.5">
+            Data Analysis:
+            <strong className="text-indigo-600 font-mono font-bold bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-md">
               {totalAnalysisObtained.toFixed(1)} / {totalAnalysisAllocated.toFixed(1)}
             </strong>
           </span>
@@ -116,37 +116,32 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
         )}
       </div>
 
-      {/* Tree Node Rendering */}
+      {/* Table Rendering */}
       {isLoading ? (
         <div className="py-12 text-center text-xs text-slate-500">
-          Loading Terms of Reference WBS tree...
+          Loading Terms of Reference table...
         </div>
       ) : treeNodes.length > 0 ? (
-        <div className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
-          {treeNodes.map((rootNode) => (
-            <TorTreeNode
-              key={rootNode.id}
-              node={rootNode}
-              canManageTor={canManageTor}
-              canConfigureWeights={canConfigureWeights}
-              canAwardMarks={canAwardMarks}
-              onAddChild={handleOpenAddChild}
-              onConfigureWeights={(node) => setWeightModalNode(node)}
-              onDelete={handleDeleteNode}
-              onFireDrt={(torId) => setFireDrtTorId(torId)}
-              onEvaluateAnalysis={(node) => setEvaluateTor(node)}
-            />
-          ))}
-        </div>
+        <TorTable
+          treeNodes={treeNodes}
+          canManageTor={canManageTor}
+          canConfigureWeights={canConfigureWeights}
+          canAwardMarks={canAwardMarks}
+          onAddChild={handleOpenAddChild}
+          onConfigureWeights={(node) => setWeightModalNode(node)}
+          onDelete={handleDeleteNode}
+          onFireDrt={(torId) => setFireDrtTorId(torId)}
+          onEvaluateAnalysis={(node) => setEvaluateTor(node)}
+        />
       ) : (
-        <Card className="p-8 text-center border-dashed border-slate-300 bg-white shadow-xs space-y-4">
+        <Card className="p-8 text-center border-dashed border-slate-200 bg-white shadow-2xs space-y-4">
           <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
             <Layers className="w-6 h-6" />
           </div>
           <div className="max-w-md mx-auto space-y-1">
             <h3 className="text-sm font-semibold text-slate-900">No ToR Clauses Configured Yet</h3>
             <p className="text-xs text-slate-500">
-              Create the first Terms of Reference root category to begin structuring your audit scope.
+              Create the first Terms of Reference category to begin structuring your audit scope and issuing DRTs.
             </p>
           </div>
           <Button

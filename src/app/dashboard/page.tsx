@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   FolderKanban,
@@ -8,6 +8,7 @@ import {
   Briefcase,
   Building2,
   Crown,
+  ShieldCheck,
 } from 'lucide-react';
 import { Shell } from '../../components/layout/Shell';
 import { Button } from '../../components/ui/Button';
@@ -15,11 +16,28 @@ import { Badge } from '../../components/ui/Badge';
 import { useAppSelector } from '../../store/hooks';
 import { useGetProjectsQuery } from '../../store/api/projectApi';
 import { AdminDashboardView } from '../../components/dashboard/AdminDashboardView';
-import { OrgMemberDashboardView } from '../../components/dashboard/OrgMemberDashboardView';
+import { ProjectManagerDashboardView } from '../../components/dashboard/ProjectManagerDashboardView';
+import { SupervisorDashboardView } from '../../components/dashboard/SupervisorDashboardView';
+import { FieldMemberDashboardView } from '../../components/dashboard/FieldMemberDashboardView';
 import { ClientDashboardView } from '../../components/dashboard/ClientDashboardView';
 import { AuditeeDashboardView } from '../../components/dashboard/AuditeeDashboardView';
 
-type DashboardRoleView = 'ADMINISTRATOR' | 'ORG_MEMBER' | 'CLIENT' | 'AUDITEE';
+export type DashboardRoleView =
+  | 'ADMINISTRATOR'
+  | 'PROJECT_MANAGER'
+  | 'SUPERVISOR'
+  | 'FIELD_TEAM'
+  | 'CLIENT'
+  | 'AUDITEE';
+
+const roleMeta: Record<DashboardRoleView, { label: string; title: string; badge: string; icon: any }> = {
+  ADMINISTRATOR: { label: 'Admin', title: 'Executive GRC Overview', badge: 'Administrator', icon: Crown },
+  PROJECT_MANAGER: { label: 'PM', title: 'Project Manager Command Center', badge: 'Project Manager', icon: FolderKanban },
+  SUPERVISOR: { label: 'Supervisor', title: 'Supervisory Evidence & Scoring Desk', badge: 'Audit Supervisor', icon: ShieldCheck },
+  FIELD_TEAM: { label: 'Field Auditor', title: 'Field Evidence Collection Desk', badge: 'Field Member', icon: Briefcase },
+  CLIENT: { label: 'Client (Regulator)', title: 'Regulator Oversight Portal', badge: 'Client (Regulator)', icon: Shield },
+  AUDITEE: { label: 'Auditee Enterprise', title: 'Auditee Department Action Center', badge: 'Auditee Enterprise', icon: Building2 },
+};
 
 export default function DashboardPage() {
   const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
@@ -27,25 +45,30 @@ export default function DashboardPage() {
   const { data: projectsData } = useGetProjectsQuery();
   const projects = projectsData?.data || [];
 
-  // Determine user's native role
   const isOrgAdmin = activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
-  const primaryProjectRole = user?.projectMemberships?.[0]?.teamBucket;
+  const firstMembership = user?.projectMemberships?.[0];
 
-  const defaultView: DashboardRoleView = isOrgAdmin
-    ? 'ADMINISTRATOR'
-    : primaryProjectRole === 'CLIENT'
-    ? 'CLIENT'
-    : primaryProjectRole === 'AUDITEE'
-    ? 'AUDITEE'
-    : 'ORG_MEMBER';
+  const defaultView: DashboardRoleView = useMemo(() => {
+    if (isOrgAdmin) return 'ADMINISTRATOR';
+    if (firstMembership?.projectRole === 'PROJECT_MANAGER') return 'PROJECT_MANAGER';
+    if (firstMembership?.projectRole === 'SUPERVISOR') return 'SUPERVISOR';
+    if (firstMembership?.projectRole === 'FIELD_TEAM') return 'FIELD_TEAM';
+    if (firstMembership?.teamBucket === 'CLIENT') return 'CLIENT';
+    if (firstMembership?.teamBucket === 'AUDITEE') return 'AUDITEE';
+    return 'PROJECT_MANAGER';
+  }, [isOrgAdmin, firstMembership]);
 
-  const [activeRoleView, setActiveRoleView] = useState<DashboardRoleView>(defaultView);
+  const [activeRoleView, setActiveRoleView] = useState<DashboardRoleView | null>(null);
 
   useEffect(() => {
-    setActiveRoleView(defaultView);
-  }, [defaultView]);
+    if (!activeRoleView) {
+      setActiveRoleView(defaultView);
+    }
+  }, [defaultView, activeRoleView]);
 
+  const currentView = activeRoleView || defaultView;
   const userName = user?.name || user?.email?.split('@')[0] || 'User';
+  const currentMeta = roleMeta[currentView];
 
   return (
     <Shell>
@@ -57,35 +80,12 @@ export default function DashboardPage() {
               <Badge variant="cyan" size="sm" dot>
                 {activeOrg?.orgName || 'Active Workspace'}
               </Badge>
-              <Badge
-                variant={
-                  activeRoleView === 'ADMINISTRATOR'
-                    ? 'indigo'
-                    : activeRoleView === 'ORG_MEMBER'
-                    ? 'cyan'
-                    : activeRoleView === 'CLIENT'
-                    ? 'neutral'
-                    : 'success'
-                }
-                size="sm"
-              >
-                {activeRoleView === 'ADMINISTRATOR'
-                  ? 'Administrator'
-                  : activeRoleView === 'ORG_MEMBER'
-                  ? 'Audit Firm Auditor'
-                  : activeRoleView === 'CLIENT'
-                  ? 'Client (Regulator)'
-                  : 'Auditee Enterprise'}
+              <Badge variant="indigo" size="sm">
+                {currentMeta.badge}
               </Badge>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {activeRoleView === 'ADMINISTRATOR'
-                ? 'Executive GRC Overview'
-                : activeRoleView === 'ORG_MEMBER'
-                ? 'Auditor Task & Evidence Desk'
-                : activeRoleView === 'CLIENT'
-                ? 'Regulator Oversight Portal'
-                : 'Auditee Department Action Center'}
+              {currentMeta.title}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
               Role-tailored workspace for {userName} ({user?.email}).
@@ -94,96 +94,56 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-2.5">
             <Link href="/projects">
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={<FolderKanban className="w-4 h-4" />}
-              >
+              <Button variant="primary" size="sm" leftIcon={<FolderKanban className="w-4 h-4" />}>
                 Launch Projects
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Role View Switcher (Permits Admins/Auditors to switch perspectives) */}
+        {/* Role View Switcher */}
         <div className="flex items-center justify-between flex-wrap gap-2.5 p-2 bg-slate-100/80 rounded-xl border border-slate-200/80">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 pl-2">
             <span>Role Perspective:</span>
           </div>
 
           <div className="flex items-center gap-1 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setActiveRoleView('ADMINISTRATOR')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
-                activeRoleView === 'ADMINISTRATOR'
-                  ? 'bg-white text-indigo-700 shadow-xs font-bold border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <Crown className="w-3.5 h-3.5 text-indigo-600" />
-              Admin
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveRoleView('ORG_MEMBER')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
-                activeRoleView === 'ORG_MEMBER'
-                  ? 'bg-white text-cyan-700 shadow-xs font-bold border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <Briefcase className="w-3.5 h-3.5 text-cyan-600" />
-              Org Auditor
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveRoleView('CLIENT')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
-                activeRoleView === 'CLIENT'
-                  ? 'bg-white text-amber-700 shadow-xs font-bold border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <Shield className="w-3.5 h-3.5 text-amber-600" />
-              Client (Regulator)
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveRoleView('AUDITEE')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
-                activeRoleView === 'AUDITEE'
-                  ? 'bg-white text-emerald-700 shadow-xs font-bold border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5 text-emerald-600" />
-              Auditee (Enterprise)
-            </button>
+            {(Object.keys(roleMeta) as DashboardRoleView[]).map((rKey) => {
+              const meta = roleMeta[rKey];
+              const Icon = meta.icon;
+              const isActive = currentView === rKey;
+              return (
+                <button
+                  key={rKey}
+                  type="button"
+                  onClick={() => setActiveRoleView(rKey)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-white text-indigo-700 shadow-xs font-bold border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {meta.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Dynamic Role-Based View Render */}
-        {activeRoleView === 'ADMINISTRATOR' && (
-          <AdminDashboardView projects={projects} />
+        {currentView === 'ADMINISTRATOR' && <AdminDashboardView projects={projects} />}
+        {currentView === 'PROJECT_MANAGER' && (
+          <ProjectManagerDashboardView userName={userName} projects={projects} currentUserId={user?.id} />
         )}
-        {activeRoleView === 'ORG_MEMBER' && (
-          <OrgMemberDashboardView
-            userName={userName}
-            projects={projects}
-            currentUserId={user?.id}
-            isOrgAdmin={isOrgAdmin}
-          />
+        {currentView === 'SUPERVISOR' && (
+          <SupervisorDashboardView userName={userName} projects={projects} currentUserId={user?.id} />
         )}
-        {activeRoleView === 'CLIENT' && (
-          <ClientDashboardView userName={userName} projects={projects} />
+        {currentView === 'FIELD_TEAM' && (
+          <FieldMemberDashboardView userName={userName} projects={projects} currentUserId={user?.id} />
         )}
-        {activeRoleView === 'AUDITEE' && (
-          <AuditeeDashboardView userName={userName} projects={projects} />
-        )}
+        {currentView === 'CLIENT' && <ClientDashboardView userName={userName} projects={projects} />}
+        {currentView === 'AUDITEE' && <AuditeeDashboardView userName={userName} projects={projects} />}
       </div>
     </Shell>
   );

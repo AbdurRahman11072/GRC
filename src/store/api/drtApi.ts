@@ -1,6 +1,6 @@
 import { baseApi } from './baseApi';
 import type { ApiResponse } from '../../types/auth.types';
-import type { IDRTTicket, ICreateDRTTicketPayload, IDRTDocument, DRTPartySide } from '../../types/project.types';
+import type { IDRTTicket, ICreateDRTTicketPayload, IDRTDocument, DRTPartySide, PeriodEvidenceStatus } from '../../types/project.types';
 
 export const drtApi = baseApi.injectEndpoints({
   overrideExisting: true,
@@ -56,6 +56,9 @@ export const drtApi = baseApi.injectEndpoints({
         referenceNumber?: string | null;
         receivedDate?: string | null;
         notes?: string | null;
+        periodLabel?: string | null;
+        periodStatus?: PeriodEvidenceStatus | null;
+        periodRemark?: string | null;
       }
     >({
       query: ({ ticketId, ...body }) => ({
@@ -81,6 +84,26 @@ export const drtApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['DRT', 'ToR'],
     }),
+
+    updatePeriodStatuses: builder.mutation<
+      ApiResponse<IDRTTicket>,
+      {
+        ticketId: string;
+        statuses: Array<{
+          periodId?: string | null;
+          periodLabel: string;
+          evidenceStatus: string;
+          remark?: string | null;
+        }>;
+      }
+    >({
+      query: ({ ticketId, statuses }) => ({
+        url: `/drt/tickets/${ticketId}/period-statuses`,
+        method: 'PUT',
+        body: { statuses },
+      }),
+      invalidatesTags: ['DRT', 'ToR'],
+    }),
   }),
 });
 
@@ -90,5 +113,6 @@ export const {
   useAssignSquadMutation,
   useUploadDrtDocumentMutation,
   useReviewDrtDocumentMutation,
+  useUpdatePeriodStatusesMutation,
 } = drtApi;
 

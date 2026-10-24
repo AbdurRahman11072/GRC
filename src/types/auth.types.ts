@@ -16,6 +16,7 @@ export interface IUserProjectMembership {
   id: string;
   projectId: string;
   teamBucket: 'ADMINISTRATOR' | 'ORG_MEMBER' | 'CLIENT' | 'AUDITEE';
+  projectRole?: 'PROJECT_MANAGER' | 'SUPERVISOR' | 'FIELD_TEAM' | 'CLIENT_REPRESENTATIVE' | 'AUDITEE_REPRESENTATIVE' | string;
   project?: {
     id: string;
     projectName: string;

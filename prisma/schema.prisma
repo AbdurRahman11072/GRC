@@ -355,6 +355,8 @@ model DRTTicket {
   assignedTeamBucket    TeamBucket         // AUDITEE or CLIENT
   department            String?            // Target auditee department
   description           String
+  currentRequirement   String?            // What is currently needed / immediate next deliverable
+  remarks               String?            // General remark from Field Team or Supervisor
 
   // 4-Party Squad
   supervisorId          String?
@@ -411,6 +413,7 @@ model DRTDocument {
   fileType        String?
   referenceNumber String?       // Official letter / circular / memo number
   receivedDate    DateTime?     // When physical/digital document was received
+  periodLabel     String?       // Specific audit year or timeframe (e.g. "2020") or null for global
   uploadedById    String        // Field member / Supervisor / PM who uploaded
   reviewedById    String?
   reviewNotes     String?
@@ -424,6 +427,7 @@ model DRTDocument {
 
   @@index([ticketId])
   @@index([partySide])
+  @@index([periodLabel])
   @@index([uploadedById])
   @@index([reviewedById])
 }
@@ -463,8 +467,10 @@ model AssessmentPeriod {
 }
 
 enum PeriodEvidenceStatus {
-  SHARED
+  IN_PROGRESS
   PARTIAL
+  COMPLETED
+  SHARED
   NOT_SHARED
   NOT_APPLICABLE
 }
@@ -472,15 +478,17 @@ enum PeriodEvidenceStatus {
 model DRTTicketPeriodStatus {
   id             String               @id @default(uuid())
   ticketId       String
-  periodId       String
-  evidenceStatus PeriodEvidenceStatus @default(NOT_SHARED)
+  periodId       String?              // Optional FK to AssessmentPeriod if configured
+  periodLabel    String               // e.g. "2020", "2021", "2022", "2023", etc.
+  evidenceStatus PeriodEvidenceStatus @default(IN_PROGRESS)
+  remark         String?              // Qualitative observation/remark for this year
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
-  ticket DRTTicket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  period AssessmentPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  ticket DRTTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  period AssessmentPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
 
-  @@unique([ticketId, periodId])
+  @@unique([ticketId, periodLabel])
   @@index([ticketId])
   @@index([periodId])
 }

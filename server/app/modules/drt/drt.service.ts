@@ -8,6 +8,13 @@ import {
   PeriodEvidenceStatus,
 } from '../../../generated/prisma';
 
+export interface IPeriodStatusPayload {
+  periodId?: string | null;
+  periodLabel: string;
+  evidenceStatus: PeriodEvidenceStatus;
+  remark?: string | null;
+}
+
 export interface ICreateTicketPayload {
   projectId: string;
   torId?: string | null;
@@ -16,6 +23,8 @@ export interface ICreateTicketPayload {
   assignedTeamBucket?: TeamBucket;
   department?: string | null;
   description: string;
+  currentRequirement?: string | null;
+  remarks?: string | null;
   supervisorId?: string | null;
   fieldMemberId?: string | null;
   clientContactId?: string | null;
@@ -24,6 +33,7 @@ export interface ICreateTicketPayload {
   expectedDateOfReceipt?: string;
   allocatedWeight?: number;
   torIds?: string[];
+  periodStatuses?: IPeriodStatusPayload[];
 }
 
 export interface IAssignSquadPayload {
@@ -43,6 +53,9 @@ export interface IUploadDrtDocPayload {
   referenceNumber?: string | null;
   receivedDate?: string | null;
   notes?: string | null;
+  periodLabel?: string | null;
+  periodStatus?: PeriodEvidenceStatus | null;
+  periodRemark?: string | null;
 }
 
 export interface IReviewDrtDocPayload {
@@ -54,6 +67,8 @@ export interface IUpdateTicketPayload {
   requestCode?: string;
   title?: string | null;
   description?: string;
+  currentRequirement?: string | null;
+  remarks?: string | null;
   assignedTeamBucket?: TeamBucket;
   department?: string | null;
   dateOfRequest?: string | null;
@@ -114,6 +129,8 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
         assignedTeamBucket: payload.assignedTeamBucket || TeamBucket.AUDITEE,
         department: payload.department ? payload.department.trim() : null,
         description: payload.description.trim(),
+        currentRequirement: payload.currentRequirement ? payload.currentRequirement.trim() : null,
+        remarks: payload.remarks ? payload.remarks.trim() : null,
         supervisorId: payload.supervisorId || null,
         fieldMemberId: payload.fieldMemberId || null,
         clientContactId: payload.clientContactId || null,
@@ -137,6 +154,19 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
         data: Array.from(allTorIds).map((torId) => ({
           ticketId: createdTicket.id,
           torId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    if (payload.periodStatuses && payload.periodStatuses.length > 0) {
+      await tx.dRTTicketPeriodStatus.createMany({
+        data: payload.periodStatuses.map((ps) => ({
+          ticketId: createdTicket.id,
+          periodId: ps.periodId || null,
+          periodLabel: ps.periodLabel,
+          evidenceStatus: ps.evidenceStatus || PeriodEvidenceStatus.IN_PROGRESS,
+          remark: ps.remark ? ps.remark.trim() : null,
         })),
         skipDuplicates: true,
       });
@@ -261,6 +291,15 @@ const getTickets = async (
           },
           orderBy: { createdAt: 'desc' },
         },
+        periodStatuses: {
+          select: {
+            id: true,
+            periodLabel: true,
+            evidenceStatus: true,
+            remark: true,
+          },
+          orderBy: { periodLabel: 'asc' },
+        },
         torMappings: {
           select: {
             tor: {
@@ -384,7 +423,7 @@ const getTicketById = async (orgId: string, id: string) => {
           },
         },
         orderBy: {
-          period: { sortOrder: 'asc' },
+          periodLabel: 'asc',
         },
       },
       _count: {
@@ -452,6 +491,12 @@ const updateTicket = async (
     data: {
       ...(payload.requestCode !== undefined ? { requestCode: payload.requestCode.trim() } : {}),
       ...(payload.description !== undefined ? { description: payload.description.trim() } : {}),
+      ...(payload.currentRequirement !== undefined
+        ? { currentRequirement: payload.currentRequirement ? payload.currentRequirement.trim() : null }
+        : {}),
+      ...(payload.remarks !== undefined
+        ? { remarks: payload.remarks ? payload.remarks.trim() : null }
+        : {}),
       ...(payload.assignedTeamBucket !== undefined
         ? { assignedTeamBucket: payload.assignedTeamBucket }
         : {}),
@@ -706,7 +751,12 @@ const updatePeriodStatuses = async (
   orgId: string,
   id: string,
   payload: {
-    statuses: Array<{ periodId: string; evidenceStatus: PeriodEvidenceStatus }>;
+    statuses: Array<{
+      periodId?: string | null;
+      periodLabel: string;
+      evidenceStatus: PeriodEvidenceStatus;
+      remark?: string | null;
+    }>;
   }
 ) => {
   const existingTicket = await prisma.dRTTicket.findUnique({
@@ -720,38 +770,25 @@ const updatePeriodStatuses = async (
     throw new AppError(httpStatus.NOT_FOUND, 'DRT ticket not found');
   }
 
-  // Validate all periodIds belong to this project
-  const periodIds = payload.statuses.map((s) => s.periodId);
-  const validPeriods = await prisma.assessmentPeriod.findMany({
-    where: {
-      id: { in: periodIds },
-      projectId: existingTicket.projectId,
-    },
-    select: { id: true },
-  });
-
-  if (validPeriods.length !== periodIds.length) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'One or more specified assessment periods do not exist in this project'
-    );
-  }
-
   for (const item of payload.statuses) {
     await prisma.dRTTicketPeriodStatus.upsert({
       where: {
-        ticketId_periodId: {
+        ticketId_periodLabel: {
           ticketId: id,
-          periodId: item.periodId,
+          periodLabel: item.periodLabel,
         },
       },
       update: {
         evidenceStatus: item.evidenceStatus,
+        remark: item.remark !== undefined ? item.remark : undefined,
+        ...(item.periodId ? { periodId: item.periodId } : {}),
       },
       create: {
         ticketId: id,
-        periodId: item.periodId,
+        periodLabel: item.periodLabel,
+        periodId: item.periodId || null,
         evidenceStatus: item.evidenceStatus,
+        remark: item.remark || null,
       },
     });
   }
@@ -821,6 +858,7 @@ const uploadDrtDocument = async (
       referenceNumber: payload.referenceNumber || null,
       receivedDate: payload.receivedDate ? new Date(payload.receivedDate) : new Date(),
       reviewNotes: payload.notes || null,
+      periodLabel: payload.periodLabel && payload.periodLabel !== 'ALL' ? payload.periodLabel : null,
       status: 'SUBMITTED',
       uploadedById: user.id,
     },
@@ -830,6 +868,28 @@ const uploadDrtDocument = async (
       },
     },
   });
+
+  // Automatically update timeframe status if specified for this audit period
+  if (payload.periodLabel && payload.periodLabel !== 'ALL' && payload.periodStatus) {
+    await prisma.dRTTicketPeriodStatus.upsert({
+      where: {
+        ticketId_periodLabel: {
+          ticketId,
+          periodLabel: payload.periodLabel,
+        },
+      },
+      update: {
+        evidenceStatus: payload.periodStatus,
+        remark: payload.periodRemark !== undefined ? payload.periodRemark : undefined,
+      },
+      create: {
+        ticketId,
+        periodLabel: payload.periodLabel,
+        evidenceStatus: payload.periodStatus,
+        remark: payload.periodRemark || null,
+      },
+    });
+  }
 
   // Update ticket lifecycle status to SUBMITTED if currently OPEN
   if (ticket.lifecycleStatus === 'OPEN') {
@@ -909,6 +969,49 @@ const reviewDrtDocument = async (
         reviewStatus: 'PARTIAL',
       },
     });
+  }
+
+  // Synchronize audit timeframe status if document is mapped to a specific period
+  if (doc.periodLabel) {
+    if (payload.status === 'REVISION_REQUESTED') {
+      await prisma.dRTTicketPeriodStatus.upsert({
+        where: {
+          ticketId_periodLabel: {
+            ticketId: doc.ticketId,
+            periodLabel: doc.periodLabel,
+          },
+        },
+        update: {
+          evidenceStatus: 'PARTIAL',
+          remark: payload.reviewNotes || 'Revision requested by supervisor',
+        },
+        create: {
+          ticketId: doc.ticketId,
+          periodLabel: doc.periodLabel,
+          evidenceStatus: 'PARTIAL',
+          remark: payload.reviewNotes || 'Revision requested by supervisor',
+        },
+      });
+    } else if (payload.status === 'ACCEPTED') {
+      await prisma.dRTTicketPeriodStatus.upsert({
+        where: {
+          ticketId_periodLabel: {
+            ticketId: doc.ticketId,
+            periodLabel: doc.periodLabel,
+          },
+        },
+        update: {
+          evidenceStatus: 'COMPLETED',
+          ...(payload.reviewNotes ? { remark: payload.reviewNotes } : {}),
+        },
+        create: {
+          ticketId: doc.ticketId,
+          periodLabel: doc.periodLabel,
+          evidenceStatus: 'COMPLETED',
+          remark: payload.reviewNotes || null,
+        },
+      });
+    }
   }
 
   if (doc.ticket.torId) {
