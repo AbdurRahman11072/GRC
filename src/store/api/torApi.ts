@@ -25,6 +25,11 @@ export const torApi = baseApi.injectEndpoints({
       providesTags: ['ToR'],
     }),
 
+    getTorById: builder.query<ApiResponse<ITorNode>, string>({
+      query: (id) => `/tors/${id}`,
+      providesTags: ['ToR'],
+    }),
+
     createTor: builder.mutation<ApiResponse<ITorNode>, ICreateTorPayload>({
       query: (body) => ({
         url: '/tors',
@@ -146,6 +151,7 @@ export const torApi = baseApi.injectEndpoints({
 export const {
   useGetTorTreeQuery,
   useGetTorsQuery,
+  useGetTorByIdQuery,
   useCreateTorMutation,
   useSetStreamWeightsMutation,
   useDeleteTorMutation,

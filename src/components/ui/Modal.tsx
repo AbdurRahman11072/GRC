@@ -10,7 +10,7 @@ export interface ModalProps {
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '80%' | 'full';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '80%' | 'full';
 }
 
 const sizeClasses: Record<NonNullable<ModalProps['size']>, string> = {
@@ -19,7 +19,8 @@ const sizeClasses: Record<NonNullable<ModalProps['size']>, string> = {
   lg: 'max-w-lg',
   xl: 'max-w-xl',
   '2xl': 'max-w-2xl',
-  '80%': 'w-[94vw] md:w-[80vw] max-w-[80vw]',
+  '4xl': 'w-[94vw] max-w-4xl',
+  '80%': 'w-[94vw] md:w-[80vw] max-w-5xl',
   full: 'w-[96vw] max-w-[96vw]',
 };
 
@@ -84,7 +85,7 @@ export const Modal: React.FC<ModalProps> = ({
         <div className="p-6 max-h-[calc(85vh-130px)] overflow-y-auto">{children}</div>
 
         {footer && (
-          <div className="p-4 px-6 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-3 rounded-b-2xl">
+          <div className="p-4 px-6 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between gap-3 rounded-b-2xl">
             {footer}
           </div>
         )}

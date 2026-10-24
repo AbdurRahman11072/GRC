@@ -8,6 +8,7 @@ import { TorTable } from '../../tors/table/TorTable';
 import { CreateTorModal } from '../../tors/CreateTorModal';
 import { StreamWeightModal } from '../../tors/StreamWeightModal';
 import { TorAnalysisModal } from '../../tors/TorAnalysisModal';
+import { TorDetailsDrawer } from '../../tors/details/TorDetailsDrawer';
 import { CreateDrtDrawer } from './CreateDrtDrawer';
 import { useGetTorTreeQuery, useDeleteTorMutation } from '../../../store/api/torApi';
 import { useGetMyProjectPermissionsQuery } from '../../../store/api/projectApi';
@@ -40,6 +41,7 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
   const [weightModalNode, setWeightModalNode] = useState<ITorNode | null>(null);
   const [fireDrtTorId, setFireDrtTorId] = useState<string | null>(null);
   const [evaluateTor, setEvaluateTor] = useState<ITorNode | null>(null);
+  const [selectedTor, setSelectedTor] = useState<ITorNode | null>(null);
 
   // Flatten tree for parent selection & macro metrics
   const flattenNodes = (nodes: ITorNode[]): ITorNode[] => {
@@ -132,6 +134,7 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
           onDelete={handleDeleteNode}
           onFireDrt={(torId) => setFireDrtTorId(torId)}
           onEvaluateAnalysis={(node) => setEvaluateTor(node)}
+          onSelectTor={(node) => setSelectedTor(node)}
         />
       ) : (
         <Card className="p-8 text-center border-dashed border-slate-200 bg-white shadow-2xs space-y-4">
@@ -183,6 +186,26 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
         onClose={() => setFireDrtTorId(null)}
         projectId={projectId}
         defaultTorId={fireDrtTorId}
+      />
+
+      <TorDetailsDrawer
+        isOpen={!!selectedTor}
+        onClose={() => setSelectedTor(null)}
+        torNode={selectedTor}
+        canConfigureWeights={canConfigureWeights}
+        canAwardMarks={canAwardMarks}
+        onFireDrt={(torId) => {
+          setSelectedTor(null);
+          setFireDrtTorId(torId);
+        }}
+        onConfigureWeights={(node) => {
+          setSelectedTor(null);
+          setWeightModalNode(node);
+        }}
+        onEvaluateAnalysis={(node) => {
+          setSelectedTor(null);
+          setEvaluateTor(node);
+        }}
       />
     </div>
   );
