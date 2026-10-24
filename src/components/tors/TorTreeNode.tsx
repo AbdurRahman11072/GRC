@@ -10,6 +10,7 @@ import {
   FilePlus,
   Award,
   Layers,
+  Edit2,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -26,6 +27,7 @@ export interface TorTreeNodeProps {
   onDelete: (nodeId: string) => void;
   onFireDrt?: (torId: string) => void;
   onEvaluateAnalysis?: (node: ITorNode) => void;
+  onEditTor?: (node: ITorNode) => void;
 }
 
 export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
@@ -39,6 +41,7 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
   onDelete,
   onFireDrt,
   onEvaluateAnalysis,
+  onEditTor,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasChildren = node.children && node.children.length > 0;
@@ -170,6 +173,17 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
 
           {canManageTor && (
             <>
+              {onEditTor && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => onEditTor(node)}
+                  className="text-slate-400 hover:text-amber-600"
+                >
+                  <Edit2 className="w-3 h-3" />
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="ghost"
@@ -209,6 +223,7 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
               onDelete={onDelete}
               onFireDrt={onFireDrt}
               onEvaluateAnalysis={onEvaluateAnalysis}
+              onEditTor={onEditTor}
             />
           ))}
         </div>

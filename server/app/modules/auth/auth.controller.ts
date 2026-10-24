@@ -85,11 +85,34 @@ const getMe = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const result = await AuthService.getMe(userId);
 
-  const organizations = (result.orgMemberships || []).map((membership) => ({
-    orgId: membership.orgId,
-    orgName: membership.organization?.orgName || 'Workspace',
-    orgRole: membership.orgRole,
-  }));
+  const orgMap = new Map<string, { orgId: string; orgName: string; orgRole: string }>();
+
+  for (const membership of result.orgMemberships || []) {
+    orgMap.set(membership.orgId, {
+      orgId: membership.orgId,
+      orgName: membership.organization?.orgName || 'Workspace',
+      orgRole: membership.orgRole,
+    });
+  }
+
+  for (const pm of (result.projectMemberships as any[]) || []) {
+    const org = pm.project?.organization;
+    if (org && !orgMap.has(org.id)) {
+      const derivedRole =
+        pm.teamBucket === 'AUDITEE'
+          ? 'AUDITEE'
+          : pm.teamBucket === 'CLIENT'
+          ? 'CLIENT'
+          : 'AUDITOR';
+      orgMap.set(org.id, {
+        orgId: org.id,
+        orgName: org.orgName,
+        orgRole: derivedRole,
+      });
+    }
+  }
+
+  const organizations = Array.from(orgMap.values());
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

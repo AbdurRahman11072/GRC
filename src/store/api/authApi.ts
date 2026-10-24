@@ -28,6 +28,7 @@ export const authApi = baseApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           if (data.data) {
+            dispatch(baseApi.util.resetApiState());
             dispatch(
               setCredentials({
                 user: data.data.user,
@@ -63,6 +64,7 @@ export const authApi = baseApi.injectEndpoints({
                   },
                 ]
               : [];
+            dispatch(baseApi.util.resetApiState());
             dispatch(
               setCredentials({
                 user: data.data.user,
@@ -84,8 +86,12 @@ export const authApi = baseApi.injectEndpoints({
     >({
       query: () => '/auth/me',
       providesTags: ['User'],
-      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
-        dispatch(setLoading(true));
+      async onQueryStarted(_arg, { dispatch, getState, queryFulfilled }) {
+        const state = getState() as { auth?: { user?: IUserProfile | null } };
+        const hasCachedUser = Boolean(state.auth?.user);
+        if (!hasCachedUser) {
+          dispatch(setLoading(true));
+        }
         try {
           const { data } = await queryFulfilled;
           if (data?.data) {
@@ -117,12 +123,13 @@ export const authApi = baseApi.injectEndpoints({
               }));
 
             dispatch(setUser(userProfile));
-            if (orgList.length > 0) {
-              dispatch(setOrganizations(orgList));
-            }
+            dispatch(setOrganizations(orgList));
           }
-        } catch {
-          dispatch(logout());
+        } catch (err: unknown) {
+          const error = err as { status?: number; error?: { status?: number } };
+          if (error?.status === 401 || error?.error?.status === 401) {
+            dispatch(logout());
+          }
         } finally {
           dispatch(setLoading(false));
         }

@@ -119,3 +119,15 @@ export interface ISetStreamWeightPayload {
     dataAnalysisAllocated: number;
   }[];
 }
+
+export interface IUpdateTorPayload {
+  id: string;
+  parentId?: string | null;
+  code?: string;
+  title?: string;
+  description?: string | null;
+  objective?: string | null;
+  department?: string | null;
+  sortOrder?: number;
+}
+

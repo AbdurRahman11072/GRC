@@ -24,7 +24,13 @@ const rawBaseQuery = fetchBaseQuery({
   prepareHeaders: (headers, { getState }) => {
     // Avoid circular dependency with RootState by querying auth state slice directly
     const state = getState() as { auth?: AuthState };
-    const token = state.auth?.accessToken;
+    let token = state.auth?.accessToken;
+    if (!token && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('zio_access_token');
+      if (stored && stored !== 'undefined' && stored !== 'null') {
+        token = stored.trim();
+      }
+    }
 
     // Robust active orgId resolution:
     // 1. Current orgId in Redux state
@@ -153,8 +159,8 @@ const baseQueryWithReauth: BaseQueryFn<
   // If 401 Unauthorized occurs, attempt silent token refresh and retry
   if (result.error && result.error.status === 401) {
     const url = typeof args === 'string' ? args : args.url;
-    // Do not attempt refresh on auth endpoints to prevent recursion
-    if (url.includes('/auth/refresh') || url.includes('/auth/login')) {
+    // Do not attempt refresh on auth endpoints to prevent recursion or restoring session on logout
+    if (url.includes('/auth/refresh') || url.includes('/auth/login') || url.includes('/auth/logout')) {
       return result;
     }
 

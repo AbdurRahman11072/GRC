@@ -22,7 +22,7 @@ export default function ProjectWorkspacePage() {
   const isOrgAdmin =
     user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
 
-  const { data: permData } = useGetMyProjectPermissionsQuery(projectId, {
+  const { data: permData, isLoading: isPermsLoading } = useGetMyProjectPermissionsQuery(projectId, {
     skip: !projectId,
   });
   const permissions = permData?.data;
@@ -31,12 +31,12 @@ export default function ProjectWorkspacePage() {
   const initialTab = (searchParams?.get('tab') as WorkspaceTab) || 'overview';
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
 
-  // Guard: non-admins and non-managers cannot access ToR WBS or Entities tabs
+  // Guard: non-admins and non-managers cannot access ToR WBS or Entities tabs (only once permissions finish loading)
   React.useEffect(() => {
-    if (!canAccessTors && (activeTab === 'tors' || activeTab === 'entities')) {
+    if (!isPermsLoading && !canAccessTors && (activeTab === 'tors' || activeTab === 'entities')) {
       setActiveTab('overview');
     }
-  }, [canAccessTors, activeTab]);
+  }, [isPermsLoading, canAccessTors, activeTab]);
 
   const { data: projectData, isLoading, error } = useGetProjectByIdQuery(projectId, {
     skip: !projectId,
@@ -67,6 +67,7 @@ export default function ProjectWorkspacePage() {
               onTabChange={setActiveTab}
               isOrgAdmin={isOrgAdmin}
               canCreateTor={permissions?.canCreateTor}
+              userRole={permissions?.projectRole || (isOrgAdmin ? 'LEAD_AUDITOR' : null)}
             />
 
             <div className="pt-2">

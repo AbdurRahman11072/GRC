@@ -6,6 +6,7 @@ import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { TorTable } from '../../tors/table/TorTable';
 import { CreateTorModal } from '../../tors/CreateTorModal';
+import { EditTorModal } from '../../tors/EditTorModal';
 import { StreamWeightModal } from '../../tors/StreamWeightModal';
 import { TorAnalysisModal } from '../../tors/TorAnalysisModal';
 import { TorDetailsDrawer } from '../../tors/details/TorDetailsDrawer';
@@ -42,6 +43,7 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
   const [fireDrtTorId, setFireDrtTorId] = useState<string | null>(null);
   const [evaluateTor, setEvaluateTor] = useState<ITorNode | null>(null);
   const [selectedTor, setSelectedTor] = useState<ITorNode | null>(null);
+  const [editingTor, setEditingTor] = useState<ITorNode | null>(null);
 
   // Flatten tree for parent selection & macro metrics
   const flattenNodes = (nodes: ITorNode[]): ITorNode[] => {
@@ -135,6 +137,7 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
           onFireDrt={(torId) => setFireDrtTorId(torId)}
           onEvaluateAnalysis={(node) => setEvaluateTor(node)}
           onSelectTor={(node) => setSelectedTor(node)}
+          onEditTor={(node) => setEditingTor(node)}
         />
       ) : (
         <Card className="p-8 text-center border-dashed border-slate-200 bg-white shadow-2xs space-y-4">
@@ -167,6 +170,13 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
         flatNodes={flatNodes}
       />
 
+      <EditTorModal
+        isOpen={!!editingTor}
+        onClose={() => setEditingTor(null)}
+        torNode={editingTor}
+        flatNodes={flatNodes}
+      />
+
       {weightModalNode && (
         <StreamWeightModal
           isOpen={!!weightModalNode}
@@ -192,6 +202,7 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
         isOpen={!!selectedTor}
         onClose={() => setSelectedTor(null)}
         torNode={selectedTor}
+        canManageTor={canManageTor}
         canConfigureWeights={canConfigureWeights}
         canAwardMarks={canAwardMarks}
         onFireDrt={(torId) => {
@@ -205,6 +216,10 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
         onEvaluateAnalysis={(node) => {
           setSelectedTor(null);
           setEvaluateTor(node);
+        }}
+        onEditTor={(node) => {
+          setSelectedTor(null);
+          setEditingTor(node);
         }}
       />
     </div>

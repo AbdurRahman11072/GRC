@@ -21,8 +21,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen,
   setIsMobileOpen,
 }) => {
-  const { organizations, currentOrgId } = useAppSelector((state) => state.auth);
+  const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
   const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
+
+  const userRoleDisplay = React.useMemo(() => {
+    if (user?.isSuperAdmin) return 'SUPER ADMIN';
+    if (activeOrg?.orgRole === 'OWNER') return 'LEAD AUDITOR';
+    if (activeOrg?.orgRole === 'ADMIN') return 'ORG ADMIN';
+
+    const pMemberships = user?.projectMemberships || [];
+    if (pMemberships.some((p) => p.projectRole === 'PROJECT_MANAGER' || p.teamBucket === 'ADMINISTRATOR')) {
+      return 'PROJECT MANAGER';
+    }
+    if (pMemberships.some((p) => p.projectRole === 'SUPERVISOR')) {
+      return 'SUPERVISOR';
+    }
+    if (pMemberships.some((p) => p.projectRole === 'AUDITEE_REPRESENTATIVE' || p.teamBucket === 'AUDITEE')) {
+      return 'AUDITEE';
+    }
+    if (pMemberships.some((p) => p.projectRole === 'CLIENT_REPRESENTATIVE' || p.teamBucket === 'CLIENT')) {
+      return 'CLIENT';
+    }
+    if (pMemberships.some((p) => p.projectRole === 'FIELD_TEAM')) {
+      return 'FIELD TEAM';
+    }
+
+    return activeOrg?.orgRole || 'AUDITOR';
+  }, [user, activeOrg]);
 
   return (
     <>
@@ -87,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div className="mt-1 flex items-center gap-1.5">
                 <Badge variant="cyan" size="xs">
-                  {activeOrg.orgRole}
+                  {userRoleDisplay}
                 </Badge>
               </div>
             </div>

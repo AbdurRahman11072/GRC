@@ -25,6 +25,7 @@ interface WorkspaceHeaderProps {
   onTabChange: (tab: WorkspaceTab) => void;
   isOrgAdmin?: boolean;
   canCreateTor?: boolean;
+  userRole?: string | null;
 }
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
@@ -33,6 +34,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   onTabChange,
   isOrgAdmin = false,
   canCreateTor = false,
+  userRole = null,
 }) => {
   const tabs = React.useMemo(() => {
     const list: Array<{ id: WorkspaceTab; label: string; icon: React.ReactNode }> = [
@@ -74,7 +76,12 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+          {userRole && (
+            <Badge variant="indigo" size="xs" className="font-semibold uppercase tracking-wider">
+              {userRole.replace(/_/g, ' ')}
+            </Badge>
+          )}
           <span className="flex items-center gap-1.5 font-semibold text-slate-700">
             <Building className="w-3.5 h-3.5 text-indigo-600" />
             {project.client?.name || 'Regulator Body'}

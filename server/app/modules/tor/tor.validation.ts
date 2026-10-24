@@ -3,7 +3,12 @@ import { z } from 'zod';
 export const createTorValidationSchema = z.object({
   body: z.object({
     projectId: z.string().uuid('Invalid project ID format'),
-    parentId: z.string().uuid('Invalid parent ToR ID format').optional().nullable(),
+    parentId: z
+      .string()
+      .uuid('Invalid parent ToR ID format')
+      .optional()
+      .nullable()
+      .or(z.literal('')),
     code: z
       .string()
       .min(1, 'ToR code is required')
@@ -46,7 +51,12 @@ export const updateTorValidationSchema = z.object({
     id: z.string().uuid('Invalid ToR ID format'),
   }),
   body: z.object({
-    parentId: z.string().uuid('Invalid parent ToR ID format').optional().nullable(),
+    parentId: z
+      .string()
+      .uuid('Invalid parent ToR ID format')
+      .optional()
+      .nullable()
+      .or(z.literal('')),
     code: z
       .string()
       .min(1, 'ToR code is required')

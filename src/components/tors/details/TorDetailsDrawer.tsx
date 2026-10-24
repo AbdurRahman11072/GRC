@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FilePlus, Award, SlidersHorizontal, FolderTree, X } from 'lucide-react';
+import { FilePlus, Award, SlidersHorizontal, FolderTree, X, Edit2 } from 'lucide-react';
 import { Drawer } from '../../ui/Drawer';
 import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
@@ -12,22 +12,26 @@ export interface TorDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   torNode: ITorNode | null;
+  canManageTor?: boolean;
   canConfigureWeights?: boolean;
   canAwardMarks?: boolean;
   onFireDrt?: (torId: string) => void;
   onConfigureWeights?: (node: ITorNode) => void;
   onEvaluateAnalysis?: (node: ITorNode) => void;
+  onEditTor?: (node: ITorNode) => void;
 }
 
 export const TorDetailsDrawer: React.FC<TorDetailsDrawerProps> = ({
   isOpen,
   onClose,
   torNode,
+  canManageTor,
   canConfigureWeights,
   canAwardMarks,
   onFireDrt,
   onConfigureWeights,
   onEvaluateAnalysis,
+  onEditTor,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'drt' | 'weights' | 'children'>('overview');
   const { data: detailData } = useGetTorByIdQuery(torNode?.id || '', { skip: !isOpen || !torNode?.id });
@@ -76,6 +80,9 @@ export const TorDetailsDrawer: React.FC<TorDetailsDrawerProps> = ({
               )}
               {canConfigureWeights && onConfigureWeights && (
                 <Button size="xs" variant="outline" onClick={() => onConfigureWeights(tor)} className="text-slate-700 border-slate-200 bg-white" leftIcon={<SlidersHorizontal className="w-3.5 h-3.5" />}>Weights</Button>
+              )}
+              {canManageTor && onEditTor && (
+                <Button size="xs" variant="outline" onClick={() => onEditTor(tor)} className="text-amber-700 border-amber-200 bg-white hover:bg-amber-50" leftIcon={<Edit2 className="w-3.5 h-3.5" />}>Edit</Button>
               )}
               <button
                 type="button"

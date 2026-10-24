@@ -3,6 +3,7 @@ import type { ApiResponse } from '../../types/auth.types';
 import type {
   ITorNode,
   ICreateTorPayload,
+  IUpdateTorPayload,
   ISetStreamWeightPayload,
 } from '../../types/tor.types';
 
@@ -34,6 +35,15 @@ export const torApi = baseApi.injectEndpoints({
       query: (body) => ({
         url: '/tors',
         method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['ToR'],
+    }),
+
+    updateTor: builder.mutation<ApiResponse<ITorNode>, IUpdateTorPayload>({
+      query: ({ id, ...body }) => ({
+        url: `/tors/${id}`,
+        method: 'PATCH',
         body,
       }),
       invalidatesTags: ['ToR'],
@@ -153,6 +163,7 @@ export const {
   useGetTorsQuery,
   useGetTorByIdQuery,
   useCreateTorMutation,
+  useUpdateTorMutation,
   useSetStreamWeightsMutation,
   useDeleteTorMutation,
   useAssignMemberToTorMutation,

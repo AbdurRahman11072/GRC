@@ -34,6 +34,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
 
   const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
 
+  const userRoleDisplay = React.useMemo(() => {
+    if (user?.isSuperAdmin) return 'Super Admin';
+    if (activeOrg?.orgRole === 'OWNER') return 'Lead Auditor';
+    if (activeOrg?.orgRole === 'ADMIN') return 'Org Admin';
+
+    const pMemberships = user?.projectMemberships || [];
+    if (pMemberships.some((p) => p.projectRole === 'PROJECT_MANAGER' || p.teamBucket === 'ADMINISTRATOR')) {
+      return 'Project Manager';
+    }
+    if (pMemberships.some((p) => p.projectRole === 'SUPERVISOR')) {
+      return 'Supervisor';
+    }
+    if (pMemberships.some((p) => p.projectRole === 'AUDITEE_REPRESENTATIVE' || p.teamBucket === 'AUDITEE')) {
+      return 'Auditee';
+    }
+    if (pMemberships.some((p) => p.projectRole === 'CLIENT_REPRESENTATIVE' || p.teamBucket === 'CLIENT')) {
+      return 'Client';
+    }
+    if (pMemberships.some((p) => p.projectRole === 'FIELD_TEAM')) {
+      return 'Field Team';
+    }
+
+    if (activeOrg?.orgRole === 'AUDITOR') return 'Auditor';
+    return activeOrg?.orgRole || 'Auditor';
+  }, [user, activeOrg]);
+
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -61,6 +87,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
     } catch {
       // Ignored
     } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('zio_access_token');
+        localStorage.removeItem('zio_user_profile');
+        localStorage.removeItem('zio_organizations');
+        localStorage.removeItem('zio_current_org_id');
+      }
       router.push('/login');
     }
   };
@@ -144,7 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
                 {user?.name || 'User Profile'}
               </div>
               <div className="text-[10px] text-slate-500">
-                {activeOrg?.orgRole || 'Auditor'}
+                {userRoleDisplay}
               </div>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:block" />

@@ -158,12 +158,20 @@ const loginUser = async (payload: ILoginPayload): Promise<ILoginResponse> => {
           id: true,
           projectId: true,
           teamBucket: true,
+          projectRole: true,
           project: {
             select: {
               id: true,
+              orgId: true,
               projectName: true,
               projectType: true,
               status: true,
+              organization: {
+                select: {
+                  id: true,
+                  orgName: true,
+                },
+              },
             },
           },
         },
@@ -211,11 +219,33 @@ const loginUser = async (payload: ILoginPayload): Promise<ILoginResponse> => {
     projectMemberships: user.projectMemberships as any,
   };
 
-  const organizations: IUserOrgMembership[] = user.orgMemberships.map((membership) => ({
-    orgId: membership.orgId,
-    orgName: membership.organization.orgName,
-    orgRole: membership.orgRole,
-  }));
+  const orgMap = new Map<string, IUserOrgMembership>();
+  for (const membership of user.orgMemberships) {
+    orgMap.set(membership.orgId, {
+      orgId: membership.orgId,
+      orgName: membership.organization.orgName,
+      orgRole: membership.orgRole,
+    });
+  }
+
+  for (const pm of user.projectMemberships) {
+    const org = (pm.project as any)?.organization;
+    if (org && !orgMap.has(org.id)) {
+      const derivedRole =
+        pm.teamBucket === 'AUDITEE'
+          ? 'AUDITEE'
+          : pm.teamBucket === 'CLIENT'
+          ? 'CLIENT'
+          : 'AUDITOR';
+      orgMap.set(org.id, {
+        orgId: org.id,
+        orgName: org.orgName,
+        orgRole: derivedRole,
+      });
+    }
+  }
+
+  const organizations: IUserOrgMembership[] = Array.from(orgMap.values());
 
   return {
     user: userProfile,
@@ -283,12 +313,20 @@ const getMe = async (userId: string) => {
           id: true,
           projectId: true,
           teamBucket: true,
+          projectRole: true,
           project: {
             select: {
               id: true,
+              orgId: true,
               projectName: true,
               projectType: true,
               status: true,
+              organization: {
+                select: {
+                  id: true,
+                  orgName: true,
+                },
+              },
             },
           },
         },

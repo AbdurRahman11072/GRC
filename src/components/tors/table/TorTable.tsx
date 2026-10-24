@@ -16,6 +16,7 @@ export interface TorTableProps {
   onFireDrt?: (torId: string) => void;
   onEvaluateAnalysis?: (node: ITorNode) => void;
   onSelectTor?: (node: ITorNode) => void;
+  onEditTor?: (node: ITorNode) => void;
 }
 
 export const TorTable: React.FC<TorTableProps> = ({
@@ -29,6 +30,7 @@ export const TorTable: React.FC<TorTableProps> = ({
   onFireDrt,
   onEvaluateAnalysis,
   onSelectTor,
+  onEditTor,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('ALL');
@@ -164,6 +166,7 @@ export const TorTable: React.FC<TorTableProps> = ({
                   onFireDrt={onFireDrt}
                   onEvaluateAnalysis={onEvaluateAnalysis}
                   onSelectTor={onSelectTor}
+                  onEditTor={onEditTor}
                 />
               ))
             ) : (

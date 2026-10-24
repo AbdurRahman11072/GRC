@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import {
-  ChevronRight, ChevronDown, Plus, SlidersHorizontal, Trash2, FilePlus, Award, CheckCircle2, Clock, RotateCcw, Eye,
+  ChevronRight, ChevronDown, Plus, SlidersHorizontal, Trash2, FilePlus, Award, CheckCircle2, Clock, RotateCcw, Eye, Edit2,
 } from 'lucide-react';
 import { Badge } from '../../ui/Badge';
 import type { ITorNode } from '../../../types/tor.types';
@@ -19,6 +19,7 @@ export interface TorTableRowProps {
   onFireDrt?: (torId: string) => void;
   onEvaluateAnalysis?: (node: ITorNode) => void;
   onSelectTor?: (node: ITorNode) => void;
+  onEditTor?: (node: ITorNode) => void;
 }
 
 export const TorTableRow: React.FC<TorTableRowProps> = ({
@@ -33,6 +34,7 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
   onFireDrt,
   onEvaluateAnalysis,
   onSelectTor,
+  onEditTor,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasChildren = Boolean(node.children && node.children.length > 0);
@@ -160,6 +162,11 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
                 <SlidersHorizontal className="w-4 h-4" />
               </button>
             )}
+            {canManageTor && onEditTor && (
+              <button type="button" title="Edit ToR Clause" onClick={() => onEditTor(node)} className="p-1.5 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-colors shrink-0">
+                <Edit2 className="w-4 h-4" />
+              </button>
+            )}
             {canManageTor && (
               <button type="button" title="Delete clause" onClick={() => onDelete(node.id)} className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors shrink-0">
                 <Trash2 className="w-4 h-4" />
@@ -184,6 +191,7 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
           onFireDrt={onFireDrt}
           onEvaluateAnalysis={onEvaluateAnalysis}
           onSelectTor={onSelectTor}
+          onEditTor={onEditTor}
         />
       ))}
     </>
