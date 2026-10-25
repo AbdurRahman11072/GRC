@@ -81,7 +81,7 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
         <td className="py-2.5 px-3 min-w-[240px] max-w-sm align-middle">
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span onClick={() => onSelectTor?.(node)} title="Click to view ToR details" className={`text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors ${isRoot ? 'font-bold text-sm' : 'font-semibold text-xs'}`}>
+              <span onClick={() => onSelectTor?.(node)} title={node.title} className={`text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors ${isRoot ? 'font-bold text-sm' : 'font-semibold text-xs'}`}>
                 {node.title}
               </span>
               {node.department && (

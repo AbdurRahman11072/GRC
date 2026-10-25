@@ -94,7 +94,7 @@ export const TorDetailsDrawer: React.FC<TorDetailsDrawerProps> = ({
               </button>
             </div>
           </div>
-          <h2 className="text-base font-bold text-slate-900 leading-snug">{tor.title}</h2>
+          <h2 className="text-base font-bold text-slate-900 leading-snug break-words">{tor.title}</h2>
           {tor.parent && (
             <p className="text-xs text-slate-500 flex items-center gap-1">
               <FolderTree className="w-3.5 h-3.5 text-slate-400" />

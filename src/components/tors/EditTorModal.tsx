@@ -68,6 +68,9 @@ export const EditTorModal: React.FC<EditTorModalProps> = ({
       if (!value.title?.trim() || value.title.trim().length < 2) {
         return setErrorMessage('ToR title must be at least 2 characters');
       }
+      if (value.title.trim().length > 1000) {
+        return setErrorMessage('ToR title must not exceed 1000 characters');
+      }
 
       try {
         const res = await updateTor({
@@ -160,7 +163,16 @@ export const EditTorModal: React.FC<EditTorModalProps> = ({
         </div>
 
         <form.Field name="title">
-          {(field) => <FormField field={field} label="ToR Title" placeholder="e.g. Core Network Architecture" required />}
+          {(field) => (
+            <FormTextarea
+              field={field}
+              label="ToR Title"
+              placeholder="e.g. Core Network Architecture"
+              rows={2}
+              maxLength={1000}
+              required
+            />
+          )}
         </form.Field>
 
         <form.Field name="objective">

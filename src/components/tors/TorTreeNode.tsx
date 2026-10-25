@@ -74,7 +74,7 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap text-xs">
               <Badge variant="indigo" size="xs">{node.code}</Badge>
-              <span className="font-semibold text-slate-900 truncate">{node.title}</span>
+              <span className="font-semibold text-slate-900 truncate" title={node.title}>{node.title}</span>
               {node.department && (
                 <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
                   {node.department}

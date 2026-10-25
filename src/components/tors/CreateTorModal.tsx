@@ -49,6 +49,10 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
         setErrorMessage('ToR title must be at least 2 characters');
         return;
       }
+      if (value.title.trim().length > 1000) {
+        setErrorMessage('ToR title must not exceed 1000 characters');
+        return;
+      }
 
       try {
         const res = await createTor({
@@ -153,10 +157,12 @@ export const CreateTorModal: React.FC<CreateTorModalProps> = ({
         {/* Title */}
         <form.Field name="title">
           {(field) => (
-            <FormField
+            <FormTextarea
               field={field}
-              label="ToR title"
+              label="ToR Title"
               placeholder="e.g. Core Network Architecture & Redundancy"
+              rows={2}
+              maxLength={1000}
               required
             />
           )}
