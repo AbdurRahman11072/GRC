@@ -14,6 +14,7 @@ export interface DrtTableProps {
   onReview: (ticket: IDRTTicket, doc?: IDRTDocument) => void;
   onManageSquad: (ticket: IDRTTicket) => void;
   onEditPeriodStatus?: (ticket: IDRTTicket, year: string) => void;
+  onManageTors?: (ticket: IDRTTicket) => void;
 }
 
 export const DrtTable: React.FC<DrtTableProps> = ({
@@ -25,6 +26,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
   onReview,
   onManageSquad,
   onEditPeriodStatus,
+  onManageTors,
 }) => {
   // Dynamically extract all unique years from auditYears and ticket period statuses
   const allYears = useMemo(() => {
@@ -109,6 +111,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
                 onReview={onReview}
                 onManageSquad={onManageSquad}
                 onEditPeriodStatus={onEditPeriodStatus}
+                onManageTors={onManageTors}
               />
             ))
           ) : (

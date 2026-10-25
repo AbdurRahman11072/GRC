@@ -12,6 +12,7 @@ import {
   RotateCcw,
   Target,
   MessageSquare,
+  Tags,
 } from 'lucide-react';
 import { Badge } from '../../../ui/Badge';
 import { Button } from '../../../ui/Button';
@@ -22,6 +23,7 @@ export interface DrtTicketCardProps {
   onUpload: (ticket: IDRTTicket, side: DRTPartySide) => void;
   onReview: (ticket: IDRTTicket, doc?: IDRTDocument) => void;
   onManageSquad: (ticket: IDRTTicket) => void;
+  onManageTors?: (ticket: IDRTTicket) => void;
   canUpload: boolean;
   canReview: boolean;
 }
@@ -40,6 +42,7 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
   onUpload,
   onReview,
   onManageSquad,
+  onManageTors,
   canUpload,
   canReview,
 }) => {
@@ -47,6 +50,9 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
   const clientDoc = docs.filter((d) => d.partySide === 'CLIENT').slice(-1)[0];
   const auditeeDoc = docs.filter((d) => d.partySide === 'AUDITEE').slice(-1)[0];
   const periodStatuses = ticket.periodStatuses || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const torCodes = ticket.tors?.map((t: any) => t.code || t.tor?.code).filter(Boolean) || [];
+  if (ticket.tor?.code && !torCodes.includes(ticket.tor.code)) torCodes.unshift(ticket.tor.code);
 
   const isOverdue =
     ticket.expectedDateOfReceipt &&
@@ -103,13 +109,25 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
                 {ticket.department}
               </span>
             )}
-            {ticket.tor && (
-              <span className="text-[11px] text-slate-500">
-                ToR: <strong className="text-slate-800 font-semibold">[{ticket.tor.code}] {ticket.tor.title}</strong>
+            {torCodes.length > 0 && (
+              <span className="text-[11px] text-slate-500 flex items-center gap-1 flex-wrap">
+                <span>ToRs:</span>
+                {torCodes.map((code) => (
+                  <span key={code} className="font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200/80 text-[10px]">
+                    {code}
+                  </span>
+                ))}
               </span>
             )}
           </div>
-          <h3 className="text-sm font-semibold text-slate-900 mt-1.5 leading-snug">{ticket.title || ticket.description}</h3>
+          {ticket.title ? (
+            <h3 className="text-sm font-semibold text-slate-900 mt-1.5 leading-snug">{ticket.title}</h3>
+          ) : (
+            <div
+              className="text-xs text-slate-800 mt-1.5 leading-relaxed line-clamp-3"
+              dangerouslySetInnerHTML={{ __html: ticket.description }}
+            />
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {isOverdue && (
@@ -197,6 +215,9 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
       <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
         <span>SLA: <strong className="text-slate-700 font-semibold">{ticket.expectedDateOfReceipt ? new Date(ticket.expectedDateOfReceipt).toLocaleDateString() : 'None'}</strong></span>
         <div className="flex items-center gap-2">
+          {onManageTors && (
+            <Button size="xs" variant="ghost" onClick={() => onManageTors(ticket)} leftIcon={<Tags className="w-3 h-3" />}>ToRs</Button>
+          )}
           <Button size="xs" variant="ghost" onClick={() => onManageSquad(ticket)} leftIcon={<Users className="w-3 h-3" />}>Squad</Button>
           {canUpload && (
             <Button size="xs" variant="outline" onClick={() => onUpload(ticket, 'AUDITEE')} leftIcon={<Upload className="w-3 h-3" />}>Upload Evidence</Button>

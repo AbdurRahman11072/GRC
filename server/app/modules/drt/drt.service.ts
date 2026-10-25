@@ -571,6 +571,11 @@ const mapToRs = async (
           })),
         });
       }
+
+      await tx.dRTTicket.update({
+        where: { id },
+        data: { torId: payload.torIds.length > 0 ? payload.torIds[0] : null },
+      });
     });
   } else if (action === 'ADD') {
     for (const torId of payload.torIds) {

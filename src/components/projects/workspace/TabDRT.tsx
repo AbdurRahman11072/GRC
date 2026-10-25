@@ -11,6 +11,7 @@ import { UploadDrtDocumentModal } from './drt/UploadDrtDocumentModal';
 import { ReviewDrtDocumentModal } from './drt/ReviewDrtDocumentModal';
 import { AssignDrtSquadModal } from './drt/AssignDrtSquadModal';
 import { EditDrtPeriodStatusModal } from './drt/EditDrtPeriodStatusModal';
+import { ManageDrtTorsModal } from './drt/ManageDrtTorsModal';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
 import { useGetMyProjectPermissionsQuery, useGetProjectByIdQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
@@ -32,6 +33,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
   const [reviewTarget, setReviewTarget] = useState<{ ticket: IDRTTicket; doc?: IDRTDocument } | null>(null);
   const [squadTicket, setSquadTicket] = useState<IDRTTicket | null>(null);
   const [periodModal, setPeriodModal] = useState<{ ticket: IDRTTicket; year: string } | null>(null);
+  const [torsTicket, setTorsTicket] = useState<IDRTTicket | null>(null);
 
   const currentUser = useAppSelector((state) => state.auth.user);
   const currentOrgMembership = useAppSelector((state) =>
@@ -191,6 +193,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
           onReview={(t, doc) => setReviewTarget({ ticket: t, doc })}
           onManageSquad={(t) => setSquadTicket(t)}
           onEditPeriodStatus={(t, yr) => setPeriodModal({ ticket: t, year: yr })}
+          onManageTors={(t) => setTorsTicket(t)}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3">
@@ -201,6 +204,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
               onUpload={(t, side) => setUploadTicket({ ticket: t, side })}
               onReview={(t, doc) => setReviewTarget({ ticket: t, doc })}
               onManageSquad={(t) => setSquadTicket(t)}
+              onManageTors={(t) => setTorsTicket(t)}
               canUpload={Boolean(canUpload)}
               canReview={Boolean(canReview)}
             />
@@ -209,38 +213,12 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
       )}
 
       {/* Modals & Drawers */}
-      <CreateDrtDrawer
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        projectId={projectId}
-        auditYears={auditYears}
-      />
-
-      <UploadDrtDocumentModal
-        isOpen={Boolean(uploadTicket)}
-        onClose={() => setUploadTicket(null)}
-        ticket={uploadTicket?.ticket || null}
-        defaultSide={uploadTicket?.side}
-        initialPeriodLabel={uploadTicket?.initialPeriodLabel}
-        auditYears={auditYears}
-      />
-
-      <ReviewDrtDocumentModal
-        isOpen={Boolean(reviewTarget)}
-        onClose={() => setReviewTarget(null)}
-        ticket={reviewTarget?.ticket || null}
-        document={reviewTarget?.doc || null}
-      />
-
+      <CreateDrtDrawer isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} projectId={projectId} auditYears={auditYears} />
+      <UploadDrtDocumentModal isOpen={Boolean(uploadTicket)} onClose={() => setUploadTicket(null)} ticket={uploadTicket?.ticket || null} defaultSide={uploadTicket?.side} initialPeriodLabel={uploadTicket?.initialPeriodLabel} auditYears={auditYears} />
+      <ReviewDrtDocumentModal isOpen={Boolean(reviewTarget)} onClose={() => setReviewTarget(null)} ticket={reviewTarget?.ticket || null} document={reviewTarget?.doc || null} />
       <AssignDrtSquadModal isOpen={Boolean(squadTicket)} onClose={() => setSquadTicket(null)} ticket={squadTicket} projectId={projectId} />
-
-      <EditDrtPeriodStatusModal
-        isOpen={Boolean(periodModal)}
-        onClose={() => setPeriodModal(null)}
-        ticket={periodModal?.ticket || null}
-        periodLabel={periodModal?.year || null}
-        onOpenUpload={(t, yr) => setUploadTicket({ ticket: t, side: 'AUDITEE', initialPeriodLabel: yr })}
-      />
+      <EditDrtPeriodStatusModal isOpen={Boolean(periodModal)} onClose={() => setPeriodModal(null)} ticket={periodModal?.ticket || null} periodLabel={periodModal?.year || null} onOpenUpload={(t, yr) => setUploadTicket({ ticket: t, side: 'AUDITEE', initialPeriodLabel: yr })} />
+      <ManageDrtTorsModal isOpen={Boolean(torsTicket)} onClose={() => setTorsTicket(null)} ticket={torsTicket} projectId={projectId} />
     </div>
   );
 };

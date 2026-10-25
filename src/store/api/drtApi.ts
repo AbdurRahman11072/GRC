@@ -104,6 +104,18 @@ export const drtApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['DRT', 'ToR'],
     }),
+
+    mapToRs: builder.mutation<
+      ApiResponse<IDRTTicket>,
+      { ticketId: string; torIds: string[]; action?: 'SET' | 'ADD' | 'REMOVE' }
+    >({
+      query: ({ ticketId, ...body }) => ({
+        url: `/drt/tickets/${ticketId}/tor-mappings`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['DRT', 'ToR'],
+    }),
   }),
 });
 
@@ -114,5 +126,6 @@ export const {
   useUploadDrtDocumentMutation,
   useReviewDrtDocumentMutation,
   useUpdatePeriodStatusesMutation,
+  useMapToRsMutation,
 } = drtApi;
 
