@@ -2,12 +2,13 @@
 
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { stripHtml } from '../../lib/utils';
 
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  description?: string;
+  description?: string | React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '80%' | 'full';
@@ -70,7 +71,11 @@ export const Modal: React.FC<ModalProps> = ({
           <div className="p-5 pb-4 border-b border-slate-100 flex items-start justify-between">
             <div className="space-y-1">
               {title && <h2 className="text-base font-semibold text-slate-900">{title}</h2>}
-              {description && <p className="text-xs text-slate-500">{description}</p>}
+              {description && (
+                <p className="text-xs text-slate-500 line-clamp-3">
+                  {typeof description === 'string' ? stripHtml(description) : description}
+                </p>
+              )}
             </div>
             <button
               type="button"

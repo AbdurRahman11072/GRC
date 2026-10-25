@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload, AlertCircle, Building2, ShieldCheck } from 'lucide-react';
 import { Modal } from '../../../ui/Modal';
 import { Button } from '../../../ui/Button';
+import { stripHtml } from '../../../../lib/utils';
 import { useUploadDrtDocumentMutation } from '../../../../store/api/drtApi';
 import type { IDRTTicket, DRTPartySide, PeriodEvidenceStatus } from '../../../../types/project.types';
 
@@ -96,7 +97,7 @@ export const UploadDrtDocumentModal: React.FC<UploadDrtDocumentModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={`Upload DRT Evidence [${ticket.requestCode}]`}
-      description={ticket.title || ticket.description}
+      description={ticket.title || stripHtml(ticket.description)}
       size="md"
     >
       {errorMessage && (

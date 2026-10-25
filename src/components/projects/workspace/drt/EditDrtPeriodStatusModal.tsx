@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, AlertCircle, Save, Upload } from 'lucide-react';
 import { Modal } from '../../../ui/Modal';
 import { Button } from '../../../ui/Button';
+import { stripHtml } from '../../../../lib/utils';
 import { useUpdatePeriodStatusesMutation } from '../../../../store/api/drtApi';
 import type { IDRTTicket, PeriodEvidenceStatus } from '../../../../types/project.types';
 
@@ -66,7 +67,7 @@ export const EditDrtPeriodStatusModal: React.FC<EditDrtPeriodStatusModalProps> =
       isOpen={isOpen}
       onClose={onClose}
       title={`Timeframe Status: ${ticket.requestCode} (${periodLabel})`}
-      description={ticket.title || ticket.description}
+      description={ticket.title || stripHtml(ticket.description)}
       size="sm"
     >
       {errorMessage && (

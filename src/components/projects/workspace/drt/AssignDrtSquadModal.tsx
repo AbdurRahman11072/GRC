@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Modal } from '../../../ui/Modal';
 import { Button } from '../../../ui/Button';
+import { stripHtml } from '../../../../lib/utils';
 import { useAssignSquadMutation } from '../../../../store/api/drtApi';
 import { useGetProjectMembersQuery } from '../../../../store/api/projectApi';
 import type { IDRTTicket } from '../../../../types/project.types';
@@ -79,7 +80,7 @@ export const AssignDrtSquadModal: React.FC<AssignDrtSquadModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={`Assign 4-Party Squad [${ticket.requestCode}]`}
-      description={ticket.title || ticket.description}
+      description={ticket.title || stripHtml(ticket.description)}
       size="md"
     >
       {errorMessage && (

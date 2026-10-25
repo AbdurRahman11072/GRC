@@ -18,6 +18,7 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { UploadDrtDocumentModal } from '../projects/workspace/drt/UploadDrtDocumentModal';
 import { useGetTicketsQuery } from '../../store/api/drtApi';
+import { stripHtml } from '../../lib/utils';
 import type { IProject, IDRTTicket, DRTPartySide } from '../../types/project.types';
 
 export interface FieldMemberDashboardViewProps {
@@ -159,7 +160,7 @@ export const FieldMemberDashboardView: React.FC<FieldMemberDashboardViewProps> =
                           {ticket.department}
                         </span>
                       )}
-                      <span className="font-semibold text-slate-900">{ticket.title || ticket.description}</span>
+                      <span className="font-semibold text-slate-900">{ticket.title || stripHtml(ticket.description)}</span>
                     </div>
                     <span className="text-[11px] text-slate-500 block mt-1">
                       SLA Target: {ticket.expectedDateOfReceipt ? new Date(ticket.expectedDateOfReceipt).toLocaleDateString() : 'Flexible'}
