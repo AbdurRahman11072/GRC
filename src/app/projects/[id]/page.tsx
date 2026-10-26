@@ -9,6 +9,7 @@ import { TabEntities } from '../../../components/projects/workspace/TabEntities'
 import { TabToR } from '../../../components/projects/workspace/TabToR';
 import { TabDRT } from '../../../components/projects/workspace/TabDRT';
 import { TabTeam } from '../../../components/projects/workspace/TabTeam';
+import { TabScorecard } from '../../../components/projects/workspace/TabScorecard';
 import { useGetProjectByIdQuery, useGetMyProjectPermissionsQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
 
@@ -73,6 +74,12 @@ export default function ProjectWorkspacePage() {
             <div className="pt-2">
               {activeTab === 'overview' && (
                 <TabOverview project={project} onNavigateTab={setActiveTab} />
+              )}
+              {activeTab === 'scorecard' && (
+                <TabScorecard
+                  projectId={projectId}
+                  isManagerOrAdmin={isOrgAdmin || Boolean(permissions?.canCreateTor)}
+                />
               )}
               {activeTab === 'entities' && canAccessTors && <TabEntities project={project} />}
               {activeTab === 'tors' && canAccessTors && <TabToR projectId={projectId} />}

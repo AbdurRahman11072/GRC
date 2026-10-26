@@ -12,12 +12,13 @@ import {
   Users,
   Building2,
   BarChart3,
+  Calculator,
 } from 'lucide-react';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
 import type { IProject } from '../../../types/project.types';
 
-export type WorkspaceTab = 'overview' | 'entities' | 'tors' | 'drt' | 'team';
+export type WorkspaceTab = 'overview' | 'scorecard' | 'entities' | 'tors' | 'drt' | 'team';
 
 interface WorkspaceHeaderProps {
   project: IProject;
@@ -39,6 +40,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   const tabs = React.useMemo(() => {
     const list: Array<{ id: WorkspaceTab; label: string; icon: React.ReactNode }> = [
       { id: 'overview', label: 'Overview & Stats', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+      { id: 'scorecard', label: 'Macro Scorecard', icon: <Calculator className="w-3.5 h-3.5" /> },
     ];
 
     // Administrators and Project Managers can manage client entities and ToR WBS hierarchy
