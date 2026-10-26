@@ -48,6 +48,7 @@ model User {
   uploadedDrtDocs      DRTDocument[]      @relation("DRTDocUploader")
   reviewedDrtDocs      DRTDocument[]      @relation("DRTDocReviewer")
   analyzedTors         Tor[]              @relation("TorAnalyzer")
+  pmEvaluatedProjects  Project[]          @relation("ProjectPmEvaluator")
 
   @@index([email])
 }
@@ -170,6 +171,16 @@ model Project {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
+  // Macro Stream Envelopes (Must sum to 100.00)
+  clientWeight          Float         @default(35.0)  // BTRC weight (35.0)
+  auditeeWeight         Float         @default(45.0)  // FHL weight (45.0)
+  pmWeight              Float         @default(20.0)  // PM discretionary weight (20.0)
+  pmObtainedMarks       Float         @default(0.0)   // Awarded manually by PM
+  pmEvaluationNotes     String?
+  pmEvaluatedAt         DateTime?
+  pmEvaluatedById       String?
+  pmEvaluatedBy         User?         @relation("ProjectPmEvaluator", fields: [pmEvaluatedById], references: [id], onDelete: SetNull)
+
   organization      Organization            @relation(fields: [orgId], references: [id], onDelete: Cascade)
   client            EntityCRM               @relation("ProjectClient", fields: [clientId], references: [id])
   auditee           EntityCRM               @relation("ProjectAuditee", fields: [auditeeId], references: [id])
@@ -248,6 +259,21 @@ model Tor {
   complianceStatus        String?
   analyzedById            String?
   analyzedAt              DateTime?
+
+  // Stream Allocation Targets
+  clientWeight            Float     @default(0.0)   // BTRC allocated weight for this ToR
+  auditeeWeight           Float     @default(0.0)   // FHL allocated weight for this ToR
+
+  // Dual-Stream Rollup Marks (Aggregated from child Sub-ToRs / DRTs)
+  fhlCollectionAllocated  Float     @default(0.0)
+  fhlCollectionObtained   Float     @default(0.0)
+  fhlAnalysisAllocated    Float     @default(0.0)
+  fhlAnalysisObtained     Float     @default(0.0)
+
+  btrcCollectionAllocated Float     @default(0.0)
+  btrcCollectionObtained  Float     @default(0.0)
+  btrcAnalysisAllocated   Float     @default(0.0)
+  btrcAnalysisObtained    Float     @default(0.0)
 
   project         Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent          Tor?                  @relation("TorHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
@@ -369,7 +395,11 @@ model DRTTicket {
   actualDateOfReceipt   DateTime?
   lifecycleStatus       DRTLifecycleStatus @default(OPEN)
   reviewStatus          DRTReviewStatus    @default(PENDING)
-  allocatedWeight       Float              @default(0.0) // Auto-shared or manually allocated
+  allocatedWeight       Float              @default(0.0) // Auto-shared or manually allocated (collection + analysis)
+  collectionAllocated   Float              @default(0.0) // Marks allocated for evidence collection
+  collectionObtained    Float              @default(0.0) // Marks earned when evidence accepted
+  analysisAllocated     Float              @default(0.0) // Marks allocated for analysis & findings
+  analysisObtained      Float              @default(0.0) // Marks awarded by auditor
   excessDays            Int                @default(0)
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
