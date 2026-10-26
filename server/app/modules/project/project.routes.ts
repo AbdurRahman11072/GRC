@@ -4,6 +4,12 @@ import { tenantMiddleware, requireOrgRole } from '../../middleware/tenantMiddlew
 import { validateRequest } from '../../middleware/validateRequest';
 import { ProjectValidation } from './project.validation';
 import { ProjectController } from './project.controller';
+import { ProjectWeightController } from './projectWeight.controller';
+import {
+  updateProjectWeightsValidationSchema,
+  evaluatePmValidationSchema,
+  getProjectScorecardValidationSchema,
+} from './projectWeight.validation';
 
 const router = Router();
 
@@ -168,6 +174,45 @@ router.delete(
   requireOrgRole('OWNER', 'ADMIN'),
   validateRequest(ProjectValidation.deleteMemberValidationSchema),
   ProjectController.deleteMember
+);
+
+// -----------------------------------------------------------------------------
+// Scorecard & Macro Weight Envelopes
+// -----------------------------------------------------------------------------
+
+router.get(
+  '/:id/scorecard',
+  authMiddleware(),
+  tenantMiddleware(),
+  validateRequest(getProjectScorecardValidationSchema),
+  ProjectWeightController.getScorecard
+);
+
+router.patch(
+  '/:id/weights',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(updateProjectWeightsValidationSchema),
+  ProjectWeightController.updateWeights
+);
+
+router.post(
+  '/:id/pm-evaluation',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(evaluatePmValidationSchema),
+  ProjectWeightController.evaluatePm
+);
+
+router.post(
+  '/:id/recalculate-marks',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(getProjectScorecardValidationSchema),
+  ProjectWeightController.recalculateRollup
 );
 
 export const ProjectRoutes = router;

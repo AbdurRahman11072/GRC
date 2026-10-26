@@ -34,6 +34,8 @@ export const createTicketValidationSchema = z.object({
       .number()
       .min(0, 'Allocated weight must be >= 0')
       .optional(),
+    collectionAllocated: z.number().min(0, 'Collection allocated marks must be >= 0').optional(),
+    analysisAllocated: z.number().min(0, 'Analysis allocated marks must be >= 0').optional(),
     torIds: z.array(z.string().uuid('Invalid ToR ID format')).optional(),
     periodStatuses: z
       .array(
@@ -106,6 +108,8 @@ export const updateTicketValidationSchema = z.object({
       .number()
       .min(0, 'Allocated weight must be >= 0')
       .optional(),
+    collectionAllocated: z.number().min(0, 'Collection allocated marks must be >= 0').optional(),
+    analysisAllocated: z.number().min(0, 'Analysis allocated marks must be >= 0').optional(),
   }),
 });
 

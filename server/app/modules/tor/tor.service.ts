@@ -8,6 +8,7 @@ import {
   assertCanAwardMarks,
   assertCanCheckDocument,
 } from '../project/project.permissions';
+import { TorRollupService } from './torRollup.service';
 
 export interface IStreamWeightItem {
   streamBucket: TeamBucket;
@@ -25,6 +26,8 @@ export interface ICreateTorPayload {
   objective?: string | null;
   department?: string | null;
   sortOrder?: number;
+  clientWeight?: number;
+  auditeeWeight?: number;
 }
 
 export interface IUpdateTorPayload {
@@ -35,6 +38,8 @@ export interface IUpdateTorPayload {
   objective?: string | null;
   department?: string | null;
   sortOrder?: number;
+  clientWeight?: number;
+  auditeeWeight?: number;
 }
 
 export interface ITorTreeNode {
@@ -116,6 +121,8 @@ const createTor = async (
       objective: payload.objective?.trim() || null,
       department: payload.department?.trim() || null,
       sortOrder: payload.sortOrder ?? 0,
+      clientWeight: payload.clientWeight ?? 0.0,
+      auditeeWeight: payload.auditeeWeight ?? 0.0,
       createdById,
     },
     include: {
@@ -136,6 +143,8 @@ const createTor = async (
       streamWeights: true,
     },
   });
+
+  await TorRollupService.recalculateTorTreeMarks(payload.projectId);
 
   return tor;
 };
@@ -482,6 +491,8 @@ const updateTor = async (
         : {}),
       ...(payload.sortOrder !== undefined ? { sortOrder: payload.sortOrder } : {}),
       ...(payload.parentId !== undefined ? { parentId: payload.parentId || null } : {}),
+      ...(payload.clientWeight !== undefined ? { clientWeight: payload.clientWeight } : {}),
+      ...(payload.auditeeWeight !== undefined ? { auditeeWeight: payload.auditeeWeight } : {}),
     },
     include: {
       parent: {
@@ -494,6 +505,10 @@ const updateTor = async (
       streamWeights: true,
     },
   });
+
+  if (payload.clientWeight !== undefined || payload.auditeeWeight !== undefined) {
+    await TorRollupService.recalculateTorTreeMarks(existingTor.project.id);
+  }
 
   return updated;
 };

@@ -21,6 +21,8 @@ export const createTorValidationSchema = z.object({
     objective: z.string().optional().nullable(),
     department: z.string().optional().nullable(),
     sortOrder: z.number().int().optional(),
+    clientWeight: z.number().min(0, 'Client weight must be >= 0').optional(),
+    auditeeWeight: z.number().min(0, 'Auditee weight must be >= 0').optional(),
   }),
 });
 
@@ -71,6 +73,8 @@ export const updateTorValidationSchema = z.object({
     objective: z.string().optional().nullable(),
     department: z.string().optional().nullable(),
     sortOrder: z.number().int().optional(),
+    clientWeight: z.number().min(0, 'Client weight must be >= 0').optional(),
+    auditeeWeight: z.number().min(0, 'Auditee weight must be >= 0').optional(),
   }),
 });
 

@@ -7,6 +7,7 @@ import {
   DRTReviewStatus,
   PeriodEvidenceStatus,
 } from '../../../generated/prisma';
+import { TorRollupService } from '../tor/torRollup.service';
 
 export interface IPeriodStatusPayload {
   periodId?: string | null;
@@ -32,6 +33,8 @@ export interface ICreateTicketPayload {
   dateOfRequest?: string;
   expectedDateOfReceipt?: string;
   allocatedWeight?: number;
+  collectionAllocated?: number;
+  analysisAllocated?: number;
   torIds?: string[];
   periodStatuses?: IPeriodStatusPayload[];
 }
@@ -74,6 +77,8 @@ export interface IUpdateTicketPayload {
   dateOfRequest?: string | null;
   expectedDateOfReceipt?: string | null;
   allocatedWeight?: number;
+  collectionAllocated?: number;
+  analysisAllocated?: number;
 }
 
 export interface IDRTQueryOptions {
@@ -139,7 +144,12 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
         expectedDateOfReceipt: payload.expectedDateOfReceipt
           ? new Date(payload.expectedDateOfReceipt)
           : null,
-        allocatedWeight: payload.allocatedWeight ?? 0.0,
+        allocatedWeight:
+          payload.collectionAllocated !== undefined || payload.analysisAllocated !== undefined
+            ? (payload.collectionAllocated ?? 0) + (payload.analysisAllocated ?? 0)
+            : (payload.allocatedWeight ?? 0.0),
+        collectionAllocated: payload.collectionAllocated ?? 0.0,
+        analysisAllocated: payload.analysisAllocated ?? 0.0,
       },
     });
 
@@ -178,6 +188,7 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
   if (ticket.torId) {
     await recalculateTorCollectionMarks(ticket.torId);
   }
+  await TorRollupService.recalculateTorTreeMarks(payload.projectId);
 
   return getTicketById(orgId, ticket.id);
 };
@@ -511,9 +522,35 @@ const updateTicket = async (
               : null,
           }
         : {}),
-      ...(payload.allocatedWeight !== undefined ? { allocatedWeight: payload.allocatedWeight } : {}),
+      ...(payload.collectionAllocated !== undefined
+        ? { collectionAllocated: payload.collectionAllocated }
+        : {}),
+      ...(payload.analysisAllocated !== undefined
+        ? { analysisAllocated: payload.analysisAllocated }
+        : {}),
+      ...(payload.collectionAllocated !== undefined || payload.analysisAllocated !== undefined
+        ? {
+            allocatedWeight:
+              (payload.collectionAllocated !== undefined
+                ? payload.collectionAllocated
+                : existingTicket.collectionAllocated) +
+              (payload.analysisAllocated !== undefined
+                ? payload.analysisAllocated
+                : existingTicket.analysisAllocated),
+          }
+        : payload.allocatedWeight !== undefined
+        ? { allocatedWeight: payload.allocatedWeight }
+        : {}),
     },
   });
+
+  if (
+    payload.collectionAllocated !== undefined ||
+    payload.analysisAllocated !== undefined ||
+    payload.allocatedWeight !== undefined
+  ) {
+    await TorRollupService.recalculateTorTreeMarks(existingTicket.projectId);
+  }
 
   return getTicketById(orgId, updated.id);
 };
@@ -737,14 +774,30 @@ const updateReviewStatus = async (
     existingTicket.lifecycleStatus
   );
 
+  let analysisObtained = existingTicket.analysisObtained;
+  if (payload.reviewStatus === 'DONE') {
+    analysisObtained = existingTicket.analysisAllocated;
+  } else if (payload.reviewStatus === 'PARTIAL') {
+    analysisObtained = Math.round(existingTicket.analysisAllocated * 0.5 * 100) / 100;
+  } else if (
+    payload.reviewStatus === 'PENDING' ||
+    payload.reviewStatus === 'NOT_AVAILABLE' ||
+    payload.reviewStatus === 'NOT_APPLICABLE'
+  ) {
+    analysisObtained = 0.0;
+  }
+
   await prisma.dRTTicket.update({
     where: { id },
     data: {
       reviewStatus: payload.reviewStatus,
+      analysisObtained,
       actualDateOfReceipt: finalActualReceipt,
       excessDays,
     },
   });
+
+  await TorRollupService.recalculateTorTreeMarks(existingTicket.projectId);
 
   return getTicketById(orgId, id);
 };
@@ -959,11 +1012,16 @@ const reviewDrtDocument = async (
 
   if (hasClientAccepted || hasAuditeeAccepted) {
     const isFullAccepted = hasClientAccepted && hasAuditeeAccepted;
+    const collectionObtained = isFullAccepted
+      ? doc.ticket.collectionAllocated
+      : Math.round(doc.ticket.collectionAllocated * 0.5 * 100) / 100;
+
     await prisma.dRTTicket.update({
       where: { id: doc.ticketId },
       data: {
         lifecycleStatus: isFullAccepted ? 'ACCEPTED' : 'SUBMITTED',
         reviewStatus: isFullAccepted ? 'DONE' : 'PARTIAL',
+        collectionObtained,
       },
     });
   } else if (payload.status === 'REVISION_REQUESTED') {
@@ -972,6 +1030,7 @@ const reviewDrtDocument = async (
       data: {
         lifecycleStatus: 'REVISION_REQUESTED',
         reviewStatus: 'PARTIAL',
+        collectionObtained: 0.0,
       },
     });
   }
@@ -1022,6 +1081,7 @@ const reviewDrtDocument = async (
   if (doc.ticket.torId) {
     await recalculateTorCollectionMarks(doc.ticket.torId);
   }
+  await TorRollupService.recalculateTorTreeMarks(doc.ticket.projectId);
 
   return updatedDoc;
 };
