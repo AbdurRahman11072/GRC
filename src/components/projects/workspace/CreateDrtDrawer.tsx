@@ -11,6 +11,7 @@ import { useCreateTicketMutation } from '../../../store/api/drtApi';
 import { useGetTorTreeQuery } from '../../../store/api/torApi';
 import { useGetProjectMembersQuery } from '../../../store/api/projectApi';
 import { DrtSquadFields } from './drt/DrtSquadFields';
+import { DrtMarksFields } from './drt/DrtMarksFields';
 import { DrtTimeFrameGrid, DEFAULT_AUDIT_YEARS, ITimeFrameStatusItem } from './drt/DrtTimeFrameGrid';
 import type { ITorNode } from '../../../types/tor.types';
 
@@ -84,8 +85,11 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
       fieldMemberId: '',
       clientContactId: '',
       auditeeContactId: '',
+      assignedTeamBucket: 'AUDITEE',
+      collectionAllocated: 1.0,
+      analysisAllocated: 1.0,
       expectedDateOfReceipt: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-      allocatedWeight: 1,
+      allocatedWeight: 2.0,
     },
     onSubmit: async ({ value }) => {
       setErrorMessage(null);
@@ -93,12 +97,14 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
       if (!value.description?.trim()) return setErrorMessage('Request description is required');
 
       try {
+        const col = Number(value.collectionAllocated) || 0;
+        const ana = Number(value.analysisAllocated) || 0;
         await createTicket({
           projectId,
           torId: value.torId || undefined,
           requestCode: value.requestCode.trim(),
           title: value.title?.trim() || undefined,
-          assignedTeamBucket: 'AUDITEE',
+          assignedTeamBucket: (value.assignedTeamBucket as any) || 'AUDITEE',
           department: value.department ? value.department.trim() : undefined,
           description: value.description.trim(),
           currentRequirement: value.currentRequirement ? value.currentRequirement.trim() : undefined,
@@ -109,7 +115,9 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
           auditeeContactId: value.auditeeContactId || undefined,
           dateOfRequest: new Date().toISOString(),
           expectedDateOfReceipt: value.expectedDateOfReceipt || undefined,
-          allocatedWeight: Number(value.allocatedWeight) || 1,
+          collectionAllocated: col,
+          analysisAllocated: ana,
+          allocatedWeight: col + ana,
           periodStatuses: timeFrames.map((tf) => ({
             periodLabel: tf.periodLabel,
             evidenceStatus: tf.evidenceStatus,
@@ -211,14 +219,11 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
         <DrtTimeFrameGrid value={timeFrames} onChange={setTimeFrames} />
         <DrtSquadFields form={form} orgMembers={orgMembers} clientMembers={clientMembers} auditeeMembers={auditeeMembers} />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <form.Field name="expectedDateOfReceipt">
-            {(field) => <FormField field={field} type="date" label="Expected Receipt Date (SLA)" />}
-          </form.Field>
-          <form.Field name="allocatedWeight">
-            {(field) => <FormField field={field} type="number" label="Relative Weight" placeholder="1" />}
-          </form.Field>
-        </div>
+        <DrtMarksFields form={form} />
+
+        <form.Field name="expectedDateOfReceipt">
+          {(field) => <FormField field={field} type="date" label="Expected Receipt Date (SLA)" />}
+        </form.Field>
 
         <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>Cancel</Button>

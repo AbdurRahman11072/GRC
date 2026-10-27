@@ -1,6 +1,13 @@
 import { baseApi } from './baseApi';
 import type { ApiResponse } from '../../types/auth.types';
-import type { IDRTTicket, ICreateDRTTicketPayload, IDRTDocument, DRTPartySide, PeriodEvidenceStatus } from '../../types/project.types';
+import type {
+  IDRTTicket,
+  ICreateDRTTicketPayload,
+  IUpdateDRTTicketPayload,
+  IDRTDocument,
+  DRTPartySide,
+  PeriodEvidenceStatus,
+} from '../../types/project.types';
 
 export const drtApi = baseApi.injectEndpoints({
   overrideExisting: true,
@@ -116,12 +123,25 @@ export const drtApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['DRT', 'ToR'],
     }),
+
+    updateTicket: builder.mutation<
+      ApiResponse<IDRTTicket>,
+      { id: string; body: IUpdateDRTTicketPayload }
+    >({
+      query: ({ id, body }) => ({
+        url: `/drt/tickets/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['DRT', 'ToR'],
+    }),
   }),
 });
 
 export const {
   useGetTicketsQuery,
   useCreateTicketMutation,
+  useUpdateTicketMutation,
   useAssignSquadMutation,
   useUploadDrtDocumentMutation,
   useReviewDrtDocumentMutation,

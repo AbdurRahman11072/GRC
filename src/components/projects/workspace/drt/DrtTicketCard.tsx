@@ -109,6 +109,18 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
                 {ticket.department}
               </span>
             )}
+            {ticket.assignedTeamBucket && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                ticket.assignedTeamBucket === 'CLIENT'
+                  ? 'bg-violet-50 text-violet-700 border-violet-200'
+                  : 'bg-blue-50 text-blue-700 border-blue-200'
+              }`}>
+                {ticket.assignedTeamBucket === 'CLIENT' ? 'BTRC' : 'FHL'}
+              </span>
+            )}
+            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+              Col: {(ticket.collectionObtained ?? 0).toFixed(1)}/{(ticket.collectionAllocated ?? 0).toFixed(1)} | Ana: {(ticket.analysisObtained ?? 0).toFixed(1)}/{(ticket.analysisAllocated ?? 0).toFixed(1)}
+            </span>
             {torCodes.length > 0 && (
               <span className="text-[11px] text-slate-500 flex items-center gap-1 flex-wrap">
                 <span>ToRs:</span>
