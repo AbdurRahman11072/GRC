@@ -53,7 +53,17 @@ export interface ITorNode {
   createdAt: string;
   updatedAt: string;
 
-  // Two-Stage Scoring Engine
+  // Dual-Stream & Two-Stage Scoring Engine
+  clientWeight?: number;
+  auditeeWeight?: number;
+  fhlCollectionAllocated?: number;
+  fhlCollectionObtained?: number;
+  fhlAnalysisAllocated?: number;
+  fhlAnalysisObtained?: number;
+  btrcCollectionAllocated?: number;
+  btrcCollectionObtained?: number;
+  btrcAnalysisAllocated?: number;
+  btrcAnalysisObtained?: number;
   dataCollectionAllocated?: number;
   dataCollectionObtained?: number;
   dataAnalysisAllocated?: number;
@@ -109,6 +119,8 @@ export interface ICreateTorPayload {
   objective?: string | null;
   department?: string | null;
   sortOrder?: number;
+  clientWeight?: number;
+  auditeeWeight?: number;
 }
 
 export interface ISetStreamWeightPayload {
@@ -129,5 +141,7 @@ export interface IUpdateTorPayload {
   objective?: string | null;
   department?: string | null;
   sortOrder?: number;
+  clientWeight?: number;
+  auditeeWeight?: number;
 }
 

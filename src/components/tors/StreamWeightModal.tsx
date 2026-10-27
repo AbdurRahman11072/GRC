@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { useForm } from '@tanstack/react-form';
-import { Sliders, CheckCircle2, AlertCircle, Percent } from 'lucide-react';
+import { Sliders, CheckCircle2, AlertCircle, Building2 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { FormField } from '../form/FormField';
 import { Badge } from '../ui/Badge';
-import { useSetStreamWeightsMutation } from '../../store/api/torApi';
+import { useUpdateTorMutation, useSetStreamWeightsMutation } from '../../store/api/torApi';
 import type { ITorNode } from '../../types/tor.types';
 
 export interface StreamWeightModalProps {
@@ -22,13 +22,16 @@ export const StreamWeightModal: React.FC<StreamWeightModalProps> = ({
   torNode,
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [setStreamWeights, { isLoading }] = useSetStreamWeightsMutation();
+  const [updateTor, { isLoading: isUpdatingTor }] = useUpdateTorMutation();
+  const [setStreamWeights, { isLoading: isSettingWeights }] = useSetStreamWeightsMutation();
 
   const existingTeam1 = torNode.streamWeights?.find((w) => w.streamBucket === 'ADMINISTRATOR');
   const existingTeam2 = torNode.streamWeights?.find((w) => w.streamBucket === 'ORG_MEMBER');
 
   const form = useForm({
     defaultValues: {
+      auditeeWeight: torNode.auditeeWeight ?? 0,
+      clientWeight: torNode.clientWeight ?? 0,
       team1Collection: existingTeam1?.dataCollectionAllocated ?? 5,
       team1Analysis: existingTeam1?.dataAnalysisAllocated ?? 10,
       team2Collection: existingTeam2?.dataCollectionAllocated ?? 5,
@@ -37,6 +40,12 @@ export const StreamWeightModal: React.FC<StreamWeightModalProps> = ({
     onSubmit: async ({ value }) => {
       setErrorMessage(null);
       try {
+        await updateTor({
+          id: torNode.id,
+          auditeeWeight: Number(value.auditeeWeight) || 0,
+          clientWeight: Number(value.clientWeight) || 0,
+        }).unwrap();
+
         await setStreamWeights({
           torId: torNode.id,
           weights: [
@@ -57,24 +66,22 @@ export const StreamWeightModal: React.FC<StreamWeightModalProps> = ({
       } catch (err: unknown) {
         const error = err as { data?: { message?: string }; message?: string };
         setErrorMessage(
-          error.data?.message || error.message || 'Failed to update stream marks'
+          error.data?.message || error.message || 'Failed to update stream weights'
         );
       }
     },
   });
 
-  const totalMarks =
-    Number(form.state.values.team1Collection || 0) +
-    Number(form.state.values.team1Analysis || 0) +
-    Number(form.state.values.team2Collection || 0) +
-    Number(form.state.values.team2Analysis || 0);
+  const isLoading = isUpdatingTor || isSettingWeights;
+  const totalEnvelopeWeight =
+    Number(form.state.values.auditeeWeight || 0) + Number(form.state.values.clientWeight || 0);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Stream Marks & Weight Allocation"
-      description={`Allocate audit marks for [${torNode.code}] ${torNode.title}`}
+      title="ToR Dual-Stream Weights & Marks"
+      description={`Allocate weights and review rollup marks for [${torNode.code}] ${torNode.title}`}
       size="md"
     >
       {errorMessage && (
@@ -91,90 +98,96 @@ export const StreamWeightModal: React.FC<StreamWeightModalProps> = ({
         }}
         className="space-y-4"
       >
-        {/* Total Marks Banner */}
-        <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-700">
-            Total Allocated Marks for this ToR:
+        {/* Total Envelope Banner */}
+        <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <span className="text-xs font-semibold text-slate-300">
+            Combined ToR Envelope Weight:
           </span>
           <Badge variant="indigo" size="md">
-            {totalMarks.toFixed(1)} Marks
+            {totalEnvelopeWeight.toFixed(2)}%
           </Badge>
         </div>
 
-        {/* Stream 1: Administrator (Regulatory / Oversight Unit) */}
-        <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-3">
+        {/* FHL (Auditee Stream) Weight */}
+        <div className="p-3.5 rounded-lg border border-blue-500/20 bg-blue-950/10 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-indigo-700">
-              Stream 1 — Regulatory Unit (BTRC Focus)
+            <span className="text-xs font-semibold text-blue-400 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5" />
+              FHL (Auditee Stream)
             </span>
-            <Badge variant="indigo" size="xs">ADMINISTRATOR</Badge>
+            <span className="text-[11px] font-mono text-slate-400">
+              Rolled Up: {(torNode.fhlCollectionAllocated ?? 0) + (torNode.fhlAnalysisAllocated ?? 0)} marks
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <form.Field name="team1Collection">
+            <form.Field name="auditeeWeight">
               {(field) => (
                 <FormField
                   field={field}
                   type="number"
-                  step="0.5"
-                  label="Data Collection Marks"
-                  placeholder="5.0"
+                  step="0.1"
+                  label="Allocated Weight %"
+                  placeholder="e.g. 5.5"
                 />
               )}
             </form.Field>
 
-            <form.Field name="team1Analysis">
-              {(field) => (
-                <FormField
-                  field={field}
-                  type="number"
-                  step="0.5"
-                  label="Data Analysis Marks"
-                  placeholder="10.0"
-                />
-              )}
-            </form.Field>
-          </div>
-        </div>
-
-        {/* Stream 2: Org Member (Operational Unit) */}
-        <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-cyan-800">
-              Stream 2 — Operational Unit (FHL Focus)
-            </span>
-            <Badge variant="cyan" size="xs">ORG_MEMBER</Badge>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <form.Field name="team2Collection">
               {(field) => (
                 <FormField
                   field={field}
                   type="number"
                   step="0.5"
-                  label="Data Collection Marks"
+                  label="Collection Base Marks"
                   placeholder="5.0"
-                />
-              )}
-            </form.Field>
-
-            <form.Field name="team2Analysis">
-              {(field) => (
-                <FormField
-                  field={field}
-                  type="number"
-                  step="0.5"
-                  label="Data Analysis Marks"
-                  placeholder="10.0"
                 />
               )}
             </form.Field>
           </div>
         </div>
 
-        {/* Modal Action Controls */}
-        <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+        {/* BTRC (Client Stream) Weight */}
+        <div className="p-3.5 rounded-lg border border-violet-500/20 bg-violet-950/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-violet-400 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5" />
+              BTRC (Client Stream)
+            </span>
+            <span className="text-[11px] font-mono text-slate-400">
+              Rolled Up: {(torNode.btrcCollectionAllocated ?? 0) + (torNode.btrcAnalysisAllocated ?? 0)} marks
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <form.Field name="clientWeight">
+              {(field) => (
+                <FormField
+                  field={field}
+                  type="number"
+                  step="0.1"
+                  label="Allocated Weight %"
+                  placeholder="e.g. 4.0"
+                />
+              )}
+            </form.Field>
+
+            <form.Field name="team1Collection">
+              {(field) => (
+                <FormField
+                  field={field}
+                  type="number"
+                  step="0.5"
+                  label="Collection Base Marks"
+                  placeholder="5.0"
+                />
+              )}
+            </form.Field>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
@@ -185,7 +198,7 @@ export const StreamWeightModal: React.FC<StreamWeightModalProps> = ({
             isLoading={isLoading}
             leftIcon={<CheckCircle2 className="w-4 h-4" />}
           >
-            Save Weight Allocation
+            Save Weights
           </Button>
         </div>
       </form>

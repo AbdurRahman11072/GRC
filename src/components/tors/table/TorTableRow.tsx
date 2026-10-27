@@ -113,16 +113,32 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
           ) : <span className="text-slate-400 font-mono text-xs">—</span>}
         </td>
 
-        {/* Marks */}
+        {/* FHL (Auditee) Stream Marks */}
         <td className="py-2.5 px-3 whitespace-nowrap text-center align-middle">
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-50 font-mono text-[11px] border border-slate-200 shadow-2xs">
-            <strong className="text-cyan-700 font-bold">{colObt.toFixed(1)}</strong><span className="text-slate-400">/</span><span className="text-slate-600">{colAlloc.toFixed(1)}</span>
-          </span>
+          <div className="inline-flex flex-col items-center gap-0.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 font-mono text-[11px] border border-blue-200/80 text-blue-900 shadow-2xs">
+              <strong className="text-blue-700 font-bold">{(node.fhlCollectionObtained ?? 0).toFixed(1)}</strong>
+              <span className="text-slate-400">/</span>
+              <span>{(node.fhlCollectionAllocated ?? 0).toFixed(1)}</span>
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono">
+              Ana: {(node.fhlAnalysisObtained ?? 0).toFixed(1)}/{(node.fhlAnalysisAllocated ?? 0).toFixed(1)}
+            </span>
+          </div>
         </td>
+
+        {/* BTRC (Client) Stream Marks */}
         <td className="py-2.5 px-3 whitespace-nowrap text-center align-middle">
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-50 font-mono text-[11px] border border-slate-200 shadow-2xs">
-            <strong className="text-indigo-600 font-bold">{anaObt.toFixed(1)}</strong><span className="text-slate-400">/</span><span className="text-slate-600">{anaAlloc.toFixed(1)}</span>
-          </span>
+          <div className="inline-flex flex-col items-center gap-0.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-violet-50 font-mono text-[11px] border border-violet-200/80 text-violet-900 shadow-2xs">
+              <strong className="text-violet-700 font-bold">{(node.btrcCollectionObtained ?? 0).toFixed(1)}</strong>
+              <span className="text-slate-400">/</span>
+              <span>{(node.btrcCollectionAllocated ?? 0).toFixed(1)}</span>
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono">
+              Ana: {(node.btrcAnalysisObtained ?? 0).toFixed(1)}/{(node.btrcAnalysisAllocated ?? 0).toFixed(1)}
+            </span>
+          </div>
         </td>
 
         {/* Compliance */}

@@ -145,8 +145,8 @@ export const TorTable: React.FC<TorTableProps> = ({
               <th className="py-2.5 px-3 w-28 whitespace-nowrap">ToR ID</th>
               <th className="py-2.5 px-3 min-w-[240px]">Title & Scope</th>
               <th className="py-2.5 px-3 min-w-[200px]">DRT Document Status</th>
-              <th className="py-2.5 px-3 text-center w-32 whitespace-nowrap">Collection Marks</th>
-              <th className="py-2.5 px-3 text-center w-32 whitespace-nowrap">Analysis Marks</th>
+              <th className="py-2.5 px-3 text-center w-36 whitespace-nowrap text-blue-700">FHL (Auditee) Marks</th>
+              <th className="py-2.5 px-3 text-center w-36 whitespace-nowrap text-violet-700">BTRC (Client) Marks</th>
               <th className="py-2.5 px-3 text-center w-28 whitespace-nowrap">Compliance</th>
               <th className="py-2.5 px-3 text-right w-56 min-w-[220px] whitespace-nowrap">Actions</th>
             </tr>
