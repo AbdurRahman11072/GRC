@@ -23,6 +23,14 @@ export interface IDRTDocument {
   updatedAt: string;
 }
 
+export type GoogleDriveStatus = 'UPLOADED' | 'NOT_UPLOADED' | 'NA';
+
+export type AuditeeSubmissionStatus =
+  | 'SHARED'
+  | 'COLLECTING_DATA'
+  | 'PARTIALLY_SHARED'
+  | 'NOT_SHARED';
+
 export type PeriodEvidenceStatus =
   | 'IN_PROGRESS'
   | 'PARTIAL'
@@ -70,6 +78,8 @@ export interface IDRTTicket {
   analysisObtained?: number | null;
   workflowStatus: 'OPEN' | 'SUBMITTED' | 'REVISION_REQUESTED' | 'ACCEPTED';
   reviewOutcome: 'PENDING' | 'PARTIAL' | 'DONE' | 'NOT_AVAILABLE' | 'NOT_APPLICABLE';
+  googleDriveStatus?: GoogleDriveStatus;
+  auditeeStatus?: AuditeeSubmissionStatus;
   excessDays: number;
   isOverdue: boolean;
   tor?: { id: string; code: string; title: string; department?: string | null } | null;
@@ -99,6 +109,8 @@ export interface ICreateDRTTicketPayload {
   allocatedWeight?: number;
   collectionAllocated?: number;
   analysisAllocated?: number;
+  googleDriveStatus?: GoogleDriveStatus;
+  auditeeStatus?: AuditeeSubmissionStatus;
   torIds?: string[];
   periodStatuses?: Array<{
     periodId?: string | null;
@@ -125,4 +137,6 @@ export interface IUpdateDRTTicketPayload {
   allocatedWeight?: number;
   collectionAllocated?: number;
   analysisAllocated?: number;
+  googleDriveStatus?: GoogleDriveStatus;
+  auditeeStatus?: AuditeeSubmissionStatus;
 }

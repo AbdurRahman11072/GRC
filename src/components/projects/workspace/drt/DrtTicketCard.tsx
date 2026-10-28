@@ -27,15 +27,7 @@ export interface DrtTicketCardProps {
   canUpload: boolean;
   canReview: boolean;
 }
-
-const periodColorMap: Record<string, string> = {
-  COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  SHARED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  PARTIAL: 'bg-sky-50 text-sky-700 border-sky-200',
-  IN_PROGRESS: 'bg-amber-50 text-amber-700 border-amber-200',
-  NOT_APPLICABLE: 'bg-slate-100 text-slate-500 border-slate-200',
-  NOT_SHARED: 'bg-rose-50 text-rose-700 border-rose-200',
-};
+import { periodColorMap, gDriveColorMap, auditeeStatusColorMap } from './drtBadges';
 
 export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
   ticket,
@@ -121,6 +113,16 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
             <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
               Col: {(ticket.collectionObtained ?? 0).toFixed(1)}/{(ticket.collectionAllocated ?? 0).toFixed(1)} | Ana: {(ticket.analysisObtained ?? 0).toFixed(1)}/{(ticket.analysisAllocated ?? 0).toFixed(1)}
             </span>
+            {ticket.googleDriveStatus && (
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${gDriveColorMap[ticket.googleDriveStatus] || gDriveColorMap.NA}`}>
+                Drive: {ticket.googleDriveStatus === 'UPLOADED' ? 'Uploaded' : ticket.googleDriveStatus === 'NOT_UPLOADED' ? 'Not Uploaded' : 'NA'}
+              </span>
+            )}
+            {ticket.auditeeStatus && (
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${auditeeStatusColorMap[ticket.auditeeStatus] || auditeeStatusColorMap.COLLECTING_DATA}`}>
+                FHL: {ticket.auditeeStatus === 'COLLECTING_DATA' ? 'Collecting' : ticket.auditeeStatus.replace('_', ' ')}
+              </span>
+            )}
             {torCodes.length > 0 && (
               <span className="text-[11px] text-slate-500 flex items-center gap-1 flex-wrap">
                 <span>ToRs:</span>
@@ -199,22 +201,17 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
 
       {/* 4-Party Squad Chips */}
       <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-        <div>
-          <span className="text-slate-500 block text-[9px] uppercase font-bold tracking-wider">Supervisor</span>
-          <strong className="text-slate-800 truncate block font-medium">{ticket.supervisor?.name || 'Unassigned'}</strong>
-        </div>
-        <div>
-          <span className="text-slate-500 block text-[9px] uppercase font-bold tracking-wider">Field Team</span>
-          <strong className="text-slate-800 truncate block font-medium">{ticket.fieldMember?.name || 'Unassigned'}</strong>
-        </div>
-        <div>
-          <span className="text-slate-500 block text-[9px] uppercase font-bold tracking-wider">Client (Regulator)</span>
-          <strong className="text-slate-800 truncate block font-medium">{ticket.clientContact?.name || 'Unassigned'}</strong>
-        </div>
-        <div>
-          <span className="text-slate-500 block text-[9px] uppercase font-bold tracking-wider">Auditee (Dept)</span>
-          <strong className="text-slate-800 truncate block font-medium">{ticket.auditeeContact?.name || 'Unassigned'}</strong>
-        </div>
+        {[
+          { label: 'Supervisor', name: ticket.supervisor?.name },
+          { label: 'Field Team', name: ticket.fieldMember?.name },
+          { label: 'Client (Regulator)', name: ticket.clientContact?.name },
+          { label: 'Auditee (Dept)', name: ticket.auditeeContact?.name },
+        ].map((item) => (
+          <div key={item.label}>
+            <span className="text-slate-500 block text-[9px] uppercase font-bold tracking-wider">{item.label}</span>
+            <strong className="text-slate-800 truncate block font-medium">{item.name || 'Unassigned'}</strong>
+          </div>
+        ))}
       </div>
 
       {/* Dual Evidence Submissions */}

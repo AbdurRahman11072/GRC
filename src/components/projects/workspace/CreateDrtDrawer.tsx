@@ -12,6 +12,7 @@ import { useGetTorTreeQuery } from '../../../store/api/torApi';
 import { useGetProjectMembersQuery } from '../../../store/api/projectApi';
 import { DrtSquadFields } from './drt/DrtSquadFields';
 import { DrtMarksFields } from './drt/DrtMarksFields';
+import { DrtStatusFields } from './drt/DrtStatusFields';
 import { DrtTimeFrameGrid, DEFAULT_AUDIT_YEARS, ITimeFrameStatusItem } from './drt/DrtTimeFrameGrid';
 import type { ITorNode } from '../../../types/tor.types';
 
@@ -88,6 +89,8 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
       assignedTeamBucket: 'AUDITEE',
       collectionAllocated: 1.0,
       analysisAllocated: 1.0,
+      googleDriveStatus: 'NA' as any,
+      auditeeStatus: 'COLLECTING_DATA' as any,
       expectedDateOfReceipt: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
       allocatedWeight: 2.0,
     },
@@ -118,11 +121,9 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
           collectionAllocated: col,
           analysisAllocated: ana,
           allocatedWeight: col + ana,
-          periodStatuses: timeFrames.map((tf) => ({
-            periodLabel: tf.periodLabel,
-            evidenceStatus: tf.evidenceStatus,
-            remark: tf.remark || null,
-          })),
+          googleDriveStatus: value.googleDriveStatus,
+          auditeeStatus: value.auditeeStatus,
+          periodStatuses: timeFrames.map((tf) => ({ periodLabel: tf.periodLabel, evidenceStatus: tf.evidenceStatus, remark: tf.remark || null })),
         }).unwrap();
         form.reset();
         onClose();
@@ -220,6 +221,7 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
         <DrtSquadFields form={form} orgMembers={orgMembers} clientMembers={clientMembers} auditeeMembers={auditeeMembers} />
 
         <DrtMarksFields form={form} />
+        <DrtStatusFields form={form} />
 
         <form.Field name="expectedDateOfReceipt">
           {(field) => <FormField field={field} type="date" label="Expected Receipt Date (SLA)" />}
