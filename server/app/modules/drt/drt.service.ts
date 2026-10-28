@@ -6,6 +6,8 @@ import {
   DRTLifecycleStatus,
   DRTReviewStatus,
   PeriodEvidenceStatus,
+  GoogleDriveStatus,
+  AuditeeSubmissionStatus,
 } from '../../../generated/prisma';
 import { TorRollupService } from '../tor/torRollup.service';
 
@@ -35,6 +37,8 @@ export interface ICreateTicketPayload {
   allocatedWeight?: number;
   collectionAllocated?: number;
   analysisAllocated?: number;
+  googleDriveStatus?: GoogleDriveStatus;
+  auditeeStatus?: AuditeeSubmissionStatus;
   torIds?: string[];
   periodStatuses?: IPeriodStatusPayload[];
 }
@@ -79,6 +83,8 @@ export interface IUpdateTicketPayload {
   allocatedWeight?: number;
   collectionAllocated?: number;
   analysisAllocated?: number;
+  googleDriveStatus?: GoogleDriveStatus;
+  auditeeStatus?: AuditeeSubmissionStatus;
 }
 
 export interface IDRTQueryOptions {
@@ -150,6 +156,8 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
             : (payload.allocatedWeight ?? 0.0),
         collectionAllocated: payload.collectionAllocated ?? 0.0,
         analysisAllocated: payload.analysisAllocated ?? 0.0,
+        googleDriveStatus: payload.googleDriveStatus || 'NA',
+        auditeeStatus: payload.auditeeStatus || 'COLLECTING_DATA',
       },
     });
 
@@ -541,6 +549,8 @@ const updateTicket = async (
         : payload.allocatedWeight !== undefined
         ? { allocatedWeight: payload.allocatedWeight }
         : {}),
+      ...(payload.googleDriveStatus !== undefined ? { googleDriveStatus: payload.googleDriveStatus } : {}),
+      ...(payload.auditeeStatus !== undefined ? { auditeeStatus: payload.auditeeStatus } : {}),
     },
   });
 

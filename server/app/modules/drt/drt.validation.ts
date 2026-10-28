@@ -36,6 +36,8 @@ export const createTicketValidationSchema = z.object({
       .optional(),
     collectionAllocated: z.number().min(0, 'Collection allocated marks must be >= 0').optional(),
     analysisAllocated: z.number().min(0, 'Analysis allocated marks must be >= 0').optional(),
+    googleDriveStatus: z.enum(['UPLOADED', 'NOT_UPLOADED', 'NA']).optional(),
+    auditeeStatus: z.enum(['SHARED', 'COLLECTING_DATA', 'PARTIALLY_SHARED', 'NOT_SHARED']).optional(),
     torIds: z.array(z.string().uuid('Invalid ToR ID format')).optional(),
     periodStatuses: z
       .array(
@@ -110,6 +112,8 @@ export const updateTicketValidationSchema = z.object({
       .optional(),
     collectionAllocated: z.number().min(0, 'Collection allocated marks must be >= 0').optional(),
     analysisAllocated: z.number().min(0, 'Analysis allocated marks must be >= 0').optional(),
+    googleDriveStatus: z.enum(['UPLOADED', 'NOT_UPLOADED', 'NA']).optional(),
+    auditeeStatus: z.enum(['SHARED', 'COLLECTING_DATA', 'PARTIALLY_SHARED', 'NOT_SHARED']).optional(),
   }),
 });
 
