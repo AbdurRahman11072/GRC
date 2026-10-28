@@ -43,7 +43,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-2xs">
-      <table className="w-full text-left border-collapse min-w-[1000px]">
+      <table className="w-full text-left border-collapse min-w-[1400px]">
         <thead>
           <tr className="border-b border-slate-300 bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider select-none">
             {/* SL */}
@@ -57,18 +57,48 @@ export const DrtTable: React.FC<DrtTableProps> = ({
             </th>
 
             {/* Request Description */}
-            <th className="py-2.5 px-3 border-r border-slate-300 min-w-[280px]">
+            <th className="py-2.5 px-3 border-r border-slate-300 min-w-[260px]">
               Request Description
             </th>
 
             {/* ToR Wise Activities */}
             <th className="py-2.5 px-2 text-center border-r border-slate-300 w-24 bg-emerald-50/60 text-emerald-900">
-              ToR Wise Activities
+              ToR Clause
+            </th>
+
+            {/* Date of Request */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-24">
+              Date of Request
+            </th>
+
+            {/* Expected Date of Receipt */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-24">
+              Expected Date
+            </th>
+
+            {/* Actual Date of Receipt */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-24">
+              Actual Date
             </th>
 
             {/* Status as per Auditor */}
             <th className="py-2.5 px-2 text-center border-r border-slate-300 w-28 bg-amber-50/60 text-amber-900">
-              Status as per Auditor
+              Status (Auditor)
+            </th>
+
+            {/* Excess Time (Days) */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-20 bg-rose-50/60 text-rose-900">
+              Excess (Days)
+            </th>
+
+            {/* Google Drive Status as per Fiber@Home */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-28 bg-indigo-50/60 text-indigo-900">
+              Google Drive (FHL)
+            </th>
+
+            {/* Status as per Fiber@Home FY */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-28 bg-purple-50/60 text-purple-900">
+              Status (FHL FY)
             </th>
 
             {/* Multi-Year Timeline Columns */}
@@ -87,7 +117,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
             </th>
 
             {/* Remarks */}
-            <th className="py-2.5 px-3 border-r border-slate-300 min-w-[220px]">
+            <th className="py-2.5 px-3 border-r border-slate-300 min-w-[200px]">
               Auditor Remarks
             </th>
 
@@ -117,7 +147,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
           ) : (
             <tr>
               <td
-                colSpan={8 + allYears.length}
+                colSpan={14 + allYears.length}
                 className="py-12 text-center text-xs text-slate-500"
               >
                 <div className="flex flex-col items-center gap-2">

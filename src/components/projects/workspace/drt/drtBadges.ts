@@ -27,3 +27,26 @@ export const auditorReviewColorMap: Record<string, string> = {
   NOT_AVAILABLE: 'bg-rose-50 text-rose-700 border-rose-200',
   NOT_APPLICABLE: 'bg-slate-100 text-slate-500 border-slate-200',
 };
+
+export const statusBadgeStyles: Record<string, string> = {
+  DONE: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  ACCEPTED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  COMPLETED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  PARTIAL: 'bg-amber-100 text-amber-900 border-amber-300',
+  PENDING: 'bg-rose-100 text-rose-800 border-rose-300',
+  OPEN: 'bg-rose-100 text-rose-800 border-rose-300',
+  REVISION_REQUESTED: 'bg-rose-100 text-rose-800 border-rose-300',
+  SUBMITTED: 'bg-sky-100 text-sky-800 border-sky-300',
+  NOT_AVAILABLE: 'bg-slate-100 text-slate-600 border-slate-300',
+  NOT_APPLICABLE: 'bg-slate-100 text-slate-500 border-slate-200',
+};
+
+export const periodCellStyles: Record<string, string> = {
+  COMPLETED: 'bg-emerald-50 text-emerald-800 font-semibold',
+  SHARED: 'bg-emerald-50 text-emerald-800 font-semibold',
+  PARTIAL: 'bg-amber-50 text-amber-900 font-semibold',
+  IN_PROGRESS: 'bg-amber-50/60 text-amber-800',
+  NOT_APPLICABLE: 'bg-slate-50 text-slate-400',
+  NOT_SHARED: 'bg-rose-50 text-rose-800',
+};
+

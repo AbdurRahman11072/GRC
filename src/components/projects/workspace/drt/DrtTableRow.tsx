@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
-import { Upload, Users, Clock, CheckCircle2, RotateCcw, Tags } from 'lucide-react';
 import type { IDRTTicket, IDRTDocument, DRTPartySide } from '../../../../types/project.types';
+import { gDriveColorMap, auditeeStatusColorMap, statusBadgeStyles, periodCellStyles } from './drtBadges';
+import { DrtRowActions } from './DrtRowActions';
+
+const formatDate = (val?: string | null) => (val ? new Date(val).toISOString().split('T')[0] : '—');
 
 export interface DrtTableRowProps {
   ticket: IDRTTicket;
@@ -16,19 +18,6 @@ export interface DrtTableRowProps {
   onEditPeriodStatus?: (ticket: IDRTTicket, year: string) => void;
   onManageTors?: (ticket: IDRTTicket) => void;
 }
-
-const statusBadgeStyles: Record<string, string> = {
-  DONE: 'bg-emerald-100 text-emerald-800 border-emerald-300', ACCEPTED: 'bg-emerald-100 text-emerald-800 border-emerald-300', COMPLETED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  PARTIAL: 'bg-amber-100 text-amber-900 border-amber-300', PENDING: 'bg-rose-100 text-rose-800 border-rose-300', OPEN: 'bg-rose-100 text-rose-800 border-rose-300',
-  REVISION_REQUESTED: 'bg-rose-100 text-rose-800 border-rose-300', SUBMITTED: 'bg-sky-100 text-sky-800 border-sky-300',
-  NOT_AVAILABLE: 'bg-slate-100 text-slate-600 border-slate-300', NOT_APPLICABLE: 'bg-slate-100 text-slate-500 border-slate-200',
-};
-
-const periodCellStyles: Record<string, string> = {
-  COMPLETED: 'bg-emerald-50 text-emerald-800 font-semibold', SHARED: 'bg-emerald-50 text-emerald-800 font-semibold',
-  PARTIAL: 'bg-amber-50 text-amber-900 font-semibold', IN_PROGRESS: 'bg-amber-50/60 text-amber-800',
-  NOT_APPLICABLE: 'bg-slate-50 text-slate-400', NOT_SHARED: 'bg-rose-50 text-rose-800',
-};
 
 export const DrtTableRow: React.FC<DrtTableRowProps> = ({
   ticket,
@@ -49,18 +38,9 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
   if (ticket.tor?.code && !torCodes.includes(ticket.tor.code)) {
     torCodes.unshift(ticket.tor.code);
   }
-  const torLabel = torCodes.length > 0 ? torCodes.join(', ') : '—';
 
-  // Overall auditor review status
   const auditorStatus = ticket.reviewOutcome || (ticket.workflowStatus === 'ACCEPTED' ? 'DONE' : 'PENDING');
-
-  // Format completeness
-  const completeness =
-    ticket.workflowStatus === 'ACCEPTED'
-      ? 'Complete'
-      : ticket.workflowStatus === 'SUBMITTED'
-      ? 'Pending Review'
-      : 'Incomplete';
+  const completeness = ticket.workflowStatus === 'ACCEPTED' ? 'Complete' : ticket.workflowStatus === 'SUBMITTED' ? 'Pending Review' : 'Incomplete';
 
   return (
     <tr className="border-b border-slate-200 hover:bg-slate-50/70 transition-colors text-xs">
@@ -145,6 +125,21 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         </div>
       </td>
 
+      {/* Date of Request */}
+      <td className="py-2.5 px-2 text-center font-mono text-[11px] border-r border-slate-200 align-top text-slate-700 whitespace-nowrap">
+        {formatDate(ticket.dateOfRequest)}
+      </td>
+
+      {/* Expected Date of Receipt */}
+      <td className="py-2.5 px-2 text-center font-mono text-[11px] border-r border-slate-200 align-top text-slate-700 whitespace-nowrap">
+        {formatDate(ticket.expectedDateOfReceipt)}
+      </td>
+
+      {/* Actual Date of Receipt */}
+      <td className="py-2.5 px-2 text-center font-mono text-[11px] border-r border-slate-200 align-top text-slate-700 whitespace-nowrap">
+        {formatDate(ticket.actualDateOfReceipt)}
+      </td>
+
       {/* Status as per Auditor */}
       <td className="py-2.5 px-2 text-center border-r border-slate-200 align-top w-28">
         <span
@@ -153,6 +148,37 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
           }`}
         >
           {auditorStatus.toLowerCase().replace('_', ' ')}
+        </span>
+      </td>
+
+      {/* Excess Time (Days) */}
+      <td className="py-2.5 px-2 text-center font-mono font-bold text-[11px] border-r border-slate-200 align-top text-rose-700">
+        {ticket.excessDays !== undefined && ticket.excessDays > 0 ? `+${ticket.excessDays}` : ticket.excessDays ?? 0}
+      </td>
+
+      {/* Google Drive Status as per Fiber@Home */}
+      <td className="py-2.5 px-2 text-center border-r border-slate-200 align-top">
+        <span
+          className={`inline-block px-1.5 py-0.5 rounded text-[10px] border font-bold ${
+            gDriveColorMap[ticket.googleDriveStatus || 'NA'] || gDriveColorMap.NA
+          }`}
+        >
+          {ticket.googleDriveStatus || 'NA'}
+        </span>
+      </td>
+
+      {/* Status as per Fiber@Home FY */}
+      <td className="py-2.5 px-2 text-center border-r border-slate-200 align-top">
+        <span
+          className={`inline-block px-1.5 py-0.5 rounded text-[10px] border font-bold ${
+            auditeeStatusColorMap[ticket.auditeeStatus || 'COLLECTING_DATA'] || auditeeStatusColorMap.COLLECTING_DATA
+          }`}
+        >
+          {ticket.auditeeStatus === 'COLLECTING_DATA'
+            ? 'Collecting'
+            : ticket.auditeeStatus
+            ? ticket.auditeeStatus.replace('_', ' ')
+            : '—'}
         </span>
       </td>
 
@@ -200,46 +226,16 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
 
       {/* Actions */}
       <td className="py-2.5 px-2 text-center whitespace-nowrap align-top w-28">
-        <div className="flex items-center justify-center gap-1">
-          <button
-            type="button"
-            title="Manage 4-Party Squad"
-            onClick={() => onManageSquad(ticket)}
-            className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition-colors"
-          >
-            <Users className="w-3.5 h-3.5" />
-          </button>
-          {onManageTors && (
-            <button
-              type="button"
-              title="Manage Linked ToR Activities"
-              onClick={() => onManageTors(ticket)}
-              className="p-1.5 rounded-md text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-200 transition-colors"
-            >
-              <Tags className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {canUpload && (
-            <button
-              type="button"
-              title="Upload Evidence Document"
-              onClick={() => onUpload(ticket, 'AUDITEE')}
-              className="p-1.5 rounded-md text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-200 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {latestDoc && canReview && (
-            <button
-              type="button"
-              title="Review Evidence"
-              onClick={() => onReview(ticket, latestDoc)}
-              className="p-1.5 rounded-md text-cyan-700 hover:text-cyan-900 hover:bg-cyan-50 border border-cyan-200 transition-colors"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        <DrtRowActions
+          ticket={ticket}
+          latestDoc={latestDoc}
+          canUpload={canUpload}
+          canReview={canReview}
+          onUpload={onUpload}
+          onReview={onReview}
+          onManageSquad={onManageSquad}
+          onManageTors={onManageTors}
+        />
       </td>
     </tr>
   );
