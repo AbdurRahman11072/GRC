@@ -37,6 +37,8 @@ export interface ICreateTicketPayload {
   allocatedWeight?: number;
   collectionAllocated?: number;
   analysisAllocated?: number;
+  clientGoogleDriveStatus?: GoogleDriveStatus;
+  clientStatus?: AuditeeSubmissionStatus;
   googleDriveStatus?: GoogleDriveStatus;
   auditeeStatus?: AuditeeSubmissionStatus;
   torIds?: string[];
@@ -83,6 +85,8 @@ export interface IUpdateTicketPayload {
   allocatedWeight?: number;
   collectionAllocated?: number;
   analysisAllocated?: number;
+  clientGoogleDriveStatus?: GoogleDriveStatus;
+  clientStatus?: AuditeeSubmissionStatus;
   googleDriveStatus?: GoogleDriveStatus;
   auditeeStatus?: AuditeeSubmissionStatus;
 }
@@ -156,6 +160,8 @@ const createTicket = async (orgId: string, payload: ICreateTicketPayload) => {
             : (payload.allocatedWeight ?? 0.0),
         collectionAllocated: payload.collectionAllocated ?? 0.0,
         analysisAllocated: payload.analysisAllocated ?? 0.0,
+        clientGoogleDriveStatus: payload.clientGoogleDriveStatus || 'NA',
+        clientStatus: payload.clientStatus || 'COLLECTING_DATA',
         googleDriveStatus: payload.googleDriveStatus || 'NA',
         auditeeStatus: payload.auditeeStatus || 'COLLECTING_DATA',
       },
@@ -549,6 +555,8 @@ const updateTicket = async (
         : payload.allocatedWeight !== undefined
         ? { allocatedWeight: payload.allocatedWeight }
         : {}),
+      ...(payload.clientGoogleDriveStatus !== undefined ? { clientGoogleDriveStatus: payload.clientGoogleDriveStatus } : {}),
+      ...(payload.clientStatus !== undefined ? { clientStatus: payload.clientStatus } : {}),
       ...(payload.googleDriveStatus !== undefined ? { googleDriveStatus: payload.googleDriveStatus } : {}),
       ...(payload.auditeeStatus !== undefined ? { auditeeStatus: payload.auditeeStatus } : {}),
     },

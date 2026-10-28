@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+const googleDriveStatusEnum = z.enum(['UPLOADED', 'NOT_UPLOADED', 'NA']).optional();
+const submissionStatusEnum = z.enum(['SHARED', 'COLLECTING_DATA', 'PARTIALLY_SHARED', 'NOT_SHARED']).optional();
+
 export const createTicketValidationSchema = z.object({
   body: z.object({
     projectId: z.string().uuid('Invalid project ID format'),
@@ -36,8 +39,10 @@ export const createTicketValidationSchema = z.object({
       .optional(),
     collectionAllocated: z.number().min(0, 'Collection allocated marks must be >= 0').optional(),
     analysisAllocated: z.number().min(0, 'Analysis allocated marks must be >= 0').optional(),
-    googleDriveStatus: z.enum(['UPLOADED', 'NOT_UPLOADED', 'NA']).optional(),
-    auditeeStatus: z.enum(['SHARED', 'COLLECTING_DATA', 'PARTIALLY_SHARED', 'NOT_SHARED']).optional(),
+    clientGoogleDriveStatus: googleDriveStatusEnum,
+    clientStatus: submissionStatusEnum,
+    googleDriveStatus: googleDriveStatusEnum,
+    auditeeStatus: submissionStatusEnum,
     torIds: z.array(z.string().uuid('Invalid ToR ID format')).optional(),
     periodStatuses: z
       .array(
@@ -71,9 +76,7 @@ export const getTicketsValidationSchema = z.object({
 });
 
 export const getTicketByIdValidationSchema = z.object({
-  params: z.object({
-    id: z.string().uuid('Invalid ticket ID format'),
-  }),
+  params: z.object({ id: z.string().uuid('Invalid ticket ID format') }),
 });
 
 export const updateTicketValidationSchema = z.object({
@@ -112,8 +115,10 @@ export const updateTicketValidationSchema = z.object({
       .optional(),
     collectionAllocated: z.number().min(0, 'Collection allocated marks must be >= 0').optional(),
     analysisAllocated: z.number().min(0, 'Analysis allocated marks must be >= 0').optional(),
-    googleDriveStatus: z.enum(['UPLOADED', 'NOT_UPLOADED', 'NA']).optional(),
-    auditeeStatus: z.enum(['SHARED', 'COLLECTING_DATA', 'PARTIALLY_SHARED', 'NOT_SHARED']).optional(),
+    clientGoogleDriveStatus: googleDriveStatusEnum,
+    clientStatus: submissionStatusEnum,
+    googleDriveStatus: googleDriveStatusEnum,
+    auditeeStatus: submissionStatusEnum,
   }),
 });
 
@@ -130,9 +135,7 @@ export const mapToRsValidationSchema = z.object({
 });
 
 export const deleteTicketValidationSchema = z.object({
-  params: z.object({
-    id: z.string().uuid('Invalid ticket ID format'),
-  }),
+  params: z.object({ id: z.string().uuid('Invalid ticket ID format') }),
 });
 
 export const updateLifecycleStatusValidationSchema = z.object({
