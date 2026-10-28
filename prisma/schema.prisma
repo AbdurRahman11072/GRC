@@ -408,8 +408,10 @@ model DRTTicket {
   actualDateOfReceipt   DateTime?
   lifecycleStatus       DRTLifecycleStatus @default(OPEN)
   reviewStatus          DRTReviewStatus    @default(PENDING)
-  googleDriveStatus     GoogleDriveStatus       @default(NA)              // Google Drive Status as per Fiber@Home
-  auditeeStatus         AuditeeSubmissionStatus @default(COLLECTING_DATA) // Status as per Fiber@Home FY
+  clientGoogleDriveStatus GoogleDriveStatus       @default(NA)              // Google Drive Status as per Client
+  clientStatus            AuditeeSubmissionStatus @default(COLLECTING_DATA) // Status as per Client
+  googleDriveStatus       GoogleDriveStatus       @default(NA)              // Google Drive Status as per Auditee (Fiber@Home)
+  auditeeStatus           AuditeeSubmissionStatus @default(COLLECTING_DATA) // Status as per Auditee (Fiber@Home) FY
   allocatedWeight       Float              @default(0.0) // Auto-shared or manually allocated (collection + analysis)
   collectionAllocated   Float              @default(0.0) // Marks allocated for evidence collection
   collectionObtained    Float              @default(0.0) // Marks earned when evidence accepted
