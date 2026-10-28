@@ -2,17 +2,8 @@
 
 import React from 'react';
 import {
-  Upload,
-  Users,
-  ShieldCheck,
-  Building2,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  RotateCcw,
-  Target,
-  MessageSquare,
-  Tags,
+  Upload, Users, ShieldCheck, Building2, CheckCircle2,
+  Clock, AlertTriangle, RotateCcw, Target, MessageSquare, Tags,
 } from 'lucide-react';
 import { Badge } from '../../../ui/Badge';
 import { Button } from '../../../ui/Button';
@@ -26,6 +17,8 @@ export interface DrtTicketCardProps {
   onManageTors?: (ticket: IDRTTicket) => void;
   canUpload: boolean;
   canReview: boolean;
+  clientName?: string;
+  auditeeName?: string;
 }
 import { periodColorMap, gDriveColorMap, auditeeStatusColorMap } from './drtBadges';
 
@@ -37,6 +30,8 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
   onManageTors,
   canUpload,
   canReview,
+  clientName = 'Client',
+  auditeeName = 'Auditee',
 }) => {
   const docs = ticket.drtDocuments || [];
   const clientDoc = docs.filter((d) => d.partySide === 'CLIENT').slice(-1)[0];
@@ -67,7 +62,7 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           <Icon className={`w-4 h-4 ${color} shrink-0`} />
           <span className="font-medium text-slate-800 text-[11px] truncate">
-            {isClient ? 'Client' : 'Auditee'}: <span className="text-slate-600">{doc ? `${doc.periodLabel ? `[${doc.periodLabel}] ` : ''}${doc.fileName}` : 'Awaiting'}</span>
+            {isClient ? clientName : auditeeName}: <span className="text-slate-600">{doc ? `${doc.periodLabel ? `[${doc.periodLabel}] ` : ''}${doc.fileName}` : 'Awaiting'}</span>
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -113,14 +108,24 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
             <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
               Col: {(ticket.collectionObtained ?? 0).toFixed(1)}/{(ticket.collectionAllocated ?? 0).toFixed(1)} | Ana: {(ticket.analysisObtained ?? 0).toFixed(1)}/{(ticket.analysisAllocated ?? 0).toFixed(1)}
             </span>
+            {ticket.clientGoogleDriveStatus && (
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${gDriveColorMap[ticket.clientGoogleDriveStatus] || gDriveColorMap.NA}`}>
+                Drive ({clientName}): {ticket.clientGoogleDriveStatus === 'UPLOADED' ? 'Uploaded' : ticket.clientGoogleDriveStatus === 'NOT_UPLOADED' ? 'Not Uploaded' : 'NA'}
+              </span>
+            )}
+            {ticket.clientStatus && (
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${auditeeStatusColorMap[ticket.clientStatus] || auditeeStatusColorMap.COLLECTING_DATA}`}>
+                {clientName}: {ticket.clientStatus === 'COLLECTING_DATA' ? 'Collecting' : ticket.clientStatus.replace('_', ' ')}
+              </span>
+            )}
             {ticket.googleDriveStatus && (
               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${gDriveColorMap[ticket.googleDriveStatus] || gDriveColorMap.NA}`}>
-                Drive: {ticket.googleDriveStatus === 'UPLOADED' ? 'Uploaded' : ticket.googleDriveStatus === 'NOT_UPLOADED' ? 'Not Uploaded' : 'NA'}
+                Drive ({auditeeName}): {ticket.googleDriveStatus === 'UPLOADED' ? 'Uploaded' : ticket.googleDriveStatus === 'NOT_UPLOADED' ? 'Not Uploaded' : 'NA'}
               </span>
             )}
             {ticket.auditeeStatus && (
               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${auditeeStatusColorMap[ticket.auditeeStatus] || auditeeStatusColorMap.COLLECTING_DATA}`}>
-                FHL: {ticket.auditeeStatus === 'COLLECTING_DATA' ? 'Collecting' : ticket.auditeeStatus.replace('_', ' ')}
+                {auditeeName}: {ticket.auditeeStatus === 'COLLECTING_DATA' ? 'Collecting' : ticket.auditeeStatus.replace('_', ' ')}
               </span>
             )}
             {torCodes.length > 0 && (

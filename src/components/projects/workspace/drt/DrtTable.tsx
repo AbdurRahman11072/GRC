@@ -10,6 +10,8 @@ export interface DrtTableProps {
   canUpload: boolean;
   canReview: boolean;
   auditYears?: string[];
+  clientName?: string;
+  auditeeName?: string;
   onUpload: (ticket: IDRTTicket, side: DRTPartySide) => void;
   onReview: (ticket: IDRTTicket, doc?: IDRTDocument) => void;
   onManageSquad: (ticket: IDRTTicket) => void;
@@ -22,6 +24,8 @@ export const DrtTable: React.FC<DrtTableProps> = ({
   canUpload,
   canReview,
   auditYears,
+  clientName = 'Client',
+  auditeeName = 'Auditee',
   onUpload,
   onReview,
   onManageSquad,
@@ -91,14 +95,24 @@ export const DrtTable: React.FC<DrtTableProps> = ({
               Excess (Days)
             </th>
 
-            {/* Google Drive Status as per Fiber@Home */}
-            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-28 bg-indigo-50/60 text-indigo-900">
-              Google Drive (FHL)
+            {/* Google Drive Status as per Client */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-28 bg-cyan-50/60 text-cyan-900">
+              Google Drive ({clientName})
             </th>
 
-            {/* Status as per Fiber@Home FY */}
+            {/* Status as per Client */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-28 bg-teal-50/60 text-teal-900">
+              Status ({clientName})
+            </th>
+
+            {/* Google Drive Status as per Auditee */}
+            <th className="py-2.5 px-2 text-center border-r border-slate-300 w-28 bg-indigo-50/60 text-indigo-900">
+              Google Drive ({auditeeName})
+            </th>
+
+            {/* Status as per Auditee FY */}
             <th className="py-2.5 px-2 text-center border-r border-slate-300 w-28 bg-purple-50/60 text-purple-900">
-              Status (FHL FY)
+              Status ({auditeeName} FY)
             </th>
 
             {/* Multi-Year Timeline Columns */}
@@ -137,6 +151,8 @@ export const DrtTable: React.FC<DrtTableProps> = ({
                 years={allYears}
                 canUpload={canUpload}
                 canReview={canReview}
+                clientName={clientName}
+                auditeeName={auditeeName}
                 onUpload={onUpload}
                 onReview={onReview}
                 onManageSquad={onManageSquad}
@@ -147,7 +163,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
           ) : (
             <tr>
               <td
-                colSpan={14 + allYears.length}
+                colSpan={16 + allYears.length}
                 className="py-12 text-center text-xs text-slate-500"
               >
                 <div className="flex flex-col items-center gap-2">

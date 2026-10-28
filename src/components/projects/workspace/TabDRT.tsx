@@ -54,6 +54,8 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
 
   const { data: projData } = useGetProjectByIdQuery(projectId, { skip: Boolean(project) });
   const currentProject = project || projData?.data;
+  const clientName = currentProject?.client?.name || 'Client';
+  const auditeeName = currentProject?.auditee?.name || 'Auditee';
   const auditYears = useMemo(() => getProjectAuditYears(currentProject), [currentProject]);
 
   const { data: ticketsData, isLoading } = useGetTicketsQuery({
@@ -189,6 +191,8 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
           canUpload={Boolean(canUpload)}
           canReview={Boolean(canReview)}
           auditYears={auditYears}
+          clientName={clientName}
+          auditeeName={auditeeName}
           onUpload={(t, side) => setUploadTicket({ ticket: t, side })}
           onReview={(t, doc) => setReviewTarget({ ticket: t, doc })}
           onManageSquad={(t) => setSquadTicket(t)}
@@ -201,6 +205,8 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
             <DrtTicketCard
               key={ticket.id}
               ticket={ticket}
+              clientName={clientName}
+              auditeeName={auditeeName}
               onUpload={(t, side) => setUploadTicket({ ticket: t, side })}
               onReview={(t, doc) => setReviewTarget({ ticket: t, doc })}
               onManageSquad={(t) => setSquadTicket(t)}
@@ -213,7 +219,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
       )}
 
       {/* Modals & Drawers */}
-      <CreateDrtDrawer isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} projectId={projectId} auditYears={auditYears} />
+      <CreateDrtDrawer isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} projectId={projectId} auditYears={auditYears} clientName={clientName} auditeeName={auditeeName} />
       <UploadDrtDocumentModal isOpen={Boolean(uploadTicket)} onClose={() => setUploadTicket(null)} ticket={uploadTicket?.ticket || null} defaultSide={uploadTicket?.side} initialPeriodLabel={uploadTicket?.initialPeriodLabel} auditYears={auditYears} />
       <ReviewDrtDocumentModal isOpen={Boolean(reviewTarget)} onClose={() => setReviewTarget(null)} ticket={reviewTarget?.ticket || null} document={reviewTarget?.doc || null} />
       <AssignDrtSquadModal isOpen={Boolean(squadTicket)} onClose={() => setSquadTicket(null)} ticket={squadTicket} projectId={projectId} />

@@ -3,6 +3,7 @@
 import type { IDRTTicket, IDRTDocument, DRTPartySide } from '../../../../types/project.types';
 import { gDriveColorMap, auditeeStatusColorMap, statusBadgeStyles, periodCellStyles } from './drtBadges';
 import { DrtRowActions } from './DrtRowActions';
+import { DrtDescriptionCell } from './DrtDescriptionCell';
 
 const formatDate = (val?: string | null) => (val ? new Date(val).toISOString().split('T')[0] : '—');
 
@@ -12,6 +13,8 @@ export interface DrtTableRowProps {
   years: string[];
   canUpload: boolean;
   canReview: boolean;
+  clientName?: string;
+  auditeeName?: string;
   onUpload: (ticket: IDRTTicket, side: DRTPartySide) => void;
   onReview: (ticket: IDRTTicket, doc?: IDRTDocument) => void;
   onManageSquad: (ticket: IDRTTicket) => void;
@@ -55,48 +58,8 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
       </td>
 
       {/* Request Description */}
-      <td className="py-2.5 px-3 min-w-[280px] max-w-sm border-r border-slate-200 align-top space-y-1">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-semibold text-slate-900 text-xs">
-            {ticket.title || ticket.requestCode}
-          </span>
-          {ticket.department && (
-            <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200">
-              {ticket.department}
-            </span>
-          )}
-        </div>
-
-        {ticket.description && (
-          <div
-            className="text-[11px] text-slate-600 leading-relaxed max-h-24 overflow-y-auto pr-1"
-            dangerouslySetInnerHTML={{ __html: ticket.description }}
-          />
-        )}
-
-        {ticket.currentRequirement && (
-          <div className="text-[11px] text-cyan-800 bg-cyan-50/80 border border-cyan-200/80 rounded px-2 py-0.5 mt-1">
-            <strong className="text-[10px] uppercase font-bold text-cyan-900 mr-1">Req:</strong>
-            {ticket.currentRequirement}
-          </div>
-        )}
-
-        {docs.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap pt-0.5">
-            {docs.map((d) => (
-              <span
-                key={d.id}
-                title={`${d.fileName} (${d.partySide})${d.periodLabel ? ` • Year ${d.periodLabel}` : ''}`}
-                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200"
-              >
-                {d.periodLabel && (
-                  <strong className="font-mono text-indigo-600 font-bold">[{d.periodLabel}]</strong>
-                )}
-                <span className="truncate max-w-[130px]">{d.fileName}</span>
-              </span>
-            ))}
-          </div>
-        )}
+      <td className="py-2.5 px-3 min-w-[260px] max-w-sm border-r border-slate-200 align-top space-y-1">
+        <DrtDescriptionCell ticket={ticket} docs={docs} />
       </td>
 
       {/* ToR Wise Activities */}
@@ -156,7 +119,33 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         {ticket.excessDays !== undefined && ticket.excessDays > 0 ? `+${ticket.excessDays}` : ticket.excessDays ?? 0}
       </td>
 
-      {/* Google Drive Status as per Fiber@Home */}
+      {/* Google Drive Status as per Client */}
+      <td className="py-2.5 px-2 text-center border-r border-slate-200 align-top">
+        <span
+          className={`inline-block px-1.5 py-0.5 rounded text-[10px] border font-bold ${
+            gDriveColorMap[ticket.clientGoogleDriveStatus || 'NA'] || gDriveColorMap.NA
+          }`}
+        >
+          {ticket.clientGoogleDriveStatus || 'NA'}
+        </span>
+      </td>
+
+      {/* Status as per Client */}
+      <td className="py-2.5 px-2 text-center border-r border-slate-200 align-top">
+        <span
+          className={`inline-block px-1.5 py-0.5 rounded text-[10px] border font-bold ${
+            auditeeStatusColorMap[ticket.clientStatus || 'COLLECTING_DATA'] || auditeeStatusColorMap.COLLECTING_DATA
+          }`}
+        >
+          {ticket.clientStatus === 'COLLECTING_DATA'
+            ? 'Collecting'
+            : ticket.clientStatus
+            ? ticket.clientStatus.replace('_', ' ')
+            : '—'}
+        </span>
+      </td>
+
+      {/* Google Drive Status as per Auditee */}
       <td className="py-2.5 px-2 text-center border-r border-slate-200 align-top">
         <span
           className={`inline-block px-1.5 py-0.5 rounded text-[10px] border font-bold ${
