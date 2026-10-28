@@ -372,6 +372,19 @@ enum DRTReviewStatus {
   NOT_APPLICABLE
 }
 
+enum GoogleDriveStatus {
+  UPLOADED
+  NOT_UPLOADED
+  NA
+}
+
+enum AuditeeSubmissionStatus {
+  SHARED
+  COLLECTING_DATA
+  PARTIALLY_SHARED
+  NOT_SHARED
+}
+
 model DRTTicket {
   id                    String             @id @default(uuid())
   projectId             String
@@ -395,6 +408,8 @@ model DRTTicket {
   actualDateOfReceipt   DateTime?
   lifecycleStatus       DRTLifecycleStatus @default(OPEN)
   reviewStatus          DRTReviewStatus    @default(PENDING)
+  googleDriveStatus     GoogleDriveStatus       @default(NA)              // Google Drive Status as per Fiber@Home
+  auditeeStatus         AuditeeSubmissionStatus @default(COLLECTING_DATA) // Status as per Fiber@Home FY
   allocatedWeight       Float              @default(0.0) // Auto-shared or manually allocated (collection + analysis)
   collectionAllocated   Float              @default(0.0) // Marks allocated for evidence collection
   collectionObtained    Float              @default(0.0) // Marks earned when evidence accepted
