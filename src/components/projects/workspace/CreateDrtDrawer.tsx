@@ -22,23 +22,17 @@ export interface CreateDrtDrawerProps {
   projectId: string;
   defaultTorId?: string | null;
   auditYears?: string[];
+  clientName?: string;
+  auditeeName?: string;
 }
 
 const deptSuggestions = [
-  'IT & Infrastructure',
-  'Transmission & Network Operations',
-  'Billing & Revenue Assurance',
-  'Legal & Regulatory Affairs',
-  'Finance & Accounts',
-  'Customer Care & Operations',
+  'IT & Infrastructure', 'Transmission & Network Operations', 'Billing & Revenue Assurance',
+  'Legal & Regulatory Affairs', 'Finance & Accounts', 'Customer Care & Operations',
 ];
 
 export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
-  isOpen,
-  onClose,
-  projectId,
-  defaultTorId,
-  auditYears,
+  isOpen, onClose, projectId, defaultTorId, auditYears, clientName, auditeeName,
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const effectiveYears = useMemo(() => {
@@ -89,6 +83,8 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
       assignedTeamBucket: 'AUDITEE',
       collectionAllocated: 1.0,
       analysisAllocated: 1.0,
+      clientGoogleDriveStatus: 'NA' as any,
+      clientStatus: 'COLLECTING_DATA' as any,
       googleDriveStatus: 'NA' as any,
       auditeeStatus: 'COLLECTING_DATA' as any,
       expectedDateOfReceipt: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
@@ -121,6 +117,8 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
           collectionAllocated: col,
           analysisAllocated: ana,
           allocatedWeight: col + ana,
+          clientGoogleDriveStatus: value.clientGoogleDriveStatus,
+          clientStatus: value.clientStatus,
           googleDriveStatus: value.googleDriveStatus,
           auditeeStatus: value.auditeeStatus,
           periodStatuses: timeFrames.map((tf) => ({ periodLabel: tf.periodLabel, evidenceStatus: tf.evidenceStatus, remark: tf.remark || null })),
@@ -221,7 +219,7 @@ export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
         <DrtSquadFields form={form} orgMembers={orgMembers} clientMembers={clientMembers} auditeeMembers={auditeeMembers} />
 
         <DrtMarksFields form={form} />
-        <DrtStatusFields form={form} />
+        <DrtStatusFields form={form} clientName={clientName} auditeeName={auditeeName} />
 
         <form.Field name="expectedDateOfReceipt">
           {(field) => <FormField field={field} type="date" label="Expected Receipt Date (SLA)" />}

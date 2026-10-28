@@ -78,6 +78,8 @@ export interface IDRTTicket {
   analysisObtained?: number | null;
   workflowStatus: 'OPEN' | 'SUBMITTED' | 'REVISION_REQUESTED' | 'ACCEPTED';
   reviewOutcome: 'PENDING' | 'PARTIAL' | 'DONE' | 'NOT_AVAILABLE' | 'NOT_APPLICABLE';
+  clientGoogleDriveStatus?: GoogleDriveStatus;
+  clientStatus?: AuditeeSubmissionStatus;
   googleDriveStatus?: GoogleDriveStatus;
   auditeeStatus?: AuditeeSubmissionStatus;
   excessDays: number;
@@ -109,6 +111,8 @@ export interface ICreateDRTTicketPayload {
   allocatedWeight?: number;
   collectionAllocated?: number;
   analysisAllocated?: number;
+  clientGoogleDriveStatus?: GoogleDriveStatus;
+  clientStatus?: AuditeeSubmissionStatus;
   googleDriveStatus?: GoogleDriveStatus;
   auditeeStatus?: AuditeeSubmissionStatus;
   torIds?: string[];
@@ -137,6 +141,8 @@ export interface IUpdateDRTTicketPayload {
   allocatedWeight?: number;
   collectionAllocated?: number;
   analysisAllocated?: number;
+  clientGoogleDriveStatus?: GoogleDriveStatus;
+  clientStatus?: AuditeeSubmissionStatus;
   googleDriveStatus?: GoogleDriveStatus;
   auditeeStatus?: AuditeeSubmissionStatus;
 }
