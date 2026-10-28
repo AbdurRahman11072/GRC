@@ -30,8 +30,8 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
   onManageTors,
   canUpload,
   canReview,
-  clientName = 'Client',
-  auditeeName = 'Auditee',
+  clientName = 'BTRC',
+  auditeeName = 'FHL',
 }) => {
   const docs = ticket.drtDocuments || [];
   const clientDoc = docs.filter((d) => d.partySide === 'CLIENT').slice(-1)[0];

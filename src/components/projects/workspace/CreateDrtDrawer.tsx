@@ -32,7 +32,7 @@ const deptSuggestions = [
 ];
 
 export const CreateDrtDrawer: React.FC<CreateDrtDrawerProps> = ({
-  isOpen, onClose, projectId, defaultTorId, auditYears, clientName, auditeeName,
+  isOpen, onClose, projectId, defaultTorId, auditYears, clientName = 'BTRC', auditeeName = 'FHL',
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const effectiveYears = useMemo(() => {

@@ -23,3 +23,18 @@ export function stripHtml(html?: string | null): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+/**
+ * Resolves short recognizable entity names / acronyms (e.g., BTRC, FHL)
+ */
+export function getShortEntityName(name?: string, fallback: string = 'Party'): string {
+  if (!name) return fallback;
+  if (/Bangladesh Telecommunication Regulatory Commission/i.test(name) || /^BTRC$/i.test(name)) return 'BTRC';
+  if (/Fiber@Home/i.test(name) || /^FHL$/i.test(name)) return 'FHL';
+  if (/Edotco/i.test(name)) return 'Edotco';
+  if (name.length > 15) {
+    const acronym = name.split(/\s+/).map((w) => w[0]).join('').toUpperCase();
+    if (acronym.length >= 2 && acronym.length <= 6) return acronym;
+  }
+  return name;
+}

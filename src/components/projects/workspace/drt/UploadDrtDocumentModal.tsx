@@ -15,6 +15,8 @@ export interface UploadDrtDocumentModalProps {
   defaultSide?: DRTPartySide;
   initialPeriodLabel?: string;
   auditYears?: string[];
+  clientName?: string;
+  auditeeName?: string;
 }
 
 const DEFAULT_YEARS = ['2020', '2021', '2022', '2023', '2024', '2025', '2026'];
@@ -26,6 +28,8 @@ export const UploadDrtDocumentModal: React.FC<UploadDrtDocumentModalProps> = ({
   defaultSide = 'AUDITEE',
   initialPeriodLabel,
   auditYears,
+  clientName = 'BTRC',
+  auditeeName = 'FHL',
 }) => {
   const [partySide, setPartySide] = useState<DRTPartySide>(defaultSide);
   const [fileName, setFileName] = useState('');
@@ -117,7 +121,7 @@ export const UploadDrtDocumentModal: React.FC<UploadDrtDocumentModalProps> = ({
         >
           <div className="flex items-center gap-1.5 mb-0.5">
             <ShieldCheck className="w-4 h-4 text-indigo-600" />
-            <span className="font-semibold text-slate-800">1. Client / Regulator</span>
+            <span className="font-semibold text-slate-800">1. Client / Regulator ({clientName})</span>
           </div>
           <span className="text-[11px] block text-slate-500">{clientDocs.length > 0 ? `${clientDocs.length} record(s)` : 'Awaiting submission'}</span>
         </div>
@@ -129,7 +133,7 @@ export const UploadDrtDocumentModal: React.FC<UploadDrtDocumentModalProps> = ({
         >
           <div className="flex items-center gap-1.5 mb-0.5">
             <Building2 className="w-4 h-4 text-purple-600" />
-            <span className="font-semibold text-slate-800">2. Auditee / Enterprise</span>
+            <span className="font-semibold text-slate-800">2. Auditee / Enterprise ({auditeeName})</span>
           </div>
           <span className="text-[11px] block text-slate-500">{auditeeDocs.length > 0 ? `${auditeeDocs.length} record(s)` : 'Awaiting submission'}</span>
         </div>

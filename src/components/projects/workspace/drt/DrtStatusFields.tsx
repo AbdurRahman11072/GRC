@@ -12,8 +12,8 @@ interface DrtStatusFieldsProps {
 
 export const DrtStatusFields: React.FC<DrtStatusFieldsProps> = ({
   form,
-  clientName = 'Client',
-  auditeeName = 'Fiber@Home',
+  clientName = 'BTRC',
+  auditeeName = 'FHL',
 }) => {
   return (
     <div className="space-y-3">
