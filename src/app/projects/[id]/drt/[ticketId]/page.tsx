@@ -8,6 +8,7 @@ import { Shell } from '../../../../../components/layout/Shell';
 import { Button } from '../../../../../components/ui/Button';
 import { DrtDetailsHeader } from '../../../../../components/projects/workspace/drt/details/DrtDetailsHeader';
 import { DrtDetailsSquad } from '../../../../../components/projects/workspace/drt/details/DrtDetailsSquad';
+import { DrtTwoRowMatrixTable } from '../../../../../components/projects/workspace/drt/details/DrtTwoRowMatrixTable';
 import { AssignDrtSquadModal } from '../../../../../components/projects/workspace/drt/AssignDrtSquadModal';
 import { useGetTicketByIdQuery } from '../../../../../store/api/drtApi';
 import { useGetProjectByIdQuery } from '../../../../../store/api/projectApi';
@@ -134,16 +135,13 @@ export default function DrtTicketDetailsPage() {
               onManageSquad={() => setIsSquadModalOpen(true)}
             />
 
-            {/* Matrix Section Placeholder (Sub-Task 4) */}
-            <div className="p-5 bg-white rounded-xl border border-slate-200 space-y-2">
-              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-indigo-600" />
-                2-Row Tracking Matrix: {clientName} vs. {auditeeName}
-              </h2>
-              <p className="text-xs text-slate-500">
-                Tracking dates, excess days, Google Drive uploads, data collecting statuses, multi-year timeframe marks, and version-controlled remarks.
-              </p>
-            </div>
+            {/* 2-Row Tracking Matrix: Client vs. Auditee */}
+            <DrtTwoRowMatrixTable
+              ticket={ticket}
+              clientName={clientName}
+              auditeeName={auditeeName}
+              auditYears={auditYears}
+            />
           </div>
         )}
 

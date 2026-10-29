@@ -38,3 +38,17 @@ export function getShortEntityName(name?: string, fallback: string = 'Party'): s
   }
   return name;
 }
+
+/**
+ * Formats a date string into a clean readable date (e.g. "Oct 24, 2026")
+ */
+export function formatDate(val?: string | null): string {
+  if (!val) return '—';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return val;
+  }
+}
