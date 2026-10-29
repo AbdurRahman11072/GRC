@@ -1,11 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ChevronRight, AlertCircle, FileText, RefreshCw } from 'lucide-react';
 import { Shell } from '../../../../../components/layout/Shell';
 import { Button } from '../../../../../components/ui/Button';
+import { DrtDetailsHeader } from '../../../../../components/projects/workspace/drt/details/DrtDetailsHeader';
+import { DrtDetailsSquad } from '../../../../../components/projects/workspace/drt/details/DrtDetailsSquad';
+import { AssignDrtSquadModal } from '../../../../../components/projects/workspace/drt/AssignDrtSquadModal';
 import { useGetTicketByIdQuery } from '../../../../../store/api/drtApi';
 import { useGetProjectByIdQuery } from '../../../../../store/api/projectApi';
 import { getShortEntityName } from '../../../../../lib/utils';
@@ -35,6 +38,7 @@ export default function DrtTicketDetailsPage() {
   const clientName = getShortEntityName(project?.client?.name, 'BTRC');
   const auditeeName = getShortEntityName(project?.auditee?.name, 'FHL');
   const auditYears = getProjectAuditYears(project);
+  const [isSquadModalOpen, setIsSquadModalOpen] = useState(false);
 
   const isLoading = isProjectLoading || isTicketLoading;
 
@@ -119,25 +123,16 @@ export default function DrtTicketDetailsPage() {
         {/* Loaded Content */}
         {!isLoading && ticket && (
           <div className="space-y-5">
-            {/* Ticket Header & Squad Overview will be mounted in Sub-Task 3 */}
-            <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                    {ticket.requestCode}
-                  </span>
-                  <h1 className="text-base font-bold text-slate-900">{ticket.title || 'Data Request Ticket'}</h1>
-                </div>
-                {ticket.department && (
-                  <p className="text-xs text-slate-500 mt-1">
-                    Auditee Department: <span className="font-semibold text-slate-700">{ticket.department}</span>
-                  </p>
-                )}
-              </div>
-              <span className="text-xs px-2.5 py-1 rounded-full font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
-                {ticket.workflowStatus}
-              </span>
-            </div>
+            {/* Ticket Header & Metrics */}
+            <DrtDetailsHeader ticket={ticket} />
+
+            {/* 4-Party Collaborative Squad */}
+            <DrtDetailsSquad
+              ticket={ticket}
+              clientName={clientName}
+              auditeeName={auditeeName}
+              onManageSquad={() => setIsSquadModalOpen(true)}
+            />
 
             {/* Matrix Section Placeholder (Sub-Task 4) */}
             <div className="p-5 bg-white rounded-xl border border-slate-200 space-y-2">
@@ -151,6 +146,14 @@ export default function DrtTicketDetailsPage() {
             </div>
           </div>
         )}
+
+        {/* Squad Management Modal */}
+        <AssignDrtSquadModal
+          isOpen={isSquadModalOpen}
+          onClose={() => setIsSquadModalOpen(false)}
+          ticket={ticket || null}
+          projectId={projectId}
+        />
       </div>
     </Shell>
   );
