@@ -23,6 +23,11 @@ export const drtApi = baseApi.injectEndpoints({
       providesTags: ['DRT'],
     }),
 
+    getTicketById: builder.query<ApiResponse<IDRTTicket>, string>({
+      query: (id) => `/drt/tickets/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'DRT', id }],
+    }),
+
     createTicket: builder.mutation<ApiResponse<IDRTTicket>, ICreateDRTTicketPayload>({
       query: (body) => ({
         url: '/drt/tickets',
@@ -140,6 +145,7 @@ export const drtApi = baseApi.injectEndpoints({
 
 export const {
   useGetTicketsQuery,
+  useGetTicketByIdQuery,
   useCreateTicketMutation,
   useUpdateTicketMutation,
   useAssignSquadMutation,
