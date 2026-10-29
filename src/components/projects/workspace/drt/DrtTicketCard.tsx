@@ -1,15 +1,18 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   Upload, Users, ShieldCheck, Building2, CheckCircle2,
-  Clock, AlertTriangle, RotateCcw, Target, MessageSquare, Tags,
+  Clock, AlertTriangle, RotateCcw, Target, MessageSquare, Tags, Eye,
 } from 'lucide-react';
 import { Badge } from '../../../ui/Badge';
 import { Button } from '../../../ui/Button';
 import type { IDRTTicket, IDRTDocument, DRTPartySide } from '../../../../types/project.types';
+import { periodColorMap, gDriveColorMap, auditeeStatusColorMap } from './drtBadges';
 
 export interface DrtTicketCardProps {
+  projectId?: string;
   ticket: IDRTTicket;
   onUpload: (ticket: IDRTTicket, side: DRTPartySide) => void;
   onReview: (ticket: IDRTTicket, doc?: IDRTDocument) => void;
@@ -20,9 +23,9 @@ export interface DrtTicketCardProps {
   clientName?: string;
   auditeeName?: string;
 }
-import { periodColorMap, gDriveColorMap, auditeeStatusColorMap } from './drtBadges';
 
 export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
+  projectId,
   ticket,
   onUpload,
   onReview,
@@ -228,14 +231,15 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
       {/* Footer */}
       <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
         <span>SLA: <strong className="text-slate-700 font-semibold">{ticket.expectedDateOfReceipt ? new Date(ticket.expectedDateOfReceipt).toLocaleDateString() : 'None'}</strong></span>
-        <div className="flex items-center gap-2">
-          {onManageTors && (
-            <Button size="xs" variant="ghost" onClick={() => onManageTors(ticket)} leftIcon={<Tags className="w-3 h-3" />}>ToRs</Button>
+        <div className="flex items-center gap-1.5">
+          {projectId && (
+            <Link href={`/projects/${projectId}/drt/${ticket.id}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200">
+              <Eye className="w-3 h-3" /> Details
+            </Link>
           )}
+          {onManageTors && <Button size="xs" variant="ghost" onClick={() => onManageTors(ticket)} leftIcon={<Tags className="w-3 h-3" />}>ToRs</Button>}
           <Button size="xs" variant="ghost" onClick={() => onManageSquad(ticket)} leftIcon={<Users className="w-3 h-3" />}>Squad</Button>
-          {canUpload && (
-            <Button size="xs" variant="outline" onClick={() => onUpload(ticket, 'AUDITEE')} leftIcon={<Upload className="w-3 h-3" />}>Upload Evidence</Button>
-          )}
+          {canUpload && <Button size="xs" variant="outline" onClick={() => onUpload(ticket, 'AUDITEE')} leftIcon={<Upload className="w-3 h-3" />}>Evidence</Button>}
         </div>
       </div>
     </div>

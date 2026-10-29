@@ -188,16 +188,9 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
         </div>
       ) : viewMode === 'table' ? (
         <DrtTable
+          projectId={projectId}
           tickets={filteredTickets}
-          canUpload={Boolean(canUpload)}
-          canReview={Boolean(canReview)}
-          auditYears={auditYears}
-          clientName={clientName}
-          auditeeName={auditeeName}
-          onUpload={(t, side) => setUploadTicket({ ticket: t, side })}
-          onReview={(t, doc) => setReviewTarget({ ticket: t, doc })}
           onManageSquad={(t) => setSquadTicket(t)}
-          onEditPeriodStatus={(t, yr) => setPeriodModal({ ticket: t, year: yr })}
           onManageTors={(t) => setTorsTicket(t)}
         />
       ) : (
@@ -205,6 +198,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
           {filteredTickets.map((ticket) => (
             <DrtTicketCard
               key={ticket.id}
+              projectId={projectId}
               ticket={ticket}
               clientName={clientName}
               auditeeName={auditeeName}

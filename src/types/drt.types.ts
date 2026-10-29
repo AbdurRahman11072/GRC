@@ -64,10 +64,10 @@ export interface IDRTTicket {
   fieldMemberId?: string | null;
   clientContactId?: string | null;
   auditeeContactId?: string | null;
-  supervisor?: { id: string; name: string; email: string } | null;
-  fieldMember?: { id: string; name: string; email: string } | null;
-  clientContact?: { id: string; name: string; email: string } | null;
-  auditeeContact?: { id: string; name: string; email: string; department?: string | null } | null;
+  supervisor?: { id: string; name: string; email: string; designation?: string | null } | null;
+  fieldMember?: { id: string; name: string; email: string; designation?: string | null } | null;
+  clientContact?: { id: string; name: string; email: string; designation?: string | null } | null;
+  auditeeContact?: { id: string; name: string; email: string; department?: string | null; designation?: string | null } | null;
   dateOfRequest?: string | null;
   expectedDateOfReceipt?: string | null;
   actualDateOfReceipt?: string | null;
