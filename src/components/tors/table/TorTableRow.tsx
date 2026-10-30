@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  ChevronRight, ChevronDown, Plus, SlidersHorizontal, Trash2, FilePlus, Award, CheckCircle2, Clock, RotateCcw, Eye, Edit2,
-} from 'lucide-react';
-import { Badge } from '../../ui/Badge';
-import type { ITorNode } from '../../../types/tor.types';
+import { ChevronRight, ChevronDown, UserCheck } from 'lucide-react';
+import type { ITorNode, TorProgressReportPhase } from '../../../types/tor.types';
+import { TorDrtSubCells } from './TorDrtSubCells';
+import { TorProgressCells } from './TorProgressCells';
+import { TorRowActions } from './TorRowActions';
 
 export interface TorTableRowProps {
   node: ITorNode;
@@ -20,6 +20,7 @@ export interface TorTableRowProps {
   onEvaluateAnalysis?: (node: ITorNode) => void;
   onSelectTor?: (node: ITorNode) => void;
   onEditTor?: (node: ITorNode) => void;
+  onOpenRemarkModal: (node: ITorNode, phase: TorProgressReportPhase) => void;
 }
 
 export const TorTableRow: React.FC<TorTableRowProps> = ({
@@ -35,35 +36,36 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
   onEvaluateAnalysis,
   onSelectTor,
   onEditTor,
+  onOpenRemarkModal,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasChildren = Boolean(node.children && node.children.length > 0);
-  const tickets = node.drtTickets || [];
-  const colObt = node.dataCollectionObtained ?? 0;
-  const colAlloc = node.dataCollectionAllocated ?? 0;
-  const anaObt = node.dataAnalysisObtained ?? 0;
-  const anaAlloc = node.dataAnalysisAllocated ?? 0;
   const isRoot = level === 0;
-
-  const renderDrtBadge = (status: string) => {
-    if (status === 'ACCEPTED') return <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />;
-    if (status === 'REVISION_REQUESTED') return <RotateCcw className="w-3 h-3 text-rose-600 shrink-0" />;
-    return <Clock className="w-3 h-3 text-amber-500 shrink-0" />;
-  };
+  const assigned = node.assignedMembers || [];
 
   return (
     <>
-      <tr className={`border-b border-slate-100 hover:bg-slate-50/80 transition-colors text-xs ${isRoot ? 'bg-white' : 'bg-slate-50/30'}`}>
-        {/* ToR Code */}
-        <td className="py-2.5 px-3 whitespace-nowrap font-mono align-middle">
-          <div className="flex items-center gap-1.5" style={{ paddingLeft: `${level * 18}px` }}>
+      <tr
+        className={`border-b border-slate-100 hover:bg-slate-50/70 transition-colors text-xs ${
+          isRoot ? 'bg-white' : 'bg-slate-50/30'
+        }`}
+      >
+        {/* 1. ToR ID (Sticky Left) */}
+        <td className="sticky left-0 z-10 bg-white/95 py-2.5 px-3 whitespace-nowrap font-mono align-middle border-r border-slate-200 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center gap-1.5" style={{ paddingLeft: `${level * 16}px` }}>
             {hasChildren ? (
-              <button type="button" onClick={() => setIsExpanded(!isExpanded)} className="p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+              <button
+                type="button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
                 {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
               </button>
             ) : level > 0 ? (
               <span className="w-3.5 inline-block text-slate-300 font-sans text-center">└</span>
-            ) : <span className="w-3.5" />}
+            ) : (
+              <span className="w-3.5" />
+            )}
             <button
               type="button"
               onClick={() => onSelectTor?.(node)}
@@ -77,139 +79,104 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
           </div>
         </td>
 
-        {/* Title & Department */}
-        <td className="py-2.5 px-3 min-w-[240px] max-w-sm align-middle">
+        {/* 2. ToR Scope (Sticky Left) */}
+        <td className="sticky left-[110px] z-10 bg-white/95 py-2.5 px-3 min-w-[240px] max-w-[300px] align-middle border-r border-slate-200 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)]">
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span onClick={() => onSelectTor?.(node)} title={node.title} className={`text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors ${isRoot ? 'font-bold text-sm' : 'font-semibold text-xs'}`}>
+              <span
+                onClick={() => onSelectTor?.(node)}
+                title={node.title}
+                className={`text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors ${
+                  isRoot ? 'font-bold text-xs' : 'font-semibold text-xs'
+                }`}
+              >
                 {node.title}
               </span>
               {node.department && (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
                   {node.department}
                 </span>
               )}
             </div>
-            {node.description && <p className="text-[11px] text-slate-500 line-clamp-1">{node.description}</p>}
+            {node.description && (
+              <p className="text-[11px] text-slate-500 line-clamp-1">{node.description}</p>
+            )}
           </div>
         </td>
 
-        {/* DRT Status */}
-        <td className="py-2.5 px-3 min-w-[200px] align-middle">
-          {tickets.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {tickets.map((t) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const status = t.workflowStatus || (t as any).lifecycleStatus || 'OPEN';
-                return (
-                  <span key={t.id} title={`${t.requestCode}: ${t.description || t.title || ''}`} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-mono border border-slate-200 bg-white text-slate-700 shadow-2xs">
-                    {renderDrtBadge(status)}
-                    <strong className="text-slate-900">{t.requestCode}</strong>
-                    <span className="text-[10px] text-slate-500 uppercase">{status.replace('_', ' ')}</span>
-                  </span>
-                );
-              })}
+        {/* 3. Assigned To */}
+        <td className="py-2.5 px-3 min-w-[140px] align-middle border-r border-slate-200">
+          {assigned.length > 0 ? (
+            <div className="flex flex-col gap-1 max-w-[150px]">
+              {assigned.slice(0, 2).map((a) => (
+                <div
+                  key={a.id}
+                  title={`${a.user?.name || 'Member'} (${a.assignmentRole || a.projectRole || 'Field'})`}
+                  className="flex items-center gap-1.5 text-[11px] text-slate-700"
+                >
+                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-[9px] shrink-0">
+                    {(a.user?.name || 'M').charAt(0).toUpperCase()}
+                  </div>
+                  <span className="truncate font-medium">{a.user?.name || 'Field Member'}</span>
+                </div>
+              ))}
+              {assigned.length > 2 && (
+                <span className="text-[10px] text-slate-500 font-medium pl-6">
+                  +{assigned.length - 2} more
+                </span>
+              )}
             </div>
-          ) : <span className="text-slate-400 font-mono text-xs">—</span>}
-        </td>
-
-        {/* FHL (Auditee) Stream Marks */}
-        <td className="py-2.5 px-3 whitespace-nowrap text-center align-middle">
-          <div className="inline-flex flex-col items-center gap-0.5">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 font-mono text-[11px] border border-blue-200/80 text-blue-900 shadow-2xs">
-              <strong className="text-blue-700 font-bold">{(node.fhlCollectionObtained ?? 0).toFixed(1)}</strong>
-              <span className="text-slate-400">/</span>
-              <span>{(node.fhlCollectionAllocated ?? 0).toFixed(1)}</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 italic">
+              <UserCheck className="w-3 h-3 text-slate-300" />
+              Unassigned
             </span>
-            <span className="text-[10px] text-slate-500 font-mono">
-              Ana: {(node.fhlAnalysisObtained ?? 0).toFixed(1)}/{(node.fhlAnalysisAllocated ?? 0).toFixed(1)}
-            </span>
-          </div>
+          )}
         </td>
 
-        {/* BTRC (Client) Stream Marks */}
-        <td className="py-2.5 px-3 whitespace-nowrap text-center align-middle">
-          <div className="inline-flex flex-col items-center gap-0.5">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-violet-50 font-mono text-[11px] border border-violet-200/80 text-violet-900 shadow-2xs">
-              <strong className="text-violet-700 font-bold">{(node.btrcCollectionObtained ?? 0).toFixed(1)}</strong>
-              <span className="text-slate-400">/</span>
-              <span>{(node.btrcCollectionAllocated ?? 0).toFixed(1)}</span>
-            </span>
-            <span className="text-[10px] text-slate-500 font-mono">
-              Ana: {(node.btrcAnalysisObtained ?? 0).toFixed(1)}/{(node.btrcAnalysisAllocated ?? 0).toFixed(1)}
-            </span>
-          </div>
-        </td>
+        {/* 4. DRT BTRC & DRT FHL Sub-Cells (4 columns) */}
+        <TorDrtSubCells node={node} />
 
-        {/* Compliance */}
-        <td className="py-2.5 px-3 whitespace-nowrap text-center align-middle">
-          {node.complianceStatus ? (
-            <Badge size="xs" variant={node.complianceStatus === 'COMPLIANT' ? 'success' : node.complianceStatus === 'PARTIALLY_COMPLIANT' ? 'warning' : node.complianceStatus === 'NON_COMPLIANT' ? 'danger' : 'neutral'}>
-              {node.complianceStatus.replace('_', ' ')}
-            </Badge>
-          ) : <span className="text-slate-300 font-mono text-xs">—</span>}
-        </td>
+        {/* 5. Progress & Remark Cells (10 columns: 1st, 2nd, 3rd, Draft, Final) */}
+        <TorProgressCells node={node} onOpenRemarkModal={onOpenRemarkModal} />
 
-        {/* Actions Toolbar */}
-        <td className="py-2.5 px-3 whitespace-nowrap text-right align-middle w-56 min-w-[220px]">
-          <div className="flex items-center justify-end gap-1.5 flex-nowrap">
-            {onSelectTor && (
-              <button type="button" onClick={() => onSelectTor(node)} title="View ToR Details" className="p-1.5 rounded-md text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-colors shrink-0">
-                <Eye className="w-4 h-4" />
-              </button>
-            )}
-            {onFireDrt && (
-              <button type="button" onClick={() => onFireDrt(node.id)} title="Issue DRT Data Request for this clause" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 transition-colors shrink-0 shadow-2xs">
-                <FilePlus className="w-3.5 h-3.5 text-indigo-600" /><span>+ DRT</span>
-              </button>
-            )}
-            {canManageTor && (
-              <button type="button" onClick={() => onAddChild(node.id)} title="Add Sub-Clause" className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors shrink-0 shadow-2xs">
-                <Plus className="w-3.5 h-3.5 text-slate-600" /><span>Sub</span>
-              </button>
-            )}
-            {canAwardMarks && onEvaluateAnalysis && (
-              <button type="button" onClick={() => onEvaluateAnalysis(node)} title="Evaluate Analysis Marks & Findings" className="p-1.5 rounded-md text-slate-500 hover:text-cyan-700 hover:bg-cyan-50 border border-transparent hover:border-cyan-200 transition-colors shrink-0">
-                <Award className="w-4 h-4" />
-              </button>
-            )}
-            {canConfigureWeights && (
-              <button type="button" onClick={() => onConfigureWeights(node)} title="Configure Stream Weight Allocation" className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-colors shrink-0">
-                <SlidersHorizontal className="w-4 h-4" />
-              </button>
-            )}
-            {canManageTor && onEditTor && (
-              <button type="button" title="Edit ToR Clause" onClick={() => onEditTor(node)} className="p-1.5 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-colors shrink-0">
-                <Edit2 className="w-4 h-4" />
-              </button>
-            )}
-            {canManageTor && (
-              <button type="button" title="Delete clause" onClick={() => onDelete(node.id)} className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors shrink-0">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </td>
-      </tr>
-
-      {/* Child Rows */}
-      {hasChildren && isExpanded && node.children!.map((child) => (
-        <TorTableRow
-          key={child.id}
-          node={child}
-          level={level + 1}
+        {/* 6. Sticky Right: Actions */}
+        <TorRowActions
+          node={node}
           canManageTor={canManageTor}
           canConfigureWeights={canConfigureWeights}
           canAwardMarks={canAwardMarks}
-          onAddChild={onAddChild}
-          onConfigureWeights={onConfigureWeights}
-          onDelete={onDelete}
-          onFireDrt={onFireDrt}
-          onEvaluateAnalysis={onEvaluateAnalysis}
           onSelectTor={onSelectTor}
+          onFireDrt={onFireDrt}
+          onAddChild={onAddChild}
+          onEvaluateAnalysis={onEvaluateAnalysis}
+          onConfigureWeights={onConfigureWeights}
           onEditTor={onEditTor}
+          onDelete={onDelete}
         />
-      ))}
+      </tr>
+
+      {/* Child Rows */}
+      {hasChildren &&
+        isExpanded &&
+        node.children!.map((child) => (
+          <TorTableRow
+            key={child.id}
+            node={child}
+            level={level + 1}
+            canManageTor={canManageTor}
+            canConfigureWeights={canConfigureWeights}
+            canAwardMarks={canAwardMarks}
+            onAddChild={onAddChild}
+            onConfigureWeights={onConfigureWeights}
+            onDelete={onDelete}
+            onFireDrt={onFireDrt}
+            onEvaluateAnalysis={onEvaluateAnalysis}
+            onSelectTor={onSelectTor}
+            onEditTor={onEditTor}
+            onOpenRemarkModal={onOpenRemarkModal}
+          />
+        ))}
     </>
   );
 };

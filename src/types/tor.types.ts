@@ -74,6 +74,19 @@ export interface ITorNode {
   analyzedAt?: string | null;
   analyzedBy?: { id: string; name: string; email: string } | null;
 
+  // Dynamic Progress Stages & Multi-Phase Remarks
+  progressStages?: ITorProgressStageData[];
+  firstProgress?: string | null;
+  firstProgressAuditorRemark?: string | null;
+  secondProgress?: string | null;
+  secondProgressAuditorRemark?: string | null;
+  thirdProgress?: string | null;
+  thirdProgressAuditorRemark?: string | null;
+  draftRemark?: string | null;
+  draftAuditorRemark?: string | null;
+  finalRemark?: string | null;
+  finalAuditorRemark?: string | null;
+
   streamWeights?: IStreamWeight[];
   assignedMembers?: ITorMemberAssignment[];
   documents?: ITorDocument[];
@@ -84,6 +97,34 @@ export interface ITorNode {
     findings: number;
   };
   children?: ITorNode[];
+}
+
+export type TorProgressReportPhase =
+  | 'FIRST_PROGRESS'
+  | 'SECOND_PROGRESS'
+  | 'THIRD_PROGRESS'
+  | 'DRAFT_REPORT'
+  | 'FINAL_REPORT';
+
+export interface ITorProgressStageData {
+  stageKey: TorProgressReportPhase | string;
+  stageName: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'PARTIALLY_COMPLIANT' | 'COMPLIANT' | 'NON_COMPLIANT' | 'NOT_APPLICABLE' | string;
+  score?: number;
+  auditorRemark?: string | null;
+  clientRemark?: string | null;
+  auditeeRemark?: string | null;
+  updatedAt?: string;
+  updatedBy?: { id: string; name: string; email?: string };
+}
+
+export interface IUpdateTorProgressRemarkPayload {
+  torId: string;
+  phase: TorProgressReportPhase;
+  status?: string;
+  auditorRemark?: string;
+  draftRemark?: string;
+  finalRemark?: string;
 }
 
 export interface IEvaluateTorAnalysisPayload {

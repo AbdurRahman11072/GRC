@@ -1,9 +1,18 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Layers } from 'lucide-react';
+import { Layers } from 'lucide-react';
+import { TorTableHeader } from './TorTableHeader';
 import { TorTableRow } from './TorTableRow';
-import type { ITorNode } from '../../../types/tor.types';
+import { TorTableFilters, type TorFilterState } from './TorTableFilters';
+import { TorRemarkModal } from './TorRemarkPopover';
+import type { ITorNode, TorProgressReportPhase, ITorProgressStageData } from '../../../types/tor.types';
+import {
+  getTorStageData,
+  updateNodeRemarkRecursive,
+  filterTorTree,
+  countTorNodes,
+} from '../../../lib/torProgressUtils';
 
 export interface TorTableProps {
   treeNodes: ITorNode[];
@@ -19,6 +28,14 @@ export interface TorTableProps {
   onEditTor?: (node: ITorNode) => void;
 }
 
+const defaultFilters: TorFilterState = {
+  searchTerm: '',
+  department: 'ALL',
+  assignedUser: 'ALL',
+  progressStatus: 'ALL',
+  drtStream: 'ALL',
+};
+
 export const TorTable: React.FC<TorTableProps> = ({
   treeNodes,
   canManageTor,
@@ -32,125 +49,77 @@ export const TorTable: React.FC<TorTableProps> = ({
   onSelectTor,
   onEditTor,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [deptFilter, setDeptFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [filters, setFilters] = useState<TorFilterState>(defaultFilters);
+  const [localTree, setLocalTree] = useState<ITorNode[]>(treeNodes);
 
-  // Extract unique departments from all nodes
-  const departments = useMemo(() => {
+  React.useEffect(() => {
+    setLocalTree(treeNodes);
+  }, [treeNodes]);
+
+  const [remarkModal, setRemarkModal] = useState<{
+    isOpen: boolean;
+    node: ITorNode | null;
+    phase: TorProgressReportPhase;
+    initialData: ITorProgressStageData | null;
+  }>({
+    isOpen: false,
+    node: null,
+    phase: 'FIRST_PROGRESS',
+    initialData: null,
+  });
+
+  const { departments, assignedMembers } = useMemo(() => {
     const depts = new Set<string>();
+    const membersMap = new Map<string, string>();
+
     const walk = (nodes: ITorNode[]) => {
       nodes.forEach((n) => {
         if (n.department) depts.add(n.department);
+        n.assignedMembers?.forEach((am) => {
+          if (am.userId && am.user?.name) {
+            membersMap.set(am.userId, am.user.name);
+          }
+        });
         if (n.children) walk(n.children);
       });
     };
-    walk(treeNodes);
-    return Array.from(depts);
-  }, [treeNodes]);
+    walk(localTree);
 
-  // Filter nodes recursively while preserving matching children or parents
-  const filteredNodes = useMemo(() => {
-    if (!searchTerm.trim() && deptFilter === 'ALL' && statusFilter === 'ALL') {
-      return treeNodes;
-    }
-
-    const term = searchTerm.toLowerCase().trim();
-
-    const filterNode = (node: ITorNode): ITorNode | null => {
-      const matchSearch =
-        !term ||
-        node.code.toLowerCase().includes(term) ||
-        node.title.toLowerCase().includes(term) ||
-        (node.description && node.description.toLowerCase().includes(term));
-
-      const matchDept = deptFilter === 'ALL' || node.department === deptFilter;
-      const matchStatus = statusFilter === 'ALL' || node.complianceStatus === statusFilter;
-
-      const selfMatches = matchSearch && matchDept && matchStatus;
-
-      let filteredChildren: ITorNode[] = [];
-      if (node.children && node.children.length > 0) {
-        filteredChildren = node.children
-          .map(filterNode)
-          .filter((c): c is ITorNode => c !== null);
-      }
-
-      if (selfMatches || filteredChildren.length > 0) {
-        return {
-          ...node,
-          children: filteredChildren,
-        };
-      }
-
-      return null;
+    return {
+      departments: Array.from(depts),
+      assignedMembers: Array.from(membersMap.entries()).map(([id, name]) => ({ id, name })),
     };
+  }, [localTree]);
 
-    return treeNodes.map(filterNode).filter((n): n is ITorNode => n !== null);
-  }, [treeNodes, searchTerm, deptFilter, statusFilter]);
+  const handleSaveRemark = (
+    nodeId: string,
+    phase: TorProgressReportPhase,
+    updatedData: Partial<ITorProgressStageData>
+  ) => {
+    setLocalTree((prev) => updateNodeRemarkRecursive(prev, nodeId, phase, updatedData));
+  };
+
+  const filteredNodes = useMemo(() => filterTorTree(localTree, filters), [localTree, filters]);
+  const totalCount = useMemo(() => countTorNodes(localTree), [localTree]);
+  const filteredCount = useMemo(() => countTorNodes(filteredNodes), [filteredNodes]);
 
   return (
     <div className="space-y-3">
-      {/* Search & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search ToR ID (e.g. 1.1), title, or requirement..."
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              aria-label="Filter by department"
-              className="py-1.5 px-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors"
-            >
-              <option value="ALL">All Departments</option>
-              {departments.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            aria-label="Filter by compliance status"
-            className="py-1.5 px-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors"
-          >
-            <option value="ALL">All Compliance</option>
-            <option value="COMPLIANT">Compliant</option>
-            <option value="PARTIALLY_COMPLIANT">Partially Compliant</option>
-            <option value="NON_COMPLIANT">Non-Compliant</option>
-            <option value="NOT_EVALUATED">Not Evaluated</option>
-          </select>
-        </div>
-      </div>
+      {/* Search & Dynamic Filters Toolbar */}
+      <TorTableFilters
+        filters={filters}
+        onChange={setFilters}
+        onReset={() => setFilters(defaultFilters)}
+        departments={departments}
+        assignedMembers={assignedMembers}
+        totalResults={totalCount}
+        filteredResults={filteredCount}
+      />
 
       {/* Enterprise Data Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/90 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-              <th className="py-2.5 px-3 w-28 whitespace-nowrap">ToR ID</th>
-              <th className="py-2.5 px-3 min-w-[240px]">Title & Scope</th>
-              <th className="py-2.5 px-3 min-w-[200px]">DRT Document Status</th>
-              <th className="py-2.5 px-3 text-center w-36 whitespace-nowrap text-blue-700">FHL (Auditee) Marks</th>
-              <th className="py-2.5 px-3 text-center w-36 whitespace-nowrap text-violet-700">BTRC (Client) Marks</th>
-              <th className="py-2.5 px-3 text-center w-28 whitespace-nowrap">Compliance</th>
-              <th className="py-2.5 px-3 text-right w-56 min-w-[220px] whitespace-nowrap">Actions</th>
-            </tr>
-          </thead>
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs max-w-full">
+        <table className="w-full text-left border-collapse min-w-[1700px]">
+          <TorTableHeader />
           <tbody>
             {filteredNodes.length > 0 ? (
               filteredNodes.map((rootNode) => (
@@ -167,11 +136,19 @@ export const TorTable: React.FC<TorTableProps> = ({
                   onEvaluateAnalysis={onEvaluateAnalysis}
                   onSelectTor={onSelectTor}
                   onEditTor={onEditTor}
+                  onOpenRemarkModal={(node, phase) => {
+                    setRemarkModal({
+                      isOpen: true,
+                      node,
+                      phase,
+                      initialData: getTorStageData(node, phase),
+                    });
+                  }}
                 />
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-xs text-slate-500">
+                <td colSpan={18} className="py-12 text-center text-xs text-slate-500">
                   <div className="flex flex-col items-center gap-2">
                     <Layers className="w-6 h-6 text-slate-400" />
                     <span>No Terms of Reference clauses found matching your filter criteria.</span>
@@ -182,6 +159,18 @@ export const TorTable: React.FC<TorTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Dynamic Remark View / Edit Modal */}
+      {remarkModal.isOpen && remarkModal.node && remarkModal.initialData && (
+        <TorRemarkModal
+          isOpen={remarkModal.isOpen}
+          onClose={() => setRemarkModal({ isOpen: false, node: null, phase: 'FIRST_PROGRESS', initialData: null })}
+          node={remarkModal.node}
+          phase={remarkModal.phase}
+          initialData={remarkModal.initialData}
+          onSave={handleSaveRemark}
+        />
+      )}
     </div>
   );
 };
