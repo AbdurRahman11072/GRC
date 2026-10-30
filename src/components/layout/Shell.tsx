@@ -24,12 +24,12 @@ export const Shell: React.FC<ShellProps> = ({ children }) => {
 
       {/* Main layout container (offset for desktop sidebar) */}
       <div
-        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
+        className={`flex-1 flex flex-col min-h-screen min-w-0 transition-all duration-300 ${
           isCollapsed ? 'lg:pl-20' : 'lg:pl-64'
         }`}
       >
         <Navbar onToggleMobileSidebar={() => setIsMobileOpen(true)} />
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto min-w-0 max-w-full">{children}</main>
       </div>
     </div>
   );

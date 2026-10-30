@@ -22,6 +22,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsMobileOpen,
 }) => {
   const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
+  const [hasMounted, setHasMounted] = React.useState(false);
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
 
   const userRoleDisplay = React.useMemo(() => {
@@ -102,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Current Organization Info (when expanded) */}
-          {!isCollapsed && activeOrg && (
+          {!isCollapsed && hasMounted && activeOrg && (
             <div className="p-3 mx-3 my-2.5 rounded-xl bg-slate-50 border border-slate-200 shrink-0">
               <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-0.5">
                 Active Tenant

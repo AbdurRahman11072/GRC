@@ -9,11 +9,14 @@ import { Button } from '../../../../../components/ui/Button';
 import { DrtDetailsHeader } from '../../../../../components/projects/workspace/drt/details/DrtDetailsHeader';
 import { DrtDetailsSquad } from '../../../../../components/projects/workspace/drt/details/DrtDetailsSquad';
 import { DrtTwoRowMatrixTable } from '../../../../../components/projects/workspace/drt/details/DrtTwoRowMatrixTable';
+import { DrtDetailsDocuments } from '../../../../../components/projects/workspace/drt/details/DrtDetailsDocuments';
 import { AssignDrtSquadModal } from '../../../../../components/projects/workspace/drt/AssignDrtSquadModal';
+import { UploadDrtDocumentModal } from '../../../../../components/projects/workspace/drt/UploadDrtDocumentModal';
 import { useGetTicketByIdQuery } from '../../../../../store/api/drtApi';
 import { useGetProjectByIdQuery } from '../../../../../store/api/projectApi';
 import { getShortEntityName } from '../../../../../lib/utils';
 import { getProjectAuditYears } from '../../../../../utils/projectTimeframe';
+import type { DRTPartySide } from '../../../../../types/drt.types';
 
 export default function DrtTicketDetailsPage() {
   const params = useParams();
@@ -40,12 +43,13 @@ export default function DrtTicketDetailsPage() {
   const auditeeName = getShortEntityName(project?.auditee?.name, 'FHL');
   const auditYears = getProjectAuditYears(project);
   const [isSquadModalOpen, setIsSquadModalOpen] = useState(false);
+  const [uploadSide, setUploadSide] = useState<DRTPartySide | null>(null);
 
   const isLoading = isProjectLoading || isTicketLoading;
 
   return (
     <Shell>
-      <div className="space-y-5 max-w-7xl mx-auto pb-12">
+      <div className="space-y-5 max-w-7xl mx-auto pb-12 w-full min-w-0">
         {/* Navigation & Breadcrumbs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
@@ -142,6 +146,14 @@ export default function DrtTicketDetailsPage() {
               auditeeName={auditeeName}
               auditYears={auditYears}
             />
+
+            {/* Evidence Documents List & History */}
+            <DrtDetailsDocuments
+              ticket={ticket}
+              clientName={clientName}
+              auditeeName={auditeeName}
+              onOpenUpload={(side) => setUploadSide(side)}
+            />
           </div>
         )}
 
@@ -152,6 +164,19 @@ export default function DrtTicketDetailsPage() {
           ticket={ticket || null}
           projectId={projectId}
         />
+
+        {/* Document Upload Modal */}
+        {uploadSide && (
+          <UploadDrtDocumentModal
+            isOpen={Boolean(uploadSide)}
+            onClose={() => setUploadSide(null)}
+            ticket={ticket as any}
+            defaultSide={uploadSide}
+            clientName={clientName}
+            auditeeName={auditeeName}
+            auditYears={auditYears}
+          />
+        )}
       </div>
     </Shell>
   );

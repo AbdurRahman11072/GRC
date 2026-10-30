@@ -39,15 +39,18 @@ export function getShortEntityName(name?: string, fallback: string = 'Party'): s
   return name;
 }
 
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 /**
- * Formats a date string into a clean readable date (e.g. "Oct 24, 2026")
+ * Formats a date string into a clean readable date (e.g. "24 Oct 2026")
+ * Deterministic across server and client environments.
  */
 export function formatDate(val?: string | null): string {
   if (!val) return '—';
   try {
     const d = new Date(val);
     if (isNaN(d.getTime())) return val;
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${d.getUTCDate()} ${SHORT_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
   } catch {
     return val;
   }

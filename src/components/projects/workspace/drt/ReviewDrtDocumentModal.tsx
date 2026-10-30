@@ -179,7 +179,7 @@ export const ReviewDrtDocumentModal: React.FC<ReviewDrtDocumentModalProps> = ({ 
                     {activeDoc.partySide === 'CLIENT' ? 'Client / Regulator' : 'Auditee / Enterprise'}
                   </span>
                   <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${isAcc ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : isRev ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-sky-50 text-sky-700 border-sky-200'}`}>
-                    Status: {activeDoc.status.replace('_', ' ')}
+                    Status: {(activeDoc.status || 'SUBMITTED').replace(/_/g, ' ')}
                   </span>
                 </div>
                 {activeDoc.fileUrl && (

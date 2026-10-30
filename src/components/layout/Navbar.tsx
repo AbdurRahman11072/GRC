@@ -28,6 +28,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
 
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const orgDropdownRef = useRef<HTMLDivElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
@@ -117,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
           >
             <Building className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
             <span className="max-w-[140px] sm:max-w-[200px] truncate">
-              {activeOrg?.orgName || 'Select Organization'}
+              {hasMounted && activeOrg ? activeOrg.orgName : 'Select Organization'}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           </button>
@@ -169,11 +174,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
             className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-100 transition-colors select-none"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-600 flex items-center justify-center font-bold text-xs text-white shadow-sm shadow-indigo-600/20">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              {hasMounted && user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="hidden md:block text-left text-xs">
               <div className="font-semibold text-slate-800 truncate max-w-[120px]">
-                {user?.name || 'User Profile'}
+                {hasMounted && user?.name ? user.name : 'User Profile'}
               </div>
               <div className="text-[10px] text-slate-500">
                 {userRoleDisplay}
