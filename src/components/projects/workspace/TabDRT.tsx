@@ -12,6 +12,8 @@ import { ReviewDrtDocumentModal } from './drt/ReviewDrtDocumentModal';
 import { AssignDrtSquadModal } from './drt/AssignDrtSquadModal';
 import { EditDrtPeriodStatusModal } from './drt/EditDrtPeriodStatusModal';
 import { ManageDrtTorsModal } from './drt/ManageDrtTorsModal';
+import { DrtRemarkVersionModal } from './drt/details/DrtRemarkVersionModal';
+import { getDrtRemarkVersions } from './drt/drtBadges';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
 import { useGetMyProjectPermissionsQuery, useGetProjectByIdQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
@@ -35,6 +37,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
   const [squadTicket, setSquadTicket] = useState<IDRTTicket | null>(null);
   const [periodModal, setPeriodModal] = useState<{ ticket: IDRTTicket; year: string } | null>(null);
   const [torsTicket, setTorsTicket] = useState<IDRTTicket | null>(null);
+  const [remarkModal, setRemarkModal] = useState<{ ticket: IDRTTicket; side: 'AUDITOR' | 'AUDITEE' } | null>(null);
 
   const currentUser = useAppSelector((state) => state.auth.user);
   const currentOrgMembership = useAppSelector((state) =>
@@ -78,7 +81,6 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
     });
   }, [tickets, filterMode]);
 
-  // Aggregate stats
   const totalTickets = tickets.length;
   const acceptedTickets = tickets.filter((t) => t.workflowStatus === 'ACCEPTED').length;
   const totalSubmissions = tickets.reduce((acc, t) => acc + (t.drtDocuments?.length || 0), 0);
@@ -117,9 +119,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
                 key={mode}
                 onClick={() => setFilterMode(mode)}
                 className={`px-2.5 py-1 rounded-md font-medium capitalize transition-colors ${
-                  filterMode === mode
-                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
+                  filterMode === mode ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {mode.toLowerCase()}
@@ -132,9 +132,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
             <button
               onClick={() => setViewMode('table')}
               className={`px-2 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
-                viewMode === 'table'
-                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
+                viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
               title="Spreadsheet Table View"
             >
@@ -144,9 +142,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
             <button
               onClick={() => setViewMode('cards')}
               className={`px-2 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
-                viewMode === 'cards'
-                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
+                viewMode === 'cards' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
               title="Cards View"
             >
@@ -156,12 +152,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
           </div>
 
           {canCreateTicket && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => setIsCreateOpen(true)}
-              leftIcon={<FilePlus className="w-4 h-4" />}
-            >
+            <Button size="sm" variant="primary" onClick={() => setIsCreateOpen(true)} leftIcon={<FilePlus className="w-4 h-4" />}>
               Fire DRT Request
             </Button>
           )}
@@ -175,13 +166,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
         <div className="p-8 text-center bg-white rounded-xl border border-dashed border-slate-200">
           <p className="text-xs text-slate-500">No DRT request tickets match your filter criteria.</p>
           {canCreateTicket && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-3"
-              onClick={() => setIsCreateOpen(true)}
-              leftIcon={<FilePlus className="w-4 h-4" />}
-            >
+            <Button size="sm" variant="outline" className="mt-3" onClick={() => setIsCreateOpen(true)} leftIcon={<FilePlus className="w-4 h-4" />}>
               Issue First DRT Ticket
             </Button>
           )}
@@ -190,8 +175,14 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
         <DrtTable
           projectId={projectId}
           tickets={filteredTickets}
+          clientName={clientName}
+          auditeeName={auditeeName}
+          auditYears={auditYears}
           onManageSquad={(t) => setSquadTicket(t)}
           onManageTors={(t) => setTorsTicket(t)}
+          onOpenPeriodModal={(t, year) => setPeriodModal({ ticket: t, year })}
+          onOpenUploadModal={(t, side) => setUploadTicket({ ticket: t, side })}
+          onOpenRemarkModal={(t, side) => setRemarkModal({ ticket: t, side })}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3">
@@ -220,6 +211,16 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
       <AssignDrtSquadModal isOpen={Boolean(squadTicket)} onClose={() => setSquadTicket(null)} ticket={squadTicket} projectId={projectId} />
       <EditDrtPeriodStatusModal isOpen={Boolean(periodModal)} onClose={() => setPeriodModal(null)} ticket={periodModal?.ticket || null} periodLabel={periodModal?.year || null} onOpenUpload={(t, yr) => setUploadTicket({ ticket: t, side: 'AUDITEE', initialPeriodLabel: yr })} />
       <ManageDrtTorsModal isOpen={Boolean(torsTicket)} onClose={() => setTorsTicket(null)} ticket={torsTicket} projectId={projectId} />
+      {remarkModal && (
+        <DrtRemarkVersionModal
+          isOpen={Boolean(remarkModal)}
+          onClose={() => setRemarkModal(null)}
+          title={remarkModal.side === 'AUDITOR' ? 'Auditor Remarks Version History' : `${auditeeName} Remarks Version History`}
+          stakeholderType={remarkModal.side}
+          stakeholderName={remarkModal.side === 'AUDITOR' ? 'Lead Auditor' : auditeeName}
+          versions={getDrtRemarkVersions(remarkModal.ticket, remarkModal.side, auditeeName)}
+        />
+      )}
     </div>
   );
 };

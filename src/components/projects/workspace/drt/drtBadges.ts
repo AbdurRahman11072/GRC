@@ -1,3 +1,6 @@
+import type { IDRTTicket } from '../../../../types/drt.types';
+import type { IDRTRemarkVersion } from './details/DrtRemarkVersionModal';
+
 export const periodColorMap: Record<string, string> = {
   COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   SHARED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -50,3 +53,46 @@ export const periodCellStyles: Record<string, string> = {
   NOT_SHARED: 'bg-rose-50 text-rose-800',
 };
 
+export function getDrtRemarkVersions(
+  ticket: IDRTTicket,
+  side: 'AUDITOR' | 'AUDITEE',
+  auditeeName = 'FHL'
+): IDRTRemarkVersion[] {
+  if (side === 'AUDITOR') {
+    return [
+      {
+        version: 3,
+        authorName: ticket.supervisor?.name || 'Lead Auditor',
+        authorRole: ticket.supervisor?.designation || 'Lead Auditor',
+        createdAt: 'Latest update',
+        content: ticket.remarks || 'Primary engineering topology and fiber utilization logs verified.',
+        isCurrent: true,
+      },
+      {
+        version: 2,
+        authorName: ticket.fieldMember?.name || 'Field Auditor',
+        authorRole: 'Senior Audit Associate',
+        createdAt: 'Previous review',
+        content: 'Initial submission under review. Requested updated sheets.',
+      },
+    ];
+  }
+
+  return [
+    {
+      version: 2,
+      authorName: ticket.auditeeContact?.name || `${auditeeName} Operational Lead`,
+      authorRole: ticket.auditeeContact?.department || 'NOC & Engineering',
+      createdAt: 'Latest submission',
+      content: ticket.currentRequirement || 'Uploaded revised spreadsheets and sign-off sheets.',
+      isCurrent: true,
+    },
+    {
+      version: 1,
+      authorName: ticket.auditeeContact?.name || `${auditeeName} Focal`,
+      authorRole: 'Compliance Officer',
+      createdAt: 'Initial dispatch',
+      content: 'Initial raw logs shared via drive folder.',
+    },
+  ];
+}
