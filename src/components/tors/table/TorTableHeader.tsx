@@ -84,10 +84,10 @@ export const TorTableHeader: React.FC = () => {
           Final Report
         </th>
 
-        {/* Sticky Right: Actions */}
+        {/* Actions */}
         <th
           rowSpan={2}
-          className="sticky right-0 z-20 bg-slate-50 py-2.5 px-3 text-right w-48 min-w-[200px] whitespace-nowrap shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)] border-l border-slate-200"
+          className="py-2.5 px-3 text-right w-48 min-w-[200px] whitespace-nowrap border-l border-slate-200"
         >
           Actions
         </th>

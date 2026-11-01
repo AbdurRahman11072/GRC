@@ -143,6 +143,7 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
         {/* 6. Sticky Right: Actions */}
         <TorRowActions
           node={node}
+          level={level}
           canManageTor={canManageTor}
           canConfigureWeights={canConfigureWeights}
           canAwardMarks={canAwardMarks}

@@ -11,15 +11,25 @@ export const REPORT_PHASES: { key: TorProgressReportPhase; label: string; shortL
 ];
 
 /**
+ * Check if a ToR clause is eligible for issuing DRT tickets.
+ * Only 3rd-level clauses (e.g. 1.1.1) and deeper can issue DRT tickets.
+ * High-level clauses like 1 or 1.1 are strictly excluded.
+ */
+export function isTorDrtEligible(code?: string, level?: number): boolean {
+  if (!code) return level !== undefined && level >= 2;
+  const parts = code.split('.').filter(Boolean);
+  if (parts.length === 1 || parts.length === 2) return false;
+  return parts.length >= 3 || (level !== undefined && level >= 2);
+}
+
+/**
  * Split DRT tickets between BTRC (Client) and FHL (Auditee)
  */
 export function splitDrtTicketsByParty(tickets?: IDRTTicket[]): {
   btrcTickets: IDRTTicket[];
   fhlTickets: IDRTTicket[];
 } {
-  if (!tickets || tickets.length === 0) {
-    return { btrcTickets: [], fhlTickets: [] };
-  }
+  if (!tickets || tickets.length === 0) return { btrcTickets: [], fhlTickets: [] };
   const btrcTickets = tickets.filter(
     (t) => t.assignedTeamBucket === 'CLIENT' || (t as { clientContactId?: string }).clientContactId
   );
@@ -44,7 +54,6 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
       auditorRemark: node.firstProgressAuditorRemark || (node.complianceStatus ? 'Initial evidence logs collected and mapped to ToR.' : null),
     };
   }
-
   if (phase === 'SECOND_PROGRESS') {
     return {
       stageKey: phase,
@@ -53,7 +62,6 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
       auditorRemark: node.secondProgressAuditorRemark || (node.analysisNotes ? 'Technical documentation under verification.' : null),
     };
   }
-
   if (phase === 'THIRD_PROGRESS') {
     return {
       stageKey: phase,
@@ -62,7 +70,6 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
       auditorRemark: node.thirdProgressAuditorRemark || (node.complianceStatus === 'COMPLIANT' ? 'Validation completed against baseline criteria.' : null),
     };
   }
-
   if (phase === 'DRAFT_REPORT') {
     return {
       stageKey: phase,
@@ -72,7 +79,6 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
       auditorRemark: node.draftAuditorRemark || (node.analysisNotes || 'Under preliminary audit committee review.'),
     };
   }
-
   return {
     stageKey: 'FINAL_REPORT',
     stageName: 'Final Report',
@@ -88,18 +94,10 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
 export function getProgressBadgeClasses(status?: string): string {
   if (!status) return 'bg-slate-100 text-slate-600 border-slate-200';
   const s = status.toUpperCase();
-  if (s === 'COMPLIANT' || s === 'FINALIZED' || s === 'ACCEPTED' || s === 'DONE') {
-    return 'bg-emerald-50 text-emerald-700 border-emerald-300 font-medium';
-  }
-  if (s === 'PARTIALLY_COMPLIANT' || s === 'PARTIAL' || s === 'SUBMITTED') {
-    return 'bg-amber-50 text-amber-700 border-amber-300 font-medium';
-  }
-  if (s === 'IN_PROGRESS' || s === 'IN_REVIEW') {
-    return 'bg-blue-50 text-blue-700 border-blue-300 font-medium';
-  }
-  if (s === 'NON_COMPLIANT' || s === 'REVISION_REQUESTED') {
-    return 'bg-rose-50 text-rose-700 border-rose-300 font-medium';
-  }
+  if (['COMPLIANT', 'FINALIZED', 'ACCEPTED', 'DONE'].includes(s)) return 'bg-emerald-50 text-emerald-700 border-emerald-300 font-medium';
+  if (['PARTIALLY_COMPLIANT', 'PARTIAL', 'SUBMITTED'].includes(s)) return 'bg-amber-50 text-amber-700 border-amber-300 font-medium';
+  if (['IN_PROGRESS', 'IN_REVIEW'].includes(s)) return 'bg-blue-50 text-blue-700 border-blue-300 font-medium';
+  if (['NON_COMPLIANT', 'REVISION_REQUESTED'].includes(s)) return 'bg-rose-50 text-rose-700 border-rose-300 font-medium';
   return 'bg-slate-50 text-slate-600 border-slate-200';
 }
 
@@ -124,12 +122,8 @@ export function updateNodeRemarkRecursive(
         auditeeRemark: updatedData.auditeeRemark ?? null,
         updatedAt: updatedData.updatedAt || new Date().toISOString(),
       };
-
-      if (idx >= 0) {
-        currentStages[idx] = { ...currentStages[idx], ...newStage };
-      } else {
-        currentStages.push(newStage);
-      }
+      if (idx >= 0) currentStages[idx] = { ...currentStages[idx], ...newStage };
+      else currentStages.push(newStage);
 
       const patch: Partial<ITorNode> = { progressStages: currentStages };
       if (phase === 'FIRST_PROGRESS') {
@@ -148,7 +142,6 @@ export function updateNodeRemarkRecursive(
         patch.finalRemark = updatedData.auditeeRemark;
         patch.finalAuditorRemark = updatedData.auditorRemark;
       }
-
       return { ...n, ...patch };
     }
     if (n.children && n.children.length > 0) {
@@ -174,20 +167,14 @@ export function filterTorTree(nodes: ITorNode[], filters: TorFilterState): ITorN
       );
       if (!matchesCode && !matchesTitle && !matchesDesc && !matchesDrt) return false;
     }
-
-    if (filters.department !== 'ALL' && node.department !== filters.department) {
-      return false;
-    }
-
+    if (filters.department !== 'ALL' && node.department !== filters.department) return false;
     if (filters.assignedUser !== 'ALL') {
       if (filters.assignedUser === 'UNASSIGNED') {
         if (node.assignedMembers && node.assignedMembers.length > 0) return false;
-      } else {
-        const hasMember = node.assignedMembers?.some((am) => am.userId === filters.assignedUser);
-        if (!hasMember) return false;
+      } else if (!node.assignedMembers?.some((am) => am.userId === filters.assignedUser)) {
+        return false;
       }
     }
-
     if (filters.progressStatus !== 'ALL') {
       const s1 = getTorStageData(node, 'FIRST_PROGRESS').status;
       const s2 = getTorStageData(node, 'SECOND_PROGRESS').status;
@@ -199,19 +186,13 @@ export function filterTorTree(nodes: ITorNode[], filters: TorFilterState): ITorN
         node.complianceStatus === filters.progressStatus;
       if (!matchesAny) return false;
     }
-
     if (filters.drtStream !== 'ALL') {
       const tickets = node.drtTickets || [];
       if (filters.drtStream === 'HAS_DRT' && tickets.length === 0) return false;
       if (filters.drtStream === 'NO_DRT' && tickets.length > 0) return false;
-      if (filters.drtStream === 'BTRC_DRT' && !tickets.some((t) => t.assignedTeamBucket === 'CLIENT')) {
-        return false;
-      }
-      if (filters.drtStream === 'FHL_DRT' && !tickets.some((t) => t.assignedTeamBucket !== 'CLIENT')) {
-        return false;
-      }
+      if (filters.drtStream === 'BTRC_DRT' && !tickets.some((t) => t.assignedTeamBucket === 'CLIENT')) return false;
+      if (filters.drtStream === 'FHL_DRT' && !tickets.some((t) => t.assignedTeamBucket !== 'CLIENT')) return false;
     }
-
     return true;
   };
 

@@ -7,6 +7,7 @@ import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
 import { useGetTorByIdQuery } from '../../../store/api/torApi';
 import type { ITorNode } from '../../../types/tor.types';
+import { isTorDrtEligible } from '../../../lib/torProgressUtils';
 
 export interface TorDetailsDrawerProps {
   isOpen: boolean;
@@ -40,6 +41,8 @@ export const TorDetailsDrawer: React.FC<TorDetailsDrawerProps> = ({
 
   if (!torNode || !tor) return null;
 
+  const canIssueDrt = isTorDrtEligible(tor.code);
+
   const tickets = tor.drtTickets || [];
   const weights = tor.streamWeights || [];
   const children = tor.children || [];
@@ -72,7 +75,7 @@ export const TorDetailsDrawer: React.FC<TorDetailsDrawerProps> = ({
               )}
             </div>
             <div className="flex items-center gap-1.5">
-              {onFireDrt && (
+              {onFireDrt && canIssueDrt && (
                 <Button size="xs" variant="outline" onClick={() => onFireDrt(tor.id)} className="text-indigo-700 border-indigo-200 bg-white" leftIcon={<FilePlus className="w-3.5 h-3.5" />}>+ DRT</Button>
               )}
               {canAwardMarks && onEvaluateAnalysis && (
@@ -190,7 +193,7 @@ export const TorDetailsDrawer: React.FC<TorDetailsDrawerProps> = ({
             ) : (
               <div className="p-8 text-center text-xs text-slate-500 border border-dashed rounded-xl space-y-2">
                 <p>No DRT data requests linked to this ToR clause yet.</p>
-                {onFireDrt && <Button size="xs" variant="primary" onClick={() => onFireDrt(tor.id)} leftIcon={<FilePlus className="w-3.5 h-3.5" />}>Issue DRT</Button>}
+                {onFireDrt && canIssueDrt && <Button size="xs" variant="primary" onClick={() => onFireDrt(tor.id)} leftIcon={<FilePlus className="w-3.5 h-3.5" />}>Issue DRT</Button>}
               </div>
             )}
           </div>

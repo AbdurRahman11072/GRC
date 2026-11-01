@@ -15,6 +15,7 @@ import {
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import type { ITorNode } from '../../types/tor.types';
+import { isTorDrtEligible } from '../../lib/torProgressUtils';
 
 export interface TorTreeNodeProps {
   node: ITorNode;
@@ -44,6 +45,7 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
   onEditTor,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const canIssueDrt = isTorDrtEligible(node.code, level);
   const hasChildren = node.children && node.children.length > 0;
   const childTickets = node.drtTickets || [];
 
@@ -135,7 +137,7 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0 self-end sm:self-center flex-wrap">
-          {onFireDrt && (
+          {onFireDrt && canIssueDrt && (
             <Button
               type="button"
               variant="ghost"
