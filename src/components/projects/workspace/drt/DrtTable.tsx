@@ -6,6 +6,7 @@ import { DrtTableHeader } from './DrtTableHeader';
 import { DrtTableRow } from './DrtTableRow';
 import type { IDRTTicket, DRTPartySide } from '../../../../types/drt.types';
 import { DEFAULT_AUDIT_YEARS } from './DrtTimeFrameGrid';
+import { useHorizontalScroll } from '../../../../hooks/useHorizontalScroll';
 
 export interface DrtTableProps {
   projectId: string;
@@ -33,9 +34,16 @@ export const DrtTable: React.FC<DrtTableProps> = ({
   onOpenRemarkModal,
 }) => {
   const totalColumns = 21 + auditYears.length;
+  const tableContainerRef = useHorizontalScroll<HTMLDivElement>({
+    speed: 1.2,
+    allowVerticalAtBoundaries: true,
+  });
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-2xs max-w-full">
+    <div
+      ref={tableContainerRef}
+      className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-2xs max-w-full"
+    >
       <table className="w-full text-left border-collapse min-w-[2100px]">
         <DrtTableHeader auditYears={auditYears} />
         <tbody>

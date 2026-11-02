@@ -7,6 +7,7 @@ import { TorTableRow } from './TorTableRow';
 import { TorTableFilters, type TorFilterState } from './TorTableFilters';
 import { TorRemarkModal } from './TorRemarkPopover';
 import type { ITorNode, TorProgressReportPhase, ITorProgressStageData } from '../../../types/tor.types';
+import { useHorizontalScroll } from '../../../hooks/useHorizontalScroll';
 import {
   getTorStageData,
   updateNodeRemarkRecursive,
@@ -103,6 +104,11 @@ export const TorTable: React.FC<TorTableProps> = ({
   const totalCount = useMemo(() => countTorNodes(localTree), [localTree]);
   const filteredCount = useMemo(() => countTorNodes(filteredNodes), [filteredNodes]);
 
+  const tableContainerRef = useHorizontalScroll<HTMLDivElement>({
+    speed: 1.2,
+    allowVerticalAtBoundaries: true,
+  });
+
   return (
     <div className="space-y-3">
       {/* Search & Dynamic Filters Toolbar */}
@@ -117,7 +123,10 @@ export const TorTable: React.FC<TorTableProps> = ({
       />
 
       {/* Enterprise Data Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs max-w-full">
+      <div
+        ref={tableContainerRef}
+        className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs max-w-full"
+      >
         <table className="w-full text-left border-collapse min-w-[1700px]">
           <TorTableHeader />
           <tbody>

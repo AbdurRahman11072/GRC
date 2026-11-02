@@ -11,16 +11,7 @@ interface DrtDescriptionCellProps {
 export const DrtDescriptionCell: React.FC<DrtDescriptionCellProps> = ({ ticket, docs }) => {
   return (
     <>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="font-semibold text-slate-900 text-xs">
-          {ticket.title || ticket.requestCode}
-        </span>
-        {ticket.department && (
-          <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200">
-            {ticket.department}
-          </span>
-        )}
-      </div>
+
 
       {ticket.description && (
         <div
@@ -36,7 +27,7 @@ export const DrtDescriptionCell: React.FC<DrtDescriptionCellProps> = ({ ticket, 
         </div>
       )}
 
-      {docs.length > 0 && (
+      {/* {docs.length > 0 && (
         <div className="flex items-center gap-1 flex-wrap pt-0.5">
           {docs.map((d) => (
             <span
@@ -51,7 +42,7 @@ export const DrtDescriptionCell: React.FC<DrtDescriptionCellProps> = ({ ticket, 
             </span>
           ))}
         </div>
-      )}
+      )} */}
     </>
   );
 };

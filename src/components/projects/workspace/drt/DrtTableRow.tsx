@@ -52,33 +52,32 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
   const actualDateDisplay = latestDocDate
     ? formatDate(latestDocDate)
     : ticket.actualDateOfReceipt
-    ? formatDate(ticket.actualDateOfReceipt)
-    : '—';
+      ? formatDate(ticket.actualDateOfReceipt)
+      : '—';
 
   return (
-    <tr className="border-b border-slate-200 hover:bg-slate-50/70 transition-colors text-xs bg-white">
-      {/* 1. SL */}
-      <td className="py-2.5 px-2 text-center font-mono text-slate-500 border-r border-slate-200 align-middle w-12">
+    <tr className="group border-b border-slate-200 hover:bg-slate-50/70 transition-colors text-xs bg-white">
+      {/* 1. SL (Sticky Left) */}
+      <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 transition-colors py-2.5 px-2 text-center font-mono text-slate-500 border-r border-slate-200 align-middle w-12 min-w-[48px] max-w-[48px]">
         {index + 1}
       </td>
 
       {/* 2. ID (Sticky Left) */}
-      <td className="sticky left-0 z-10 bg-white py-2.5 px-2.5 text-center font-mono font-bold text-xs text-indigo-700 border-r border-slate-200 align-middle w-24 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
+      <td className="sticky left-[48px] z-10 bg-white group-hover:bg-slate-50 transition-colors py-2.5 px-2.5 text-center font-mono font-bold text-xs text-indigo-700 border-r border-slate-200 align-middle w-24 min-w-[96px] max-w-[96px]">
         <span className="inline-block px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200/80">
           {ticket.requestCode}
         </span>
       </td>
 
-      {/* 3. Request Description */}
-      <td className="py-2.5 px-3 min-w-[280px] max-w-sm border-r border-slate-200 align-middle space-y-1">
+      {/* 3. Request Description (Sticky Left) */}
+      <td className="sticky left-[144px] z-10 bg-white group-hover:bg-slate-50 transition-colors py-2.5 px-3 min-w-[280px] max-w-sm border-r border-slate-200 align-middle space-y-1 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
         <DrtDescriptionCell ticket={ticket} docs={docs} />
       </td>
 
       {/* 4. ToR Clause */}
       <td
-        className={`py-2.5 px-2 text-center font-mono text-xs border-r border-slate-200 bg-slate-50/30 align-middle w-28 ${
-          onManageTors ? 'cursor-pointer hover:bg-indigo-50/60 transition-colors group' : ''
-        }`}
+        className={`py-2.5 px-2 text-center font-mono text-xs border-r border-slate-200 bg-slate-50/30 align-middle w-28 ${onManageTors ? 'cursor-pointer hover:bg-indigo-50/60 transition-colors group' : ''
+          }`}
         onClick={() => onManageTors?.(ticket)}
         title={onManageTors ? 'Click to manage linked ToR activities' : undefined}
       >
@@ -155,31 +154,31 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         {actualDateDisplay}
       </td>
 
-      {/* 10. Status (Auditor) */}
+      {/* 10. Excess Days */}
+      <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200 text-center">
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${excessDays > 0
+              ? 'bg-rose-50 text-rose-700 border-rose-200'
+              : excessDays === 0
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-sky-50 text-sky-700 border-sky-200'
+            }`}
+        >
+          {excessDays > 0 ? `+${excessDays}d` : `${excessDays}d`}
+        </span>
+      </td>
+
+      {/* 11. Status (Auditor) */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200">
         <span
-          className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold border ${
-            statusBadgeStyles[reviewOutcomeKey] || 'bg-slate-100 text-slate-700 border-slate-300'
-          }`}
+          className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold border ${statusBadgeStyles[reviewOutcomeKey] || 'bg-slate-100 text-slate-700 border-slate-300'
+            }`}
         >
           {reviewOutcomeKey.replace(/_/g, ' ')}
         </span>
       </td>
 
-      {/* 11. Excess Days */}
-      <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200 text-center">
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-            excessDays > 0
-              ? 'bg-rose-50 text-rose-700 border-rose-200'
-              : excessDays === 0
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : 'bg-sky-50 text-sky-700 border-sky-200'
-          }`}
-        >
-          {excessDays > 0 ? `+${excessDays}d` : `${excessDays}d`}
-        </span>
-      </td>
+
 
       {/* 12-15. Cloud Links & Collection Statuses */}
       <DrtCloudAndCollectionCells ticket={ticket} />

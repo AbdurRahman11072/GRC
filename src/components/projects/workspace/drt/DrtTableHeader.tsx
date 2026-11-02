@@ -13,18 +13,18 @@ export const DrtTableHeader: React.FC<DrtTableHeaderProps> = ({
   return (
     <thead>
       <tr className="border-b border-slate-300 bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider select-none">
-        {/* 1. SL */}
-        <th className="py-2.5 px-2 text-center border-r border-slate-300 w-12 whitespace-nowrap">
+        {/* 1. SL (Sticky Left) */}
+        <th className="sticky left-0 z-20 bg-slate-100 py-2.5 px-2 text-center border-r border-slate-300 w-12 min-w-[48px] max-w-[48px] whitespace-nowrap">
           SL
         </th>
 
         {/* 2. ID (Sticky Left) */}
-        <th className="sticky left-0 z-20 bg-slate-100 py-2.5 px-2.5 text-center border-r border-slate-300 w-24 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
+        <th className="sticky left-[48px] z-20 bg-slate-100 py-2.5 px-2.5 text-center border-r border-slate-300 w-24 min-w-[96px] max-w-[96px] whitespace-nowrap">
           ID
         </th>
 
-        {/* 3. Request Description */}
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[280px] max-w-sm whitespace-nowrap">
+        {/* 3. Request Description (Sticky Left) */}
+        <th className="sticky left-[144px] z-20 bg-slate-100 py-2.5 px-3 border-r border-slate-300 min-w-[280px] max-w-sm whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
           Request Description
         </th>
 
@@ -57,31 +57,33 @@ export const DrtTableHeader: React.FC<DrtTableHeaderProps> = ({
         <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap">
           Actual Date
         </th>
+        {/* 10. Excess Days */}
+        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center">
+          Excess Days
+        </th>
 
-        {/* 10. Status (Auditor) */}
+        {/* 11. Status (Auditor) */}
         <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap">
           Status (Auditor)
         </th>
 
-        {/* 11. Excess Days */}
-        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center">
-          Excess Days
-        </th>
+
 
         {/* 12. Client Cloud Link */}
         <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-sky-50/50 text-sky-900">
           Client Cloud Link
         </th>
+        {/* 13. Client Collection Status */}
+        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-sky-50/50 text-sky-900">
+          Client Collection Status
+        </th>
 
-        {/* 13. Auditee Cloud Link */}
+        {/* 14. Auditee Cloud Link */}
         <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-emerald-50/50 text-emerald-900">
           Auditee Cloud Link
         </th>
 
-        {/* 14. Client Collection Status */}
-        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-sky-50/50 text-sky-900">
-          Client Collection Status
-        </th>
+
 
         {/* 15. Auditee Collection Status */}
         <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-emerald-50/50 text-emerald-900">
