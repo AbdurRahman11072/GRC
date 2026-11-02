@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Check, MessageSquare, AlertCircle } from 'lucide-react';
+import { X, MessageSquare, AlertCircle } from 'lucide-react';
 import type { ITorNode, TorProgressReportPhase, ITorProgressStageData } from '../../../types/tor.types';
+import { getTorProgressPercentage } from '../../../lib/torPercentageUtils';
 
 export interface TorRemarkModalProps {
   isOpen: boolean;
@@ -21,17 +22,24 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
   initialData,
   onSave,
 }) => {
+  const isFirstProgress = phase === 'FIRST_PROGRESS';
+  const hasDualRemarks =
+    phase === 'DRAFT_REPORT' || phase === 'FINAL_REPORT' || phase === 'INCENTIVE_REPORT';
+
   const [status, setStatus] = useState(initialData.status || 'PENDING');
+  const [progressPct, setProgressPct] = useState<number>(() =>
+    isFirstProgress ? getTorProgressPercentage(node) : 0
+  );
   const [auditorRemark, setAuditorRemark] = useState(initialData.auditorRemark || '');
   const [auditeeRemark, setAuditeeRemark] = useState(initialData.auditeeRemark || '');
 
   if (!isOpen) return null;
 
-  const isDraftOrFinal = phase === 'DRAFT_REPORT' || phase === 'FINAL_REPORT';
-
   const handleSave = () => {
+    const finalStatus = isFirstProgress ? `${progressPct}%` : status;
     onSave(node.id, phase, {
-      status,
+      status: finalStatus,
+      score: isFirstProgress ? progressPct : undefined,
       auditorRemark: auditorRemark.trim() || null,
       auditeeRemark: auditeeRemark.trim() || null,
       updatedAt: new Date().toISOString(),
@@ -69,36 +77,83 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
 
         {/* Content Body */}
         <div className="p-5 space-y-4 overflow-y-auto text-xs">
-          {/* Status Selector */}
-          <div className="space-y-1.5">
-            <label className="block font-semibold text-slate-700">
-              Phase Progress Status
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all text-xs"
-            >
-              <option value="PENDING">Pending Evaluation</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="PARTIALLY_COMPLIANT">Partially Compliant</option>
-              <option value="COMPLIANT">Compliant</option>
-              <option value="NON_COMPLIANT">Non-Compliant</option>
-              <option value="NOT_APPLICABLE">Not Applicable</option>
-            </select>
-          </div>
-
-          {/* Auditee / Draft Remark (if applicable) */}
-          {isDraftOrFinal && (
+          {/* 1st Progress: Percentage Input & Quick Presets */}
+          {isFirstProgress ? (
+            <div className="space-y-2 p-3 bg-emerald-50/50 rounded-xl border border-emerald-200">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-emerald-900">
+                  1st Progress Completion Percentage
+                </label>
+                <span className="font-mono font-bold text-sm text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                  {progressPct}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={progressPct}
+                onChange={(e) => setProgressPct(parseInt(e.target.value, 10))}
+                className="w-full h-2 bg-emerald-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+              />
+              <div className="flex items-center justify-between gap-1 pt-1">
+                {[0, 25, 50, 75, 100].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setProgressPct(preset)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold border transition-colors ${
+                      progressPct === preset
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                    }`}
+                  >
+                    {preset}%
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Standard Progress Status Selector */
             <div className="space-y-1.5">
               <label className="block font-semibold text-slate-700">
-                {phase === 'DRAFT_REPORT' ? 'Draft Remark (Auditee Focal)' : 'Final Remark (Auditee Focal)'}
+                Phase Progress Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all text-xs"
+              >
+                <option value="PENDING">Pending Evaluation</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="PARTIALLY_COMPLIANT">Partially Compliant</option>
+                <option value="COMPLIANT">Compliant</option>
+                <option value="NON_COMPLIANT">Non-Compliant</option>
+                <option value="NOT_APPLICABLE">Not Applicable</option>
+              </select>
+            </div>
+          )}
+
+          {/* Incentive / Auditee / Draft Remark (if applicable) */}
+          {hasDualRemarks && (
+            <div className="space-y-1.5">
+              <label className="block font-semibold text-slate-700">
+                {phase === 'INCENTIVE_REPORT'
+                  ? 'Incentive Remark / Deliverable Scope'
+                  : phase === 'DRAFT_REPORT'
+                  ? 'Draft Remark (Auditee Focal)'
+                  : 'Final Remark (Auditee Focal)'}
               </label>
               <textarea
                 rows={3}
                 value={auditeeRemark}
                 onChange={(e) => setAuditeeRemark(e.target.value)}
-                placeholder="Enter auditee focal team remark or explanation..."
+                placeholder={
+                  phase === 'INCENTIVE_REPORT'
+                    ? 'Enter incentive report findings, compliance notes, or scope explanation...'
+                    : 'Enter auditee focal team remark or explanation...'
+                }
                 className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all resize-none text-xs"
               />
             </div>
@@ -121,7 +176,7 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-amber-800">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
             <p className="text-[11px] leading-relaxed">
-              Updates to this remark are versioned and logged in the audit trail. The latest remark will be displayed on the macro ToR table.
+              Updates to this remark and progress are versioned and logged in the audit trail. The latest data will be displayed on the macro ToR table.
             </p>
           </div>
         </div>
@@ -138,10 +193,9 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
           <button
             type="button"
             onClick={handleSave}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 shadow-sm transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 shadow-2xs transition-colors"
           >
-            <Check className="w-3.5 h-3.5" />
-            Save Remark
+            Save Remarks
           </button>
         </div>
       </div>

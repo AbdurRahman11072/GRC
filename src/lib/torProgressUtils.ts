@@ -6,9 +6,12 @@ export const REPORT_PHASES: { key: TorProgressReportPhase; label: string; shortL
   { key: 'FIRST_PROGRESS', label: '1st Progress Report', shortLabel: '1st Progress' },
   { key: 'SECOND_PROGRESS', label: '2nd Progress Report', shortLabel: '2nd Progress' },
   { key: 'THIRD_PROGRESS', label: '3rd Progress Report', shortLabel: '3rd Progress' },
+  { key: 'INCENTIVE_REPORT', label: 'Incentive Report', shortLabel: 'Incentive Report' },
   { key: 'DRAFT_REPORT', label: 'Draft Audit Report', shortLabel: 'Draft Report' },
   { key: 'FINAL_REPORT', label: 'Final Audit Report', shortLabel: 'Final Report' },
 ];
+
+export { getTorProgressPercentage } from './torPercentageUtils';
 
 /**
  * Check if a ToR clause is eligible for issuing DRT tickets.
@@ -68,6 +71,15 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
       stageName: '3rd Progress',
       status: node.thirdProgress || (node.complianceStatus || 'PENDING'),
       auditorRemark: node.thirdProgressAuditorRemark || (node.complianceStatus === 'COMPLIANT' ? 'Validation completed against baseline criteria.' : null),
+    };
+  }
+  if (phase === 'INCENTIVE_REPORT') {
+    return {
+      stageKey: phase,
+      stageName: 'Incentive Report',
+      status: node.incentiveReport ? 'SUBMITTED' : 'PENDING',
+      auditeeRemark: node.incentiveReport || null,
+      auditorRemark: node.incentiveAuditorRemark || null,
     };
   }
   if (phase === 'DRAFT_REPORT') {
@@ -135,6 +147,9 @@ export function updateNodeRemarkRecursive(
       } else if (phase === 'THIRD_PROGRESS') {
         patch.thirdProgress = updatedData.status;
         patch.thirdProgressAuditorRemark = updatedData.auditorRemark;
+      } else if (phase === 'INCENTIVE_REPORT') {
+        patch.incentiveReport = updatedData.auditeeRemark || updatedData.status;
+        patch.incentiveAuditorRemark = updatedData.auditorRemark;
       } else if (phase === 'DRAFT_REPORT') {
         patch.draftRemark = updatedData.auditeeRemark;
         patch.draftAuditorRemark = updatedData.auditorRemark;

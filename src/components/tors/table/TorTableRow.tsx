@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, UserCheck } from 'lucide-react';
 import type { ITorNode, TorProgressReportPhase } from '../../../types/tor.types';
 import { TorDrtSubCells } from './TorDrtSubCells';
+import { TorIncentiveCells } from './TorIncentiveCells';
 import { TorProgressCells } from './TorProgressCells';
 import { TorRowActions } from './TorRowActions';
 
@@ -134,10 +135,13 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
           )}
         </td>
 
-        {/* 4. DRT BTRC & DRT FHL Sub-Cells (4 columns) */}
+        {/* 4. Incentive Report (2 columns) */}
+        <TorIncentiveCells node={node} onOpenRemarkModal={onOpenRemarkModal} />
+
+        {/* 5. DRT BTRC & DRT FHL Sub-Cells (4 columns) */}
         <TorDrtSubCells node={node} />
 
-        {/* 5. Progress & Remark Cells (10 columns: 1st, 2nd, 3rd, Draft, Final) */}
+        {/* 6. Progress & Remark Cells (10 columns: 1st, 2nd, 3rd, Draft, Final) */}
         <TorProgressCells node={node} onOpenRemarkModal={onOpenRemarkModal} />
 
         {/* 6. Sticky Right: Actions */}

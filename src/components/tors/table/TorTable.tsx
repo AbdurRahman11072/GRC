@@ -157,7 +157,7 @@ export const TorTable: React.FC<TorTableProps> = ({
               ))
             ) : (
               <tr>
-                <td colSpan={18} className="py-12 text-center text-xs text-slate-500">
+                <td colSpan={20} className="py-12 text-center text-xs text-slate-500">
                   <div className="flex flex-col items-center gap-2">
                     <Layers className="w-6 h-6 text-slate-400" />
                     <span>No Terms of Reference clauses found matching your filter criteria.</span>

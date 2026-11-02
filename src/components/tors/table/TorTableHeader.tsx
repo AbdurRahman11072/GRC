@@ -28,6 +28,14 @@ export const TorTableHeader: React.FC = () => {
           Assigned To
         </th>
 
+        {/* Incentive Report */}
+        <th
+          colSpan={2}
+          className="py-2 px-3 text-center border-r border-teal-200 bg-teal-50/90 text-teal-900 border-b"
+        >
+          Incentive Report
+        </th>
+
         {/* DRT BTRC (Client) */}
         <th
           colSpan={2}
@@ -95,6 +103,14 @@ export const TorTableHeader: React.FC = () => {
 
       {/* Tier 2: Sub-Column Headers */}
       <tr className="border-b border-slate-200 bg-slate-100/80 text-[10px] font-semibold text-slate-600 uppercase tracking-wide">
+        {/* Incentive Report Sub-columns */}
+        <th className="py-1.5 px-2.5 text-left min-w-[160px] max-w-[200px] bg-teal-50/50 text-teal-800 border-r border-slate-200">
+          Incentive Remark
+        </th>
+        <th className="py-1.5 px-2.5 text-left min-w-[160px] max-w-[200px] bg-teal-50/50 text-teal-800 border-r border-teal-200">
+          Auditor Remark
+        </th>
+
         {/* DRT BTRC Sub-columns */}
         <th className="py-1.5 px-2.5 text-center min-w-[120px] bg-violet-50/50 text-violet-800 border-r border-slate-200">
           Collection
@@ -113,7 +129,7 @@ export const TorTableHeader: React.FC = () => {
 
         {/* 1st Progress Sub-columns */}
         <th className="py-1.5 px-2.5 text-center min-w-[110px] bg-emerald-50/50 text-emerald-800 border-r border-slate-200">
-          Progress
+          Progress (%)
         </th>
         <th className="py-1.5 px-2.5 text-left min-w-[160px] max-w-[200px] bg-emerald-50/50 text-emerald-800 border-r border-emerald-200">
           Auditor Remark
