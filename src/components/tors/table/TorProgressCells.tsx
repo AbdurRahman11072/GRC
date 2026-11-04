@@ -18,6 +18,8 @@ export const TorProgressCells: React.FC<TorProgressCellsProps> = ({
   const stage1 = getTorStageData(node, 'FIRST_PROGRESS');
   const stage2 = getTorStageData(node, 'SECOND_PROGRESS');
   const stage3 = getTorStageData(node, 'THIRD_PROGRESS');
+  const stage4 = getTorStageData(node, 'FOURTH_PROGRESS');
+  const stage5 = getTorStageData(node, 'FIFTH_PROGRESS');
   const stageDraft = getTorStageData(node, 'DRAFT_REPORT');
   const stageFinal = getTorStageData(node, 'FINAL_REPORT');
 
@@ -114,7 +116,23 @@ export const TorProgressCells: React.FC<TorProgressCellsProps> = ({
         {renderRemarkButton(stage3.auditorRemark, 'THIRD_PROGRESS', 'auditor remark')}
       </td>
 
-      {/* 4. Draft Report */}
+      {/* 4. 4th Progress */}
+      <td className="py-2 px-2.5 text-center align-middle border-r border-slate-200 bg-cyan-50/10">
+        {renderProgressCell('FOURTH_PROGRESS', '4th Progress')}
+      </td>
+      <td className="py-2 px-2.5 align-middle border-r border-cyan-200 bg-cyan-50/10 min-w-[160px] max-w-[200px]">
+        {renderRemarkButton(stage4.auditorRemark, 'FOURTH_PROGRESS', 'auditor remark')}
+      </td>
+
+      {/* 5. 5th Progress */}
+      <td className="py-2 px-2.5 text-center align-middle border-r border-slate-200 bg-rose-50/10">
+        {renderProgressCell('FIFTH_PROGRESS', '5th Progress')}
+      </td>
+      <td className="py-2 px-2.5 align-middle border-r border-rose-200 bg-rose-50/10 min-w-[160px] max-w-[200px]">
+        {renderRemarkButton(stage5.auditorRemark, 'FIFTH_PROGRESS', 'auditor remark')}
+      </td>
+
+      {/* 6. Draft Report */}
       <td className="py-2 px-2.5 align-middle border-r border-slate-200 bg-amber-50/10 min-w-[160px] max-w-[200px]">
         {renderRemarkButton(stageDraft.auditeeRemark, 'DRAFT_REPORT', 'draft remark')}
       </td>

@@ -6,6 +6,8 @@ export const REPORT_PHASES: { key: TorProgressReportPhase; label: string; shortL
   { key: 'FIRST_PROGRESS', label: '1st Progress Report', shortLabel: '1st Progress' },
   { key: 'SECOND_PROGRESS', label: '2nd Progress Report', shortLabel: '2nd Progress' },
   { key: 'THIRD_PROGRESS', label: '3rd Progress Report', shortLabel: '3rd Progress' },
+  { key: 'FOURTH_PROGRESS', label: '4th Progress Report', shortLabel: '4th Progress' },
+  { key: 'FIFTH_PROGRESS', label: '5th Progress Report', shortLabel: '5th Progress' },
   { key: 'INCENTIVE_REPORT', label: 'Incentive Report', shortLabel: 'Incentive Report' },
   { key: 'DRAFT_REPORT', label: 'Draft Audit Report', shortLabel: 'Draft Report' },
   { key: 'FINAL_REPORT', label: 'Final Audit Report', shortLabel: 'Final Report' },
@@ -13,21 +15,12 @@ export const REPORT_PHASES: { key: TorProgressReportPhase; label: string; shortL
 
 export { getTorProgressPercentage } from './torPercentageUtils';
 
-/**
- * Check if a ToR clause is eligible for issuing DRT tickets.
- * DRT tickets are issued directly from 2nd-level sub-clauses (e.g. 1.1, 1.2).
- * Root clauses (e.g. 1, 2) cannot issue DRTs. 3rd-level clauses (1.1.1) are eliminated.
- */
 export function isTorDrtEligible(code?: string, level?: number): boolean {
   if (level !== undefined && level === 1) return true;
   if (!code) return false;
-  const parts = code.split('.').filter(Boolean);
-  return parts.length === 2;
+  return code.split('.').filter(Boolean).length === 2;
 }
 
-/**
- * Split DRT tickets between BTRC (Client) and FHL (Auditee)
- */
 export function splitDrtTicketsByParty(tickets?: IDRTTicket[]): {
   btrcTickets: IDRTTicket[];
   fhlTickets: IDRTTicket[];
@@ -40,9 +33,6 @@ export function splitDrtTicketsByParty(tickets?: IDRTTicket[]): {
   return { btrcTickets, fhlTickets };
 }
 
-/**
- * Extract dynamic stage data for a given phase, falling back gracefully
- */
 export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): ITorProgressStageData {
   if (node.progressStages && node.progressStages.length > 0) {
     const stage = node.progressStages.find((s) => s.stageKey === phase);
@@ -73,13 +63,29 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
       auditorRemark: node.thirdProgressAuditorRemark || (node.complianceStatus === 'COMPLIANT' ? 'Validation completed against baseline criteria.' : null),
     };
   }
+  if (phase === 'FOURTH_PROGRESS') {
+    return {
+      stageKey: phase,
+      stageName: '4th Progress',
+      status: node.fourthProgress || (node.complianceStatus || 'PENDING'),
+      auditorRemark: node.fourthProgressAuditorRemark || (node.complianceStatus === 'COMPLIANT' ? 'Fourth stage review verified against criteria.' : null),
+    };
+  }
+  if (phase === 'FIFTH_PROGRESS') {
+    return {
+      stageKey: phase,
+      stageName: '5th Progress',
+      status: node.fifthProgress || (node.complianceStatus || 'PENDING'),
+      auditorRemark: node.fifthProgressAuditorRemark || (node.complianceStatus === 'COMPLIANT' ? 'Fifth stage milestone conformance confirmed.' : null),
+    };
+  }
   if (phase === 'INCENTIVE_REPORT') {
     return {
       stageKey: phase,
       stageName: 'Incentive Report',
       status: node.incentiveReport ? 'SUBMITTED' : 'PENDING',
       auditeeRemark: node.incentiveReport || null,
-      auditorRemark: node.incentiveAuditorRemark || null,
+      auditorRemark: null,
     };
   }
   if (phase === 'DRAFT_REPORT') {
@@ -100,9 +106,6 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
   };
 }
 
-/**
- * Visual badge styles for progress outcomes
- */
 export function getProgressBadgeClasses(status?: string): string {
   if (!status) return 'bg-slate-100 text-slate-600 border-slate-200';
   const s = status.toUpperCase();
@@ -113,9 +116,6 @@ export function getProgressBadgeClasses(status?: string): string {
   return 'bg-slate-50 text-slate-600 border-slate-200';
 }
 
-/**
- * Recursively update a node's progress stage data in the tree
- */
 export function updateNodeRemarkRecursive(
   nodes: ITorNode[],
   nodeId: string,
@@ -147,9 +147,15 @@ export function updateNodeRemarkRecursive(
       } else if (phase === 'THIRD_PROGRESS') {
         patch.thirdProgress = updatedData.status;
         patch.thirdProgressAuditorRemark = updatedData.auditorRemark;
+      } else if (phase === 'FOURTH_PROGRESS') {
+        patch.fourthProgress = updatedData.status;
+        patch.fourthProgressAuditorRemark = updatedData.auditorRemark;
+      } else if (phase === 'FIFTH_PROGRESS') {
+        patch.fifthProgress = updatedData.status;
+        patch.fifthProgressAuditorRemark = updatedData.auditorRemark;
       } else if (phase === 'INCENTIVE_REPORT') {
         patch.incentiveReport = updatedData.auditeeRemark || updatedData.status;
-        patch.incentiveAuditorRemark = updatedData.auditorRemark;
+        patch.incentiveAuditorRemark = null;
       } else if (phase === 'DRAFT_REPORT') {
         patch.draftRemark = updatedData.auditeeRemark;
         patch.draftAuditorRemark = updatedData.auditorRemark;
@@ -166,9 +172,6 @@ export function updateNodeRemarkRecursive(
   });
 }
 
-/**
- * Filter tree nodes recursively by criteria
- */
 export function filterTorTree(nodes: ITorNode[], filters: TorFilterState): ITorNode[] {
   const term = filters.searchTerm.toLowerCase().trim();
 
@@ -177,9 +180,7 @@ export function filterTorTree(nodes: ITorNode[], filters: TorFilterState): ITorN
       const matchesCode = node.code.toLowerCase().includes(term);
       const matchesTitle = node.title.toLowerCase().includes(term);
       const matchesDesc = Boolean(node.description && node.description.toLowerCase().includes(term));
-      const matchesDrt = Boolean(
-        node.drtTickets && node.drtTickets.some((t) => t.requestCode.toLowerCase().includes(term))
-      );
+      const matchesDrt = Boolean(node.drtTickets?.some((t) => t.requestCode.toLowerCase().includes(term)));
       if (!matchesCode && !matchesTitle && !matchesDesc && !matchesDrt) return false;
     }
     if (filters.department !== 'ALL' && node.department !== filters.department) return false;
@@ -191,15 +192,9 @@ export function filterTorTree(nodes: ITorNode[], filters: TorFilterState): ITorN
       }
     }
     if (filters.progressStatus !== 'ALL') {
-      const s1 = getTorStageData(node, 'FIRST_PROGRESS').status;
-      const s2 = getTorStageData(node, 'SECOND_PROGRESS').status;
-      const s3 = getTorStageData(node, 'THIRD_PROGRESS').status;
-      const matchesAny =
-        s1 === filters.progressStatus ||
-        s2 === filters.progressStatus ||
-        s3 === filters.progressStatus ||
-        node.complianceStatus === filters.progressStatus;
-      if (!matchesAny) return false;
+      const statuses = ['FIRST_PROGRESS', 'SECOND_PROGRESS', 'THIRD_PROGRESS', 'FOURTH_PROGRESS', 'FIFTH_PROGRESS'] as const;
+      const matches = statuses.some((p) => getTorStageData(node, p).status === filters.progressStatus);
+      if (!matches && node.complianceStatus !== filters.progressStatus) return false;
     }
     if (filters.drtStream !== 'ALL') {
       const tickets = node.drtTickets || [];
@@ -212,27 +207,19 @@ export function filterTorTree(nodes: ITorNode[], filters: TorFilterState): ITorN
   };
 
   const filterNode = (node: ITorNode): ITorNode | null => {
-    // Strictly eliminate level 3 clauses like 1.1.1 from rendering
     if (node.code && node.code.split('.').filter(Boolean).length >= 3) return null;
     const selfMatches = matchesFilter(node);
     let filteredChildren: ITorNode[] = [];
     if (node.children && node.children.length > 0) {
-      filteredChildren = node.children
-        .map(filterNode)
-        .filter((c): c is ITorNode => c !== null);
+      filteredChildren = node.children.map(filterNode).filter((c): c is ITorNode => c !== null);
     }
-    if (selfMatches || filteredChildren.length > 0) {
-      return { ...node, children: filteredChildren };
-    }
+    if (selfMatches || filteredChildren.length > 0) return { ...node, children: filteredChildren };
     return null;
   };
 
   return nodes.map(filterNode).filter((n): n is ITorNode => n !== null);
 }
 
-/**
- * Count total nodes recursively
- */
 export function countTorNodes(nodes: ITorNode[]): number {
   return nodes.reduce((acc, n) => acc + 1 + (n.children ? countTorNodes(n.children) : 0), 0);
 }

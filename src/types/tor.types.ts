@@ -82,6 +82,10 @@ export interface ITorNode {
   secondProgressAuditorRemark?: string | null;
   thirdProgress?: string | null;
   thirdProgressAuditorRemark?: string | null;
+  fourthProgress?: string | null;
+  fourthProgressAuditorRemark?: string | null;
+  fifthProgress?: string | null;
+  fifthProgressAuditorRemark?: string | null;
   incentiveReport?: string | null;
   incentiveAuditorRemark?: string | null;
   draftRemark?: string | null;
@@ -105,6 +109,8 @@ export type TorProgressReportPhase =
   | 'FIRST_PROGRESS'
   | 'SECOND_PROGRESS'
   | 'THIRD_PROGRESS'
+  | 'FOURTH_PROGRESS'
+  | 'FIFTH_PROGRESS'
   | 'INCENTIVE_REPORT'
   | 'DRAFT_REPORT'
   | 'FINAL_REPORT';

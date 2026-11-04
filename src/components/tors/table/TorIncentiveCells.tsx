@@ -34,7 +34,7 @@ export const TorIncentiveCells: React.FC<TorIncentiveCellsProps> = ({
         ) : (
           <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 italic group-hover:text-teal-600 transition-colors">
             <Edit3 className="w-2.5 h-2.5" />
-            <span>Add remark...</span>
+            <span>Add report...</span>
           </span>
         )}
       </button>
@@ -42,13 +42,8 @@ export const TorIncentiveCells: React.FC<TorIncentiveCellsProps> = ({
   };
 
   return (
-    <>
-      <td className="py-2 px-2.5 align-middle border-r border-slate-200 bg-teal-50/10 min-w-[160px] max-w-[200px]">
-        {renderRemarkButton(stageIncentive.auditeeRemark, 'incentive remark')}
-      </td>
-      <td className="py-2 px-2.5 align-middle border-r border-teal-200 bg-teal-50/10 min-w-[160px] max-w-[200px]">
-        {renderRemarkButton(stageIncentive.auditorRemark, 'auditor remark')}
-      </td>
-    </>
+    <td className="py-2 px-2.5 align-middle border-r border-teal-200 bg-teal-50/10 min-w-[160px] max-w-[200px]">
+      {renderRemarkButton(stageIncentive.auditeeRemark, 'incentive report')}
+    </td>
   );
 };

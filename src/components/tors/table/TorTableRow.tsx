@@ -137,13 +137,13 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
           )}
         </td>
 
-        {/* 4. Incentive Report (2 columns) */}
+        {/* 4. Incentive Report (1 column) */}
         <TorIncentiveCells node={node} onOpenRemarkModal={onOpenRemarkModal} />
 
         {/* 5. DRT BTRC & DRT FHL Sub-Cells (4 columns) */}
         <TorDrtSubCells node={node} />
 
-        {/* 6. Progress & Remark Cells (10 columns: 1st, 2nd, 3rd, Draft, Final) */}
+        {/* 6. Progress & Remark Cells (14 columns: 1st, 2nd, 3rd, 4th, 5th, Draft, Final) */}
         <TorProgressCells node={node} onOpenRemarkModal={onOpenRemarkModal} />
 
         {/* 6. Sticky Right: Actions */}

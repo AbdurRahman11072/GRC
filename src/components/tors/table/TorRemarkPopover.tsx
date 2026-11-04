@@ -37,7 +37,7 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
     onSave(node.id, phase, {
       status: `${progressPct}%`,
       score: progressPct,
-      auditorRemark: auditorRemark.trim() || null,
+      auditorRemark: phase === 'INCENTIVE_REPORT' ? null : auditorRemark.trim() || null,
       auditeeRemark: auditeeRemark.trim() || null,
       updatedAt: new Date().toISOString(),
     });
@@ -116,7 +116,7 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
             <div className="space-y-1.5">
               <label className="block font-semibold text-slate-700">
                 {phase === 'INCENTIVE_REPORT'
-                  ? 'Incentive Remark / Deliverable Scope'
+                  ? 'Incentive Report / Deliverable Scope'
                   : phase === 'DRAFT_REPORT'
                   ? 'Draft Remark (Auditee Focal)'
                   : 'Final Remark (Auditee Focal)'}
@@ -127,7 +127,7 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
                 onChange={(e) => setAuditeeRemark(e.target.value)}
                 placeholder={
                   phase === 'INCENTIVE_REPORT'
-                    ? 'Enter incentive report findings, compliance notes, or scope explanation...'
+                    ? 'Enter incentive report findings, compliance notes, or deliverable scope...'
                     : 'Enter auditee focal team remark or explanation...'
                 }
                 className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all resize-none text-xs"
@@ -135,19 +135,21 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
             </div>
           )}
 
-          {/* Auditor Remark */}
-          <div className="space-y-1.5">
-            <label className="block font-semibold text-slate-700">
-              Auditor Remark & Finding Notes
-            </label>
-            <textarea
-              rows={4}
-              value={auditorRemark}
-              onChange={(e) => setAuditorRemark(e.target.value)}
-              placeholder="Record auditor qualitative remarks, evidence gaps, or compliance notes..."
-              className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all resize-none text-xs"
-            />
-          </div>
+          {/* Auditor Remark (Not applicable for Incentive Report) */}
+          {phase !== 'INCENTIVE_REPORT' && (
+            <div className="space-y-1.5">
+              <label className="block font-semibold text-slate-700">
+                Auditor Remark & Finding Notes
+              </label>
+              <textarea
+                rows={4}
+                value={auditorRemark}
+                onChange={(e) => setAuditorRemark(e.target.value)}
+                placeholder="Record auditor qualitative remarks, evidence gaps, or compliance notes..."
+                className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50/50 text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all resize-none text-xs"
+              />
+            </div>
+          )}
 
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-amber-800">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />

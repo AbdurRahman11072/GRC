@@ -87,6 +87,8 @@ export function getTorStagePercentage(node: ITorNode, phase: string): number {
   let raw: string | null | undefined = null;
   if (phase === 'SECOND_PROGRESS') raw = nodeAny.secondProgress;
   else if (phase === 'THIRD_PROGRESS') raw = nodeAny.thirdProgress;
+  else if (phase === 'FOURTH_PROGRESS') raw = nodeAny.fourthProgress;
+  else if (phase === 'FIFTH_PROGRESS') raw = nodeAny.fifthProgress;
   else if (phase === 'DRAFT_REPORT') raw = nodeAny.draftReportProgress || nodeAny.draftReport;
   else if (phase === 'FINAL_REPORT') raw = nodeAny.finalReportProgress || nodeAny.finalReport;
 
