@@ -16,13 +16,21 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   onItemClick,
 }) => {
   const pathname = usePathname();
+  const [hasMounted, setHasMounted] = React.useState(false);
   const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
   const isOrgAdmin =
     user?.isSuperAdmin || activeOrg?.orgRole === 'OWNER' || activeOrg?.orgRole === 'ADMIN';
 
   const visibleSections = React.useMemo(() => {
-    if (isOrgAdmin) return navSections;
+    // During SSR and initial hydration pass, render all navSections to match server HTML.
+    // Once mounted on client, filter based on active user's permissions.
+    if (!hasMounted || isOrgAdmin) return navSections;
     return navSections
       .map((section) => ({
         ...section,
@@ -35,7 +43,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         }),
       }))
       .filter((section) => section.items.length > 0);
-  }, [isOrgAdmin]);
+  }, [hasMounted, isOrgAdmin]);
 
   return (
     <nav className="p-3 space-y-4 overflow-y-auto flex-1">

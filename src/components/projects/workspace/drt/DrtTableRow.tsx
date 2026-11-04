@@ -3,10 +3,12 @@
 import React from 'react';
 import { Upload } from 'lucide-react';
 import type { IDRTTicket, DRTPartySide } from '../../../../types/drt.types';
+import type { DrtProgressPhase } from '../../../../lib/drtProgressUtils';
 import { DrtDescriptionCell } from './DrtDescriptionCell';
 import { DrtRowActions } from './DrtRowActions';
-import { DrtCloudAndCollectionCells } from './DrtCloudAndCollectionCells';
+import { DrtUnifiedCloudCollectionCells } from './DrtUnifiedCloudCollectionCells';
 import { DrtYearAndRemarkCells } from './DrtYearAndRemarkCells';
+import { DrtProgressCells } from './DrtProgressCells';
 import { statusBadgeStyles } from './drtBadges';
 import { formatDate } from '../../../../lib/utils';
 
@@ -21,20 +23,21 @@ export interface DrtTableRowProps {
   onManageTors?: (ticket: IDRTTicket) => void;
   onOpenPeriodModal: (ticket: IDRTTicket, periodLabel: string) => void;
   onOpenUploadModal: (ticket: IDRTTicket, partySide: DRTPartySide) => void;
-  onOpenRemarkModal: (ticket: IDRTTicket, type: 'AUDITOR' | 'AUDITEE') => void;
+  onOpenProgressModal: (ticket: IDRTTicket, phase: DrtProgressPhase) => void;
 }
 
 export const DrtTableRow: React.FC<DrtTableRowProps> = ({
   projectId,
   ticket,
   index,
+  clientName = 'BTRC',
   auditeeName = 'FHL',
   auditYears,
   onManageSquad,
   onManageTors,
   onOpenPeriodModal,
   onOpenUploadModal,
-  onOpenRemarkModal,
+  onOpenProgressModal,
 }) => {
   const docs = ticket.drtDocuments || [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,32 +77,44 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         <DrtDescriptionCell ticket={ticket} docs={docs} />
       </td>
 
-      {/* 4. ToR Clause */}
+      {/* 4. ToR ID */}
       <td
-        className={`py-2.5 px-2 text-center font-mono text-xs border-r border-slate-200 bg-slate-50/30 align-middle w-28 ${onManageTors ? 'cursor-pointer hover:bg-indigo-50/60 transition-colors group' : ''
-          }`}
+        className={`py-2.5 px-2 text-center font-mono text-xs border-r border-slate-200 bg-slate-50/30 align-middle w-24 ${
+          onManageTors ? 'cursor-pointer hover:bg-emerald-50/60 transition-colors' : ''
+        }`}
         onClick={() => onManageTors?.(ticket)}
-        title={onManageTors ? 'Click to manage linked ToR activities' : undefined}
+        title={onManageTors ? 'Click to manage linked ToR' : undefined}
       >
         <div className="flex flex-wrap items-center justify-center gap-1">
           {torCodes.length > 0 ? (
             torCodes.map((code) => (
               <span
                 key={code}
-                className="font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200/80 text-[11px]"
+                className="font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[11px]"
               >
                 {code}
               </span>
             ))
           ) : (
-            <span className="text-slate-400 font-sans text-[11px] group-hover:text-indigo-600">
-              {onManageTors ? '+ Link ToR' : '—'}
-            </span>
+            <span className="text-slate-400 font-sans text-[11px]">{onManageTors ? '+ ToR' : '—'}</span>
           )}
         </div>
       </td>
 
-      {/* 5. Department */}
+      {/* 5. DRT For */}
+      <td className="py-2.5 px-3 text-center border-r border-slate-200 align-middle w-36 whitespace-nowrap">
+        {ticket.assignedTeamBucket === 'CLIENT' ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+            {clientName} (Client)
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            {auditeeName} (Auditee)
+          </span>
+        )}
+      </td>
+
+      {/* 6. Department */}
       <td className="py-2.5 px-3 text-center border-r border-slate-200 align-middle w-36">
         {ticket.department ? (
           <span
@@ -113,7 +128,7 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         )}
       </td>
 
-      {/* 6. Assigned To */}
+      {/* 7. Assigned To */}
       <td className="py-2.5 px-3 text-center border-r border-slate-200 align-middle w-40">
         {assignedMember ? (
           <div
@@ -139,66 +154,70 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         )}
       </td>
 
-      {/* 7. Date of Request */}
+      {/* 8. Date of Request */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap text-xs text-slate-700 border-r border-slate-200 font-medium">
         {ticket.dateOfRequest ? formatDate(ticket.dateOfRequest) : '—'}
       </td>
 
-      {/* 8. Expected Date */}
+      {/* 9. Expected Date */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap text-xs text-slate-900 border-r border-slate-200 font-semibold">
         {ticket.expectedDateOfReceipt ? formatDate(ticket.expectedDateOfReceipt) : '—'}
       </td>
 
-      {/* 9. Actual Date */}
+      {/* 10. Actual Date */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap text-xs text-slate-700 border-r border-slate-200">
         {actualDateDisplay}
       </td>
 
-      {/* 10. Excess Days */}
+      {/* 11. Excess Days */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200 text-center">
         <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${excessDays > 0
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+            excessDays > 0
               ? 'bg-rose-50 text-rose-700 border-rose-200'
               : excessDays === 0
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-sky-50 text-sky-700 border-sky-200'
-            }`}
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-sky-50 text-sky-700 border-sky-200'
+          }`}
         >
           {excessDays > 0 ? `+${excessDays}d` : `${excessDays}d`}
         </span>
       </td>
 
-      {/* 11. Status (Auditor) */}
+      {/* 12. Status (Auditor) */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200">
         <span
-          className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold border ${statusBadgeStyles[reviewOutcomeKey] || 'bg-slate-100 text-slate-700 border-slate-300'
-            }`}
+          className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold border ${
+            statusBadgeStyles[reviewOutcomeKey] || 'bg-slate-100 text-slate-700 border-slate-300'
+          }`}
         >
           {reviewOutcomeKey.replace(/_/g, ' ')}
         </span>
       </td>
 
+      {/* 13-14. Unified Cloud Link & Collection Status */}
+      <DrtUnifiedCloudCollectionCells ticket={ticket} />
 
-
-      {/* 12-15. Cloud Links & Collection Statuses */}
-      <DrtCloudAndCollectionCells ticket={ticket} />
-
-      {/* 16-19. Dedicated Audit Year Columns, Completeness & Remarks */}
+      {/* 15-16. Audit Years & Completeness */}
       <DrtYearAndRemarkCells
         ticket={ticket}
         auditYears={auditYears}
-        auditeeName={auditeeName}
         onOpenPeriodModal={onOpenPeriodModal}
-        onOpenRemarkModal={onOpenRemarkModal}
       />
 
-      {/* 20. Data Upload Action */}
+      {/* 17. 1st through 5th Progress Stages */}
+      <DrtProgressCells
+        ticket={ticket}
+        onOpenProgressModal={onOpenProgressModal}
+      />
+
+      {/* 18. Data Upload Action */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap text-center border-r border-slate-200">
         <div className="flex items-center justify-center gap-1">
           <button
             type="button"
-            onClick={() => onOpenUploadModal(ticket, 'AUDITEE')}
-            title={`Upload evidence for ${auditeeName}`}
+            onClick={() => onOpenUploadModal(ticket, ticket.assignedTeamBucket === 'CLIENT' ? 'CLIENT' : 'AUDITEE')}
+            title="Upload evidence"
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-colors cursor-pointer"
           >
             <Upload className="w-3 h-3" />
@@ -207,7 +226,7 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         </div>
       </td>
 
-      {/* 21. Actions */}
+      {/* 19. Actions */}
       <td className="py-2.5 px-3 text-center align-middle w-36">
         <DrtRowActions
           projectId={projectId}

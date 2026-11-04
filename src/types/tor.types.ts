@@ -157,7 +157,7 @@ export interface ICheckTorDocumentPayload {
 export interface ICreateTorPayload {
   projectId: string;
   parentId?: string | null;
-  code: string;
+  code?: string;
   title: string;
   description?: string | null;
   objective?: string | null;

@@ -46,6 +46,8 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const canIssueDrt = isTorDrtEligible(node.code, level);
+  const codeParts = node.code ? node.code.split('.').filter(Boolean) : [];
+  const canAddSubClause = canManageTor && (level === 0 || codeParts.length <= 1);
   const hasChildren = node.children && node.children.length > 0;
   const childTickets = node.drtTickets || [];
 
@@ -186,15 +188,17 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
                   <Edit2 className="w-3 h-3" />
                 </Button>
               )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                onClick={() => onAddChild(node.id)}
-                leftIcon={<Plus className="w-3 h-3 text-indigo-500" />}
-              >
-                Sub-clause
-              </Button>
+              {canAddSubClause && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => onAddChild(node.id)}
+                  leftIcon={<Plus className="w-3 h-3 text-indigo-500" />}
+                >
+                  Sub-clause
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="ghost"

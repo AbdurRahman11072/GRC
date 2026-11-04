@@ -1,35 +1,49 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { FilePlus, Search, Table, LayoutGrid } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { FilePlus, Table, LayoutGrid } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { DrtMetricsBar } from './drt/DrtMetricsBar';
 import { DrtTicketCard } from './drt/DrtTicketCard';
 import { DrtTable } from './drt/DrtTable';
-import { CreateDrtDrawer } from './CreateDrtDrawer';
-import { UploadDrtDocumentModal } from './drt/UploadDrtDocumentModal';
-import { ReviewDrtDocumentModal } from './drt/ReviewDrtDocumentModal';
-import { AssignDrtSquadModal } from './drt/AssignDrtSquadModal';
-import { EditDrtPeriodStatusModal } from './drt/EditDrtPeriodStatusModal';
-import { ManageDrtTorsModal } from './drt/ManageDrtTorsModal';
-import { DrtRemarkVersionModal } from './drt/details/DrtRemarkVersionModal';
-import { getDrtRemarkVersions } from './drt/drtBadges';
+import { DrtModals } from './drt/DrtModals';
+import { DrtTableFilters, type IDrtFilterState } from './drt/DrtTableFilters';
+import { type DrtProgressPhase, updateDrtProgressData } from '../../../lib/drtProgressUtils';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
+import { useGetTorTreeQuery } from '../../../store/api/torApi';
 import { useGetMyProjectPermissionsQuery, useGetProjectByIdQuery } from '../../../store/api/projectApi';
 import { useAppSelector } from '../../../store/hooks';
 import { getProjectAuditYears } from '../../../utils/projectTimeframe';
 import { getShortEntityName } from '../../../lib/utils';
 import type { IDRTTicket, IDRTDocument, DRTPartySide, IProject } from '../../../types/project.types';
+import type { ITorNode } from '../../../types/tor.types';
 
 export interface TabDRTProps {
   projectId: string;
   project?: IProject | null;
+  initialTorId?: string;
+  onClearTorFilter?: () => void;
 }
 
-export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterMode, setFilterMode] = useState<'ALL' | 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'OVERDUE'>('ALL');
+const defaultFilterState: IDrtFilterState = {
+  searchTerm: '',
+  drtId: '',
+  torId: 'ALL',
+  drtFor: 'ALL',
+  department: 'ALL',
+  status: 'ALL',
+};
+
+export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project, initialTorId, onClearTorFilter }) => {
+  const [filters, setFilters] = useState<IDrtFilterState>({
+    ...defaultFilterState,
+    torId: initialTorId || 'ALL',
+  });
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+
+  useEffect(() => {
+    if (initialTorId) setFilters((prev) => ({ ...prev, torId: initialTorId }));
+  }, [initialTorId]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [uploadTicket, setUploadTicket] = useState<{ ticket: IDRTTicket; side: DRTPartySide; initialPeriodLabel?: string } | null>(null);
@@ -38,6 +52,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
   const [periodModal, setPeriodModal] = useState<{ ticket: IDRTTicket; year: string } | null>(null);
   const [torsTicket, setTorsTicket] = useState<IDRTTicket | null>(null);
   const [remarkModal, setRemarkModal] = useState<{ ticket: IDRTTicket; side: 'AUDITOR' | 'AUDITEE' } | null>(null);
+  const [progressModal, setProgressModal] = useState<{ ticket: IDRTTicket; phase: DrtProgressPhase } | null>(null);
 
   const currentUser = useAppSelector((state) => state.auth.user);
   const currentOrgMembership = useAppSelector((state) =>
@@ -51,7 +66,6 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
 
   const { data: permData } = useGetMyProjectPermissionsQuery(projectId);
   const permissions = permData?.data;
-
   const canCreateTicket = isOrgAdmin || permissions?.canAssignDrt;
   const canUpload = isOrgAdmin || permissions?.canUploadDocument;
   const canReview = isOrgAdmin || permissions?.canCheckDocument;
@@ -62,104 +76,110 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
   const auditeeName = getShortEntityName(currentProject?.auditee?.name, 'FHL');
   const auditYears = useMemo(() => getProjectAuditYears(currentProject), [currentProject]);
 
+  const { data: treeData } = useGetTorTreeQuery(projectId);
+  const torOptions = useMemo(() => {
+    const raw: any = treeData?.data;
+    const tree: ITorNode[] = Array.isArray(raw) ? raw : Array.isArray(raw?.tree) ? raw.tree : [];
+    const flatten = (nodes: ITorNode[]): ITorNode[] =>
+      nodes.flatMap((n) => [n, ...(n.children ? flatten(n.children) : [])]);
+    return flatten(tree).map((t) => ({ id: t.id, code: t.code, title: t.title }));
+  }, [treeData]);
+
   const { data: ticketsData, isLoading } = useGetTicketsQuery({
     projectId,
-    search: searchTerm.trim() || undefined,
+    search: filters.searchTerm.trim() || undefined,
   });
 
-  const tickets = ticketsData?.data || [];
+  const rawTickets = ticketsData?.data || [];
+  const [localTickets, setLocalTickets] = useState<IDRTTicket[]>(rawTickets);
+  useEffect(() => { setLocalTickets(rawTickets); }, [rawTickets]);
+
+  const departments = useMemo(() => {
+    const depts = new Set<string>();
+    localTickets.forEach((t) => { if (t.department?.trim()) depts.add(t.department.trim()); });
+    return Array.from(depts).sort();
+  }, [localTickets]);
+
+  const handleSaveProgressRemark = (id: string, phase: DrtProgressPhase, data: any) => {
+    setLocalTickets((prev) => updateDrtProgressData(prev, id, phase, data));
+  };
 
   const filteredTickets = useMemo(() => {
-    return tickets.filter((t) => {
-      if (filterMode === 'PENDING') return t.workflowStatus === 'OPEN';
-      if (filterMode === 'SUBMITTED') return t.workflowStatus === 'SUBMITTED';
-      if (filterMode === 'ACCEPTED') return t.workflowStatus === 'ACCEPTED';
-      if (filterMode === 'OVERDUE') {
-        return t.expectedDateOfReceipt && new Date(t.expectedDateOfReceipt) < new Date() && t.workflowStatus !== 'ACCEPTED';
+    return localTickets.filter((t) => {
+      if (filters.drtId.trim()) {
+        const q = filters.drtId.toLowerCase().trim();
+        if (!t.requestCode.toLowerCase().includes(q)) return false;
+      }
+      if (filters.torId !== 'ALL') {
+        const tid = filters.torId;
+        const matchesTor =
+          t.torId === tid ||
+          t.tor?.id === tid ||
+          t.tors?.some((m) => m.torId === tid || m.tor?.id === tid);
+        if (!matchesTor) return false;
+      }
+      if (filters.drtFor !== 'ALL' && t.assignedTeamBucket !== filters.drtFor) return false;
+      if (filters.department !== 'ALL' && t.department !== filters.department) return false;
+      if (filters.status !== 'ALL') {
+        if (filters.status === 'PENDING' && t.workflowStatus !== 'OPEN') return false;
+        if (filters.status === 'SUBMITTED' && t.workflowStatus !== 'SUBMITTED') return false;
+        if (filters.status === 'ACCEPTED' && t.workflowStatus !== 'ACCEPTED') return false;
+        if (filters.status === 'OVERDUE') {
+          const isOverdue = t.expectedDateOfReceipt && new Date(t.expectedDateOfReceipt) < new Date() && t.workflowStatus !== 'ACCEPTED';
+          if (!isOverdue) return false;
+        }
       }
       return true;
     });
-  }, [tickets, filterMode]);
+  }, [localTickets, filters]);
 
-  const totalTickets = tickets.length;
-  const acceptedTickets = tickets.filter((t) => t.workflowStatus === 'ACCEPTED').length;
-  const totalSubmissions = tickets.reduce((acc, t) => acc + (t.drtDocuments?.length || 0), 0);
-  const overdueTickets = tickets.filter(
-    (t) => t.expectedDateOfReceipt && new Date(t.expectedDateOfReceipt) < new Date() && t.workflowStatus !== 'ACCEPTED'
-  ).length;
+  const totalTickets = localTickets.length;
+  const acceptedTickets = localTickets.filter((t) => t.workflowStatus === 'ACCEPTED').length;
+  const totalSubmissions = localTickets.reduce((acc, t) => acc + (t.drtDocuments?.length || 0), 0);
+  const overdueTickets = localTickets.filter((t) => t.expectedDateOfReceipt && new Date(t.expectedDateOfReceipt) < new Date() && t.workflowStatus !== 'ACCEPTED').length;
 
   return (
     <div className="space-y-4">
-      {/* Metrics Bar */}
-      <DrtMetricsBar
-        totalTickets={totalTickets}
-        totalSubmissions={totalSubmissions}
-        acceptedTickets={acceptedTickets}
-        overdueTickets={overdueTickets}
+      <DrtMetricsBar totalTickets={totalTickets} totalSubmissions={totalSubmissions} acceptedTickets={acceptedTickets} overdueTickets={overdueTickets} />
+
+      <DrtTableFilters
+        filters={filters} onChange={setFilters}
+        onReset={() => { setFilters(defaultFilterState); onClearTorFilter?.(); }}
+        torOptions={torOptions} departments={departments}
+        clientName={clientName} auditeeName={auditeeName}
+        totalCount={totalTickets} filteredCount={filteredTickets.length}
       />
 
-      {/* Control Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white rounded-xl border border-slate-200">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search code, title, department..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:border-indigo-600"
-          />
+      {/* Actions and View Mode Bar */}
+      <div className="flex items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`px-2.5 py-1 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
+              viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Table className="w-3.5 h-3.5" />
+            <span>Table View</span>
+          </button>
+          <button
+            onClick={() => setViewMode('cards')}
+            className={`px-2.5 py-1 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
+              viewMode === 'cards' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Cards View</span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Status Filter Tabs */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
-            {(['ALL', 'PENDING', 'SUBMITTED', 'ACCEPTED', 'OVERDUE'] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setFilterMode(mode)}
-                className={`px-2.5 py-1 rounded-md font-medium capitalize transition-colors ${
-                  filterMode === mode ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {mode.toLowerCase()}
-              </button>
-            ))}
-          </div>
-
-          {/* View Mode Toggle: Table (Spreadsheet) vs Cards */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-2 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
-                viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Spreadsheet Table View"
-            >
-              <Table className="w-3.5 h-3.5" />
-              <span>Table</span>
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`px-2 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
-                viewMode === 'cards' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Cards View"
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Cards</span>
-            </button>
-          </div>
-
-          {canCreateTicket && (
-            <Button size="sm" variant="primary" onClick={() => setIsCreateOpen(true)} leftIcon={<FilePlus className="w-4 h-4" />}>
-              Fire DRT Request
-            </Button>
-          )}
-        </div>
+        {canCreateTicket && (
+          <Button size="sm" variant="primary" onClick={() => setIsCreateOpen(true)} leftIcon={<FilePlus className="w-4 h-4" />}>
+            Fire DRT Request
+          </Button>
+        )}
       </div>
 
-      {/* DRT Data Rendering: Table vs Cards */}
       {isLoading ? (
         <div className="p-8 text-center text-xs text-slate-500">Loading DRT requests...</div>
       ) : filteredTickets.length === 0 ? (
@@ -182,7 +202,7 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
           onManageTors={(t) => setTorsTicket(t)}
           onOpenPeriodModal={(t, year) => setPeriodModal({ ticket: t, year })}
           onOpenUploadModal={(t, side) => setUploadTicket({ ticket: t, side })}
-          onOpenRemarkModal={(t, side) => setRemarkModal({ ticket: t, side })}
+          onOpenProgressModal={(t, phase) => setProgressModal({ ticket: t, phase })}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3">
@@ -204,23 +224,19 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project }) => {
         </div>
       )}
 
-      {/* Modals & Drawers */}
-      <CreateDrtDrawer isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} projectId={projectId} auditYears={auditYears} clientName={clientName} auditeeName={auditeeName} />
-      <UploadDrtDocumentModal isOpen={Boolean(uploadTicket)} onClose={() => setUploadTicket(null)} ticket={uploadTicket?.ticket || null} defaultSide={uploadTicket?.side} initialPeriodLabel={uploadTicket?.initialPeriodLabel} auditYears={auditYears} clientName={clientName} auditeeName={auditeeName} />
-      <ReviewDrtDocumentModal isOpen={Boolean(reviewTarget)} onClose={() => setReviewTarget(null)} ticket={reviewTarget?.ticket || null} document={reviewTarget?.doc || null} />
-      <AssignDrtSquadModal isOpen={Boolean(squadTicket)} onClose={() => setSquadTicket(null)} ticket={squadTicket} projectId={projectId} />
-      <EditDrtPeriodStatusModal isOpen={Boolean(periodModal)} onClose={() => setPeriodModal(null)} ticket={periodModal?.ticket || null} periodLabel={periodModal?.year || null} onOpenUpload={(t, yr) => setUploadTicket({ ticket: t, side: 'AUDITEE', initialPeriodLabel: yr })} />
-      <ManageDrtTorsModal isOpen={Boolean(torsTicket)} onClose={() => setTorsTicket(null)} ticket={torsTicket} projectId={projectId} />
-      {remarkModal && (
-        <DrtRemarkVersionModal
-          isOpen={Boolean(remarkModal)}
-          onClose={() => setRemarkModal(null)}
-          title={remarkModal.side === 'AUDITOR' ? 'Auditor Remarks Version History' : `${auditeeName} Remarks Version History`}
-          stakeholderType={remarkModal.side}
-          stakeholderName={remarkModal.side === 'AUDITOR' ? 'Lead Auditor' : auditeeName}
-          versions={getDrtRemarkVersions(remarkModal.ticket, remarkModal.side, auditeeName)}
-        />
-      )}
+      <DrtModals
+        projectId={projectId} auditYears={auditYears} clientName={clientName} auditeeName={auditeeName}
+        isCreateOpen={isCreateOpen} onCloseCreate={() => setIsCreateOpen(false)}
+        uploadTicket={uploadTicket} onCloseUpload={() => setUploadTicket(null)}
+        reviewTarget={reviewTarget} onCloseReview={() => setReviewTarget(null)}
+        squadTicket={squadTicket} onCloseSquad={() => setSquadTicket(null)}
+        periodModal={periodModal} onClosePeriod={() => setPeriodModal(null)}
+        onOpenUploadFromPeriod={(t, yr) => setUploadTicket({ ticket: t, side: 'AUDITEE', initialPeriodLabel: yr })}
+        torsTicket={torsTicket} onCloseTors={() => setTorsTicket(null)}
+        remarkModal={remarkModal} onCloseRemark={() => setRemarkModal(null)}
+        progressModal={progressModal} onCloseProgress={() => setProgressModal(null)}
+        onSaveProgress={handleSaveProgressRemark}
+      />
     </div>
   );
 };

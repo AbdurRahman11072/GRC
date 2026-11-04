@@ -26,6 +26,9 @@ interface WorkspaceHeaderProps {
   onTabChange: (tab: WorkspaceTab) => void;
   isOrgAdmin?: boolean;
   canCreateTor?: boolean;
+  canAccessTors?: boolean;
+  canAccessScorecard?: boolean;
+  canAccessEntities?: boolean;
   userRole?: string | null;
 }
 
@@ -35,20 +38,26 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   onTabChange,
   isOrgAdmin = false,
   canCreateTor = false,
+  canAccessTors = false,
+  canAccessScorecard = true,
+  canAccessEntities = false,
   userRole = null,
 }) => {
   const tabs = React.useMemo(() => {
     const list: Array<{ id: WorkspaceTab; label: string; icon: React.ReactNode }> = [
       { id: 'overview', label: 'Overview & Stats', icon: <BarChart3 className="w-3.5 h-3.5" /> },
-      { id: 'scorecard', label: 'Macro Scorecard', icon: <Calculator className="w-3.5 h-3.5" /> },
     ];
 
-    // Administrators and Project Managers can manage client entities and ToR WBS hierarchy
-    if (isOrgAdmin || canCreateTor) {
-      list.push(
-        { id: 'entities', label: 'Client & Auditee', icon: <Building2 className="w-3.5 h-3.5" /> },
-        { id: 'tors', label: 'ToR WBS Tree', icon: <Layers className="w-3.5 h-3.5" /> }
-      );
+    if (isOrgAdmin || canAccessScorecard) {
+      list.push({ id: 'scorecard', label: 'Macro Scorecard', icon: <Calculator className="w-3.5 h-3.5" /> });
+    }
+
+    if (isOrgAdmin || canAccessEntities || canCreateTor) {
+      list.push({ id: 'entities', label: 'Client & Auditee', icon: <Building2 className="w-3.5 h-3.5" /> });
+    }
+
+    if (isOrgAdmin || canAccessTors || canCreateTor) {
+      list.push({ id: 'tors', label: 'ToR WBS Tree', icon: <Layers className="w-3.5 h-3.5" /> });
     }
 
     list.push(
@@ -57,7 +66,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
     );
 
     return list;
-  }, [isOrgAdmin, canCreateTor]);
+  }, [isOrgAdmin, canAccessScorecard, canAccessEntities, canAccessTors, canCreateTor]);
 
   return (
     <div className="space-y-4 pb-2 border-b border-slate-200">

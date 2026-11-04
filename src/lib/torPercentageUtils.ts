@@ -57,3 +57,51 @@ export function getTorProgressPercentage(node: ITorNode): number {
 
   return 0;
 }
+
+export function getTorStagePercentage(node: ITorNode, phase: string): number {
+  if (phase === 'FIRST_PROGRESS') {
+    return getTorProgressPercentage(node);
+  }
+
+  // 1. Check progressStages
+  if (node.progressStages && node.progressStages.length > 0) {
+    const st = node.progressStages.find((s) => s.stageKey === phase);
+    if (st) {
+      if (typeof st.score === 'number') return Math.max(0, Math.min(100, Math.round(st.score)));
+      if (st.status) {
+        const match = String(st.status).match(/(\d+(?:\.\d+)?)/);
+        if (match) {
+          const parsed = parseFloat(match[1]);
+          if (!isNaN(parsed)) return Math.max(0, Math.min(100, Math.round(parsed)));
+        }
+        const upper = String(st.status).toUpperCase();
+        if (['COMPLIANT', 'DONE', 'ACCEPTED', 'COMPLETED'].includes(upper)) return 100;
+        if (['PARTIALLY_COMPLIANT', 'PARTIAL'].includes(upper)) return 50;
+        if (['IN_PROGRESS', 'SUBMITTED', 'IN_REVIEW'].includes(upper)) return 35;
+      }
+    }
+  }
+
+  // 2. Check direct node fields
+  const nodeAny = node as any;
+  let raw: string | null | undefined = null;
+  if (phase === 'SECOND_PROGRESS') raw = nodeAny.secondProgress;
+  else if (phase === 'THIRD_PROGRESS') raw = nodeAny.thirdProgress;
+  else if (phase === 'DRAFT_REPORT') raw = nodeAny.draftReportProgress || nodeAny.draftReport;
+  else if (phase === 'FINAL_REPORT') raw = nodeAny.finalReportProgress || nodeAny.finalReport;
+
+  if (raw) {
+    const match = String(raw).match(/(\d+(?:\.\d+)?)/);
+    if (match) {
+      const parsed = parseFloat(match[1]);
+      if (!isNaN(parsed)) return Math.max(0, Math.min(100, Math.round(parsed)));
+    }
+    const upper = String(raw).toUpperCase();
+    if (['COMPLIANT', 'DONE', 'ACCEPTED', 'COMPLETED'].includes(upper)) return 100;
+    if (['PARTIALLY_COMPLIANT', 'PARTIAL'].includes(upper)) return 50;
+    if (['IN_PROGRESS', 'SUBMITTED', 'IN_REVIEW'].includes(upper)) return 35;
+  }
+
+  return 0;
+}
+

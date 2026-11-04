@@ -13,7 +13,13 @@ import { useGetOrganizationMembersQuery } from '../../../store/api/organizationA
 
 export default function OrganizationMembersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const { user, organizations, currentOrgId } = useAppSelector((state) => state.auth);
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const activeOrg = organizations.find((o) => o.orgId === currentOrgId) || organizations[0];
 
   const isCallerAdmin =
@@ -38,7 +44,7 @@ export default function OrganizationMembersPage() {
             <div className="flex items-center gap-2 mb-1">
               <Badge variant="indigo" size="sm">Firm Staffing</Badge>
               <Badge variant="cyan" size="sm">Auditor Pool</Badge>
-              {activeOrg && (
+              {hasMounted && activeOrg && (
                 <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
                   <Building2 className="w-3.5 h-3.5 text-slate-400" />
                   {activeOrg.orgName}
@@ -53,7 +59,7 @@ export default function OrganizationMembersPage() {
             </p>
           </div>
 
-          {isCallerAdmin && activeOrg && (
+          {hasMounted && isCallerAdmin && activeOrg && (
             <Button
               variant="primary"
               size="md"

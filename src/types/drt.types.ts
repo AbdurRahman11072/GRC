@@ -88,6 +88,24 @@ export interface IDRTTicket {
   tors?: Array<{ torId: string; tor?: { id: string; code: string; title: string; department?: string | null } }>;
   drtDocuments?: IDRTDocument[];
   periodStatuses?: IDRTTicketPeriodStatus[];
+
+  // 5 Progress Stages & Multi-Phase Remarks
+  firstProgress?: string | null;
+  firstProgressAuditorRemark?: string | null;
+  firstProgressAuditeeRemark?: string | null;
+  secondProgress?: string | null;
+  secondProgressAuditorRemark?: string | null;
+  secondProgressAuditeeRemark?: string | null;
+  thirdProgress?: string | null;
+  thirdProgressAuditorRemark?: string | null;
+  thirdProgressAuditeeRemark?: string | null;
+  fourthProgress?: string | null;
+  fourthProgressAuditorRemark?: string | null;
+  fourthProgressAuditeeRemark?: string | null;
+  fifthProgress?: string | null;
+  fifthProgressAuditorRemark?: string | null;
+  fifthProgressAuditeeRemark?: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -146,3 +164,38 @@ export interface IUpdateDRTTicketPayload {
   googleDriveStatus?: GoogleDriveStatus;
   auditeeStatus?: AuditeeSubmissionStatus;
 }
+
+export interface ICreateDualDRTTicketsPayload {
+  projectId: string;
+  torId?: string | null;
+  requestCode: string;
+  clientRequestCode?: string | null;
+  auditeeRequestCode?: string | null;
+  title?: string | null;
+  clientDepartment?: string | null;
+  clientDescription: string;
+  auditeeDepartment?: string | null;
+  auditeeDescription: string;
+  supervisorId?: string | null;
+  fieldMemberId?: string | null;
+  clientContactId?: string | null;
+  auditeeContactId?: string | null;
+  dateOfRequest?: string;
+  expectedDateOfReceipt?: string;
+  allocatedWeight?: number;
+  collectionAllocated?: number;
+  analysisAllocated?: number;
+  clientGoogleDriveStatus?: GoogleDriveStatus;
+  clientGoogleDriveLink?: string | null;
+  clientStatus?: AuditeeSubmissionStatus;
+  googleDriveStatus?: GoogleDriveStatus;
+  googleDriveLink?: string | null;
+  auditeeStatus?: AuditeeSubmissionStatus;
+  periodStatuses?: Array<{
+    periodId?: string | null;
+    periodLabel: string;
+    evidenceStatus: PeriodEvidenceStatus;
+    remark?: string | null;
+  }>;
+}
+

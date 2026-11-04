@@ -3,8 +3,8 @@
 import React from 'react';
 import { Edit3 } from 'lucide-react';
 import type { ITorNode, TorProgressReportPhase } from '../../../types/tor.types';
-import { getTorStageData, getProgressBadgeClasses } from '../../../lib/torProgressUtils';
-import { getTorProgressPercentage } from '../../../lib/torPercentageUtils';
+import { getTorStageData } from '../../../lib/torProgressUtils';
+import { getTorStagePercentage } from '../../../lib/torPercentageUtils';
 
 interface TorProgressCellsProps {
   node: ITorNode;
@@ -20,8 +20,6 @@ export const TorProgressCells: React.FC<TorProgressCellsProps> = ({
   const stage3 = getTorStageData(node, 'THIRD_PROGRESS');
   const stageDraft = getTorStageData(node, 'DRAFT_REPORT');
   const stageFinal = getTorStageData(node, 'FINAL_REPORT');
-
-  const firstProgressPct = getTorProgressPercentage(node);
 
   const renderRemarkButton = (
     remark: string | null | undefined,
@@ -49,59 +47,52 @@ export const TorProgressCells: React.FC<TorProgressCellsProps> = ({
     );
   };
 
-  const renderProgressPill = (status?: string, phase?: TorProgressReportPhase) => {
+  const renderProgressCell = (phase: TorProgressReportPhase, label: string) => {
+    const pct = getTorStagePercentage(node, phase);
+    const stage = getTorStageData(node, phase);
     return (
       <button
         type="button"
-        onClick={() => phase && onOpenRemarkModal(node, phase)}
-        title="Click to change status or edit remark"
-        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider border cursor-pointer hover:opacity-85 transition-opacity ${getProgressBadgeClasses(
-          status
-        )}`}
+        onClick={() => onOpenRemarkModal(node, phase)}
+        title={`${label}: ${pct}% (${stage.status || 'PENDING'}) - Click to edit`}
+        className="group inline-flex flex-col items-center gap-1 p-1 -m-1 rounded hover:bg-white/80 transition-colors cursor-pointer w-full"
       >
-        {status ? status.replace(/_/g, ' ') : 'PENDING'}
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full font-mono text-[11px] font-bold border transition-transform group-hover:scale-105 ${
+            pct === 100
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+              : pct >= 50
+              ? 'bg-sky-50 text-sky-700 border-sky-300'
+              : pct > 0
+              ? 'bg-amber-50 text-amber-700 border-amber-300'
+              : 'bg-slate-100 text-slate-600 border-slate-300'
+          }`}
+        >
+          {pct}%
+        </span>
+        <div className="w-14 h-1.5 bg-slate-200/80 rounded-full overflow-hidden shadow-2xs">
+          <div
+            className={`h-full transition-all duration-300 rounded-full ${
+              pct === 100
+                ? 'bg-emerald-500'
+                : pct >= 50
+                ? 'bg-sky-500'
+                : pct > 0
+                ? 'bg-amber-500'
+                : 'bg-slate-300'
+            }`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
       </button>
     );
   };
 
   return (
     <>
-      {/* 1. 1st Progress (%) */}
+      {/* 1. 1st Progress */}
       <td className="py-2 px-2.5 text-center align-middle border-r border-slate-200 bg-emerald-50/10">
-        <button
-          type="button"
-          onClick={() => onOpenRemarkModal(node, 'FIRST_PROGRESS')}
-          title={`1st Progress: ${firstProgressPct}% (Click to edit)`}
-          className="group inline-flex flex-col items-center gap-1 p-1 -m-1 rounded hover:bg-emerald-50/80 transition-colors cursor-pointer"
-        >
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full font-mono text-xs font-bold border transition-transform group-hover:scale-105 ${
-              firstProgressPct === 100
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                : firstProgressPct >= 50
-                ? 'bg-sky-50 text-sky-700 border-sky-300'
-                : firstProgressPct > 0
-                ? 'bg-amber-50 text-amber-700 border-amber-300'
-                : 'bg-slate-100 text-slate-600 border-slate-300'
-            }`}
-          >
-            {firstProgressPct}%
-          </span>
-          <div className="w-14 h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
-            <div
-              className={`h-full transition-all duration-300 ${
-                firstProgressPct === 100
-                  ? 'bg-emerald-500'
-                  : firstProgressPct >= 50
-                  ? 'bg-sky-500'
-                  : firstProgressPct > 0
-                  ? 'bg-amber-500'
-                  : 'bg-slate-300'
-              }`}
-              style={{ width: `${firstProgressPct}%` }}
-            />
-          </div>
-        </button>
+        {renderProgressCell('FIRST_PROGRESS', '1st Progress')}
       </td>
       <td className="py-2 px-2.5 align-middle border-r border-emerald-200 bg-emerald-50/10 min-w-[160px] max-w-[200px]">
         {renderRemarkButton(stage1.auditorRemark, 'FIRST_PROGRESS', 'auditor remark')}
@@ -109,7 +100,7 @@ export const TorProgressCells: React.FC<TorProgressCellsProps> = ({
 
       {/* 2. 2nd Progress */}
       <td className="py-2 px-2.5 text-center align-middle border-r border-slate-200 bg-sky-50/10">
-        {renderProgressPill(stage2.status, 'SECOND_PROGRESS')}
+        {renderProgressCell('SECOND_PROGRESS', '2nd Progress')}
       </td>
       <td className="py-2 px-2.5 align-middle border-r border-sky-200 bg-sky-50/10 min-w-[160px] max-w-[200px]">
         {renderRemarkButton(stage2.auditorRemark, 'SECOND_PROGRESS', 'auditor remark')}
@@ -117,7 +108,7 @@ export const TorProgressCells: React.FC<TorProgressCellsProps> = ({
 
       {/* 3. 3rd Progress */}
       <td className="py-2 px-2.5 text-center align-middle border-r border-slate-200 bg-indigo-50/10">
-        {renderProgressPill(stage3.status, 'THIRD_PROGRESS')}
+        {renderProgressCell('THIRD_PROGRESS', '3rd Progress')}
       </td>
       <td className="py-2 px-2.5 align-middle border-r border-indigo-200 bg-indigo-50/10 min-w-[160px] max-w-[200px]">
         {renderRemarkButton(stage3.auditorRemark, 'THIRD_PROGRESS', 'auditor remark')}

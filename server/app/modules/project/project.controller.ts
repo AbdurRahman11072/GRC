@@ -245,6 +245,3 @@ export const ProjectController = {
   deleteMember,
   getMyProjectPermissions,
 };
-
-
-

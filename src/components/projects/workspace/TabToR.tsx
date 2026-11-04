@@ -17,9 +17,10 @@ import type { ITorNode } from '../../../types/tor.types';
 
 export interface TabToRProps {
   projectId: string;
+  onNavigateToDrt?: (torId: string) => void;
 }
 
-export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
+export const TabToR: React.FC<TabToRProps> = ({ projectId, onNavigateToDrt }) => {
   const { data: permData } = useGetMyProjectPermissionsQuery(projectId);
   const permissions = permData?.data;
   const canManageTor = permissions ? permissions.canCreateTor : true;
@@ -138,6 +139,7 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId }) => {
           onEvaluateAnalysis={(node) => setEvaluateTor(node)}
           onSelectTor={(node) => setSelectedTor(node)}
           onEditTor={(node) => setEditingTor(node)}
+          onNavigateToDrt={onNavigateToDrt}
         />
       ) : (
         <Card className="p-8 text-center border-dashed border-slate-200 bg-white shadow-2xs space-y-4">

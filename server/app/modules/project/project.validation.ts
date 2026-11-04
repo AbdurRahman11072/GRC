@@ -133,6 +133,19 @@ export const deleteDepartmentValidationSchema = z.object({
   }),
 });
 
+const projectRoleEnum = z.enum([
+  'ADMINISTRATOR',
+  'ADMIN',
+  'PROJECT_MANAGER',
+  'SUPERVISOR',
+  'FIELD_MEMBER',
+  'CLIENT',
+  'AUDITEE',
+  'FIELD_TEAM',
+  'CLIENT_REPRESENTATIVE',
+  'AUDITEE_REPRESENTATIVE',
+]);
+
 export const addMemberValidationSchema = z.object({
   params: z.object({
     id: z.string().uuid('Invalid project ID format'),
@@ -144,10 +157,8 @@ export const addMemberValidationSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters').optional(),
     designation: z.string().optional(),
     phone: z.string().optional(),
-    teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
-    projectRole: z
-      .enum(['PROJECT_MANAGER', 'SUPERVISOR', 'FIELD_TEAM', 'CLIENT_REPRESENTATIVE', 'AUDITEE_REPRESENTATIVE'])
-      .optional(),
+    teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']).optional(),
+    projectRole: projectRoleEnum.optional(),
   }),
 });
 
@@ -160,10 +171,8 @@ export const batchAddMembersValidationSchema = z.object({
       .array(
         z.object({
           userId: z.string().uuid('Invalid user ID format'),
-          teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']),
-          projectRole: z
-            .enum(['PROJECT_MANAGER', 'SUPERVISOR', 'FIELD_TEAM', 'CLIENT_REPRESENTATIVE', 'AUDITEE_REPRESENTATIVE'])
-            .optional(),
+          teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']).optional(),
+          projectRole: projectRoleEnum.optional(),
         })
       )
       .min(1, 'At least one member is required'),
@@ -186,9 +195,7 @@ export const updateMemberValidationSchema = z.object({
   }),
   body: z.object({
     teamBucket: z.enum(['ADMINISTRATOR', 'ORG_MEMBER', 'CLIENT', 'AUDITEE']).optional(),
-    projectRole: z
-      .enum(['PROJECT_MANAGER', 'SUPERVISOR', 'FIELD_TEAM', 'CLIENT_REPRESENTATIVE', 'AUDITEE_REPRESENTATIVE'])
-      .optional(),
+    projectRole: projectRoleEnum.optional(),
   }),
 });
 

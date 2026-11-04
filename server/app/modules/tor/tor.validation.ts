@@ -11,8 +11,10 @@ export const createTorValidationSchema = z.object({
       .or(z.literal('')),
     code: z
       .string()
-      .min(1, 'ToR code is required')
-      .max(50, 'ToR code must not exceed 50 characters'),
+      .max(50, 'ToR code must not exceed 50 characters')
+      .optional()
+      .nullable()
+      .or(z.literal('')),
     title: z
       .string()
       .min(2, 'ToR title must be at least 2 characters')

@@ -7,6 +7,7 @@ import { Badge } from '../../../ui/Badge';
 import { useGetOrgMembersQuery, useAddProjectMemberMutation } from '../../../../store/api/projectApi';
 import { useAppSelector } from '../../../../store/hooks';
 import type { ProjectFunctionalRole } from '../../../../types/project.types';
+import { ALL_PROJECT_ROLES } from '../MemberRoleDropdown';
 
 interface AssignFirmStaffTabProps {
   projectId: string;
@@ -23,7 +24,7 @@ export const AssignFirmStaffTab: React.FC<AssignFirmStaffTabProps> = ({
 }) => {
   const [mode, setMode] = useState<'EXISTING' | 'NEW'>('EXISTING');
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [functionalRole, setFunctionalRole] = useState<ProjectFunctionalRole>('FIELD_TEAM');
+  const [functionalRole, setFunctionalRole] = useState<ProjectFunctionalRole>('FIELD_MEMBER');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // New auditor state
@@ -55,10 +56,15 @@ export const AssignFirmStaffTab: React.FC<AssignFirmStaffTabProps> = ({
           return;
         }
         const member = availableAuditors.find((m) => m.id === selectedUserId);
+        const isAdministrator = functionalRole === 'ADMINISTRATOR' || functionalRole === 'ADMIN' || functionalRole === 'PROJECT_MANAGER';
+        const isClient = functionalRole === 'CLIENT' || functionalRole === 'CLIENT_REPRESENTATIVE';
+        const isAuditee = functionalRole === 'AUDITEE' || functionalRole === 'AUDITEE_REPRESENTATIVE';
+        const teamBucket = isAdministrator ? 'ADMINISTRATOR' : isClient ? 'CLIENT' : isAuditee ? 'AUDITEE' : 'ORG_MEMBER';
+
         await addMember({
           projectId,
           userId: selectedUserId,
-          teamBucket: functionalRole === 'PROJECT_MANAGER' ? 'ADMINISTRATOR' : 'ORG_MEMBER',
+          teamBucket,
           projectRole: functionalRole,
         }).unwrap();
 
@@ -71,13 +77,18 @@ export const AssignFirmStaffTab: React.FC<AssignFirmStaffTabProps> = ({
         if (!name.trim()) return setErrorMsg('Full name is required');
         if (!email.includes('@')) return setErrorMsg('Valid email address is required');
 
+        const isAdministrator = functionalRole === 'ADMINISTRATOR' || functionalRole === 'ADMIN' || functionalRole === 'PROJECT_MANAGER';
+        const isClient = functionalRole === 'CLIENT' || functionalRole === 'CLIENT_REPRESENTATIVE';
+        const isAuditee = functionalRole === 'AUDITEE' || functionalRole === 'AUDITEE_REPRESENTATIVE';
+        const teamBucket = isAdministrator ? 'ADMINISTRATOR' : isClient ? 'CLIENT' : isAuditee ? 'AUDITEE' : 'ORG_MEMBER';
+
         await addMember({
           projectId,
           name: name.trim(),
           email: email.toLowerCase().trim(),
           designation: designation.trim() || undefined,
           password: password.trim(),
-          teamBucket: functionalRole === 'PROJECT_MANAGER' ? 'ADMINISTRATOR' : 'ORG_MEMBER',
+          teamBucket,
           projectRole: functionalRole,
         }).unwrap();
 
@@ -201,37 +212,22 @@ export const AssignFirmStaffTab: React.FC<AssignFirmStaffTabProps> = ({
         </div>
       )}
 
-      {/* Role Picker */}
-      <div className="space-y-2">
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-          Functional Role in This Project *
+      {/* Role Picker (Dropdown Menu) */}
+      <div className="space-y-1.5">
+        <label className="block text-xs font-semibold text-slate-700">
+          Organization Role in This Project *
         </label>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { id: 'PROJECT_MANAGER' as const, label: 'Project Manager', desc: 'Full Authority', icon: ShieldAlert, color: 'indigo' },
-            { id: 'SUPERVISOR' as const, label: 'Supervisor', desc: 'Verify & Mark', icon: ShieldCheck, color: 'cyan' },
-            { id: 'FIELD_TEAM' as const, label: 'Field Team', desc: 'Upload Evidence', icon: Users, color: 'emerald' },
-          ].map((r) => {
-            const Icon = r.icon;
-            const isSelected = functionalRole === r.id;
-            return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setFunctionalRole(r.id)}
-                className={`p-2.5 rounded-lg border text-left transition-all ${
-                  isSelected ? 'bg-indigo-50/80 border-indigo-300 ring-1 ring-indigo-500/20' : 'bg-white border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800">
-                  <Icon className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                  <span className="truncate">{r.label}</span>
-                </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">{r.desc}</div>
-              </button>
-            );
-          })}
-        </div>
+        <select
+          value={functionalRole}
+          onChange={(e) => setFunctionalRole(e.target.value as ProjectFunctionalRole)}
+          className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 font-medium text-slate-900 focus:ring-2 focus:ring-indigo-500/20"
+        >
+          {ALL_PROJECT_ROLES.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label} — {r.desc}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">

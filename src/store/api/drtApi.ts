@@ -3,6 +3,7 @@ import type { ApiResponse } from '../../types/auth.types';
 import type {
   IDRTTicket,
   ICreateDRTTicketPayload,
+  ICreateDualDRTTicketsPayload,
   IUpdateDRTTicketPayload,
   IDRTDocument,
   DRTPartySide,
@@ -26,6 +27,18 @@ export const drtApi = baseApi.injectEndpoints({
     getTicketById: builder.query<ApiResponse<IDRTTicket>, string>({
       query: (id) => `/drt/tickets/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'DRT', id }],
+    }),
+
+    createDualTickets: builder.mutation<
+      ApiResponse<{ clientTicket: IDRTTicket; auditeeTicket: IDRTTicket }>,
+      ICreateDualDRTTicketsPayload
+    >({
+      query: (body) => ({
+        url: '/drt/tickets/dual',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['DRT', 'ToR'],
     }),
 
     createTicket: builder.mutation<ApiResponse<IDRTTicket>, ICreateDRTTicketPayload>({
@@ -146,6 +159,7 @@ export const drtApi = baseApi.injectEndpoints({
 export const {
   useGetTicketsQuery,
   useGetTicketByIdQuery,
+  useCreateDualTicketsMutation,
   useCreateTicketMutation,
   useUpdateTicketMutation,
   useAssignSquadMutation,

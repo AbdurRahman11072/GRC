@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { X, MessageSquare, AlertCircle } from 'lucide-react';
 import type { ITorNode, TorProgressReportPhase, ITorProgressStageData } from '../../../types/tor.types';
-import { getTorProgressPercentage } from '../../../lib/torPercentageUtils';
+import { getTorStagePercentage } from '../../../lib/torPercentageUtils';
 
 export interface TorRemarkModalProps {
   isOpen: boolean;
@@ -22,13 +22,11 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
   initialData,
   onSave,
 }) => {
-  const isFirstProgress = phase === 'FIRST_PROGRESS';
   const hasDualRemarks =
     phase === 'DRAFT_REPORT' || phase === 'FINAL_REPORT' || phase === 'INCENTIVE_REPORT';
 
-  const [status, setStatus] = useState(initialData.status || 'PENDING');
   const [progressPct, setProgressPct] = useState<number>(() =>
-    isFirstProgress ? getTorProgressPercentage(node) : 0
+    getTorStagePercentage(node, phase)
   );
   const [auditorRemark, setAuditorRemark] = useState(initialData.auditorRemark || '');
   const [auditeeRemark, setAuditeeRemark] = useState(initialData.auditeeRemark || '');
@@ -36,10 +34,9 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
   if (!isOpen) return null;
 
   const handleSave = () => {
-    const finalStatus = isFirstProgress ? `${progressPct}%` : status;
     onSave(node.id, phase, {
-      status: finalStatus,
-      score: isFirstProgress ? progressPct : undefined,
+      status: `${progressPct}%`,
+      score: progressPct,
       auditorRemark: auditorRemark.trim() || null,
       auditeeRemark: auditeeRemark.trim() || null,
       updatedAt: new Date().toISOString(),
@@ -77,63 +74,42 @@ export const TorRemarkModal: React.FC<TorRemarkModalProps> = ({
 
         {/* Content Body */}
         <div className="p-5 space-y-4 overflow-y-auto text-xs">
-          {/* 1st Progress: Percentage Input & Quick Presets */}
-          {isFirstProgress ? (
-            <div className="space-y-2 p-3 bg-emerald-50/50 rounded-xl border border-emerald-200">
-              <div className="flex items-center justify-between">
-                <label className="font-semibold text-emerald-900">
-                  1st Progress Completion Percentage
-                </label>
-                <span className="font-mono font-bold text-sm text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300">
-                  {progressPct}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={progressPct}
-                onChange={(e) => setProgressPct(parseInt(e.target.value, 10))}
-                className="w-full h-2 bg-emerald-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-              />
-              <div className="flex items-center justify-between gap-1 pt-1">
-                {[0, 25, 50, 75, 100].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setProgressPct(preset)}
-                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold border transition-colors ${
-                      progressPct === preset
-                        ? 'bg-emerald-600 text-white border-emerald-600'
-                        : 'bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                    }`}
-                  >
-                    {preset}%
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            /* Standard Progress Status Selector */
-            <div className="space-y-1.5">
-              <label className="block font-semibold text-slate-700">
-                Phase Progress Status
+          {/* Progress Percentage Input & Presets */}
+          <div className="space-y-2 p-3 bg-emerald-50/50 rounded-xl border border-emerald-200">
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-emerald-900">
+                {initialData.stageName} Completion Percentage
               </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all text-xs"
-              >
-                <option value="PENDING">Pending Evaluation</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="PARTIALLY_COMPLIANT">Partially Compliant</option>
-                <option value="COMPLIANT">Compliant</option>
-                <option value="NON_COMPLIANT">Non-Compliant</option>
-                <option value="NOT_APPLICABLE">Not Applicable</option>
-              </select>
+              <span className="font-mono font-bold text-sm text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                {progressPct}%
+              </span>
             </div>
-          )}
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={progressPct}
+              onChange={(e) => setProgressPct(parseInt(e.target.value, 10))}
+              className="w-full h-2 bg-emerald-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+            />
+            <div className="flex items-center justify-between gap-1 pt-1">
+              {[0, 25, 50, 75, 100].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setProgressPct(preset)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold border transition-colors ${
+                    progressPct === preset
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  }`}
+                >
+                  {preset}%
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Incentive / Auditee / Draft Remark (if applicable) */}
           {hasDualRemarks && (

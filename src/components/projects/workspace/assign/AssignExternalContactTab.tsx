@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Shield, Building2, AlertCircle } from 'lucide-react';
 import { Button } from '../../../ui/Button';
-import { Badge } from '../../../ui/Badge';
 import {
   useGetEntityContactsQuery,
   useCreateEntityContactMutation,
@@ -43,7 +42,6 @@ export const AssignExternalContactTab: React.FC<AssignExternalContactTabProps> =
   const [selectedContactId, setSelectedContactId] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // New contact fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [designation, setDesignation] = useState('');
@@ -58,13 +56,10 @@ export const AssignExternalContactTab: React.FC<AssignExternalContactTabProps> =
 
   const [createContact, { isLoading: isCreatingContact }] = useCreateEntityContactMutation();
   const [addMember, { isLoading: isAddingMember }] = useAddProjectMemberMutation();
-
   const isSubmitting = isCreatingContact || isAddingMember;
 
   const contacts = contactsData?.data || [];
-  const availableContacts = contacts.filter(
-    (c) => !c.userId || !existingMemberUserIds.includes(c.userId)
-  );
+  const availableContacts = contacts.filter((c) => !c.userId || !existingMemberUserIds.includes(c.userId));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,10 +67,7 @@ export const AssignExternalContactTab: React.FC<AssignExternalContactTabProps> =
 
     try {
       if (mode === 'EXISTING') {
-        if (!selectedContactId) {
-          setErrorMsg('Please select a registered contact from the dropdown');
-          return;
-        }
+        if (!selectedContactId) return setErrorMsg('Please select a registered contact');
         const contact = contacts.find((c) => c.id === selectedContactId);
         if (!contact) return;
 
@@ -87,55 +79,44 @@ export const AssignExternalContactTab: React.FC<AssignExternalContactTabProps> =
           designation: contact.department ? `${contact.department} — ${contact.designation || 'Lead'}` : contact.designation || undefined,
           phone: contact.phone || undefined,
           teamBucket: isClient ? 'CLIENT' : 'AUDITEE',
-          projectRole: isClient ? 'CLIENT_REPRESENTATIVE' : 'AUDITEE_REPRESENTATIVE',
+          projectRole: isClient ? 'CLIENT' : 'AUDITEE',
         }).unwrap();
 
-        onSuccess({
-          name: contact.name,
-          email: contact.email,
-          role: isClient ? 'Client Representative' : `Auditee (${contact.department || 'Staff'})`,
-        });
+        onSuccess({ name: contact.name, email: contact.email, role: isClient ? 'Client' : `Auditee (${contact.department || 'Staff'})` });
       } else {
         if (!name.trim()) return setErrorMsg('Full name is required');
         if (!email.includes('@')) return setErrorMsg('Valid email is required');
 
-        // 1. Create contact under CRM entity
-        let userId: string | undefined = undefined;
         let provisionedPass: string | undefined = undefined;
-
         if (entityId) {
           const contactRes = await createContact({
             entityId,
             name: name.trim(),
             email: email.toLowerCase().trim(),
-            phone: phone.trim() || undefined,
             designation: designation.trim() || undefined,
-            department: isClient ? undefined : department,
-            password: password.trim() || undefined,
+            phone: phone.trim() || undefined,
+            department: !isClient ? department : undefined,
+            password: password.trim(),
           }).unwrap();
-
-          userId = contactRes.data?.userId || undefined;
-          provisionedPass = contactRes.data?.provisionedPassword || password.trim();
+          provisionedPass = contactRes.data?.provisionedPassword;
         }
 
-        // 2. Add as project member
         await addMember({
           projectId,
-          userId,
           name: name.trim(),
           email: email.toLowerCase().trim(),
           designation: !isClient ? `${department} — ${designation || 'Lead'}` : designation || undefined,
           phone: phone.trim() || undefined,
           password: password.trim(),
           teamBucket: isClient ? 'CLIENT' : 'AUDITEE',
-          projectRole: isClient ? 'CLIENT_REPRESENTATIVE' : 'AUDITEE_REPRESENTATIVE',
+          projectRole: isClient ? 'CLIENT' : 'AUDITEE',
         }).unwrap();
 
         onSuccess({
           name: name.trim(),
           email: email.toLowerCase().trim(),
           password: provisionedPass || password.trim(),
-          role: isClient ? 'Client Representative' : `Auditee (${department})`,
+          role: isClient ? 'Client' : `Auditee (${department})`,
         });
       }
     } catch (err: unknown) {
@@ -146,7 +127,6 @@ export const AssignExternalContactTab: React.FC<AssignExternalContactTabProps> =
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Banner */}
       <div className={`p-3 rounded-lg border text-xs flex items-center gap-2.5 ${
         isClient ? 'bg-amber-50/60 border-amber-200 text-amber-900' : 'bg-cyan-50/60 border-cyan-200 text-cyan-900'
       }`}>
@@ -166,7 +146,6 @@ export const AssignExternalContactTab: React.FC<AssignExternalContactTabProps> =
         </div>
       )}
 
-      {/* Mode Switcher */}
       <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
         <button
           type="button"
@@ -266,31 +245,19 @@ export const AssignExternalContactTab: React.FC<AssignExternalContactTabProps> =
                   ))}
                 </select>
               </div>
-            ) : (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Temporary Password *</label>
-                <input
-                  type="text"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2 font-mono"
-                  required
-                />
-              </div>
-            )}
+            ) : null}
           </div>
-          {!isClient && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Temporary Password *</label>
-              <input
-                type="text"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2 font-mono"
-                required
-              />
-            </div>
-          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Temporary Password *</label>
+            <input
+              type="text"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2 font-mono"
+              required
+            />
+          </div>
         </div>
       )}
 

@@ -3,9 +3,20 @@ import { authMiddleware } from '../../middleware/authMiddleware';
 import { tenantMiddleware, requireOrgRole } from '../../middleware/tenantMiddleware';
 import { validateRequest } from '../../middleware/validateRequest';
 import { DRTValidation } from './drt.validation';
+import { createDualTicketsValidationSchema } from './drt.dual.validation';
 import { DRTController } from './drt.controller';
 
 const router = Router();
+
+// Create Dual DRT Tickets (Client & Auditee) in single transaction
+router.post(
+  '/tickets/dual',
+  authMiddleware(),
+  tenantMiddleware(),
+  requireOrgRole('OWNER', 'ADMIN', 'AUDITOR'),
+  validateRequest(createDualTicketsValidationSchema),
+  DRTController.createDualTickets
+);
 
 // Create DRT Ticket (OWNER, ADMIN, AUDITOR)
 router.post(

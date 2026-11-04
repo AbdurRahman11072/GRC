@@ -206,8 +206,13 @@ enum TeamBucket {
 }
 
 enum ProjectRole {
+  ADMINISTRATOR
+  ADMIN
   PROJECT_MANAGER
   SUPERVISOR
+  FIELD_MEMBER
+  CLIENT
+  AUDITEE
   FIELD_TEAM
   CLIENT_REPRESENTATIVE
   AUDITEE_REPRESENTATIVE
@@ -218,7 +223,7 @@ model ProjectMember {
   projectId    String
   userId       String
   teamBucket   TeamBucket
-  projectRole  ProjectRole        @default(FIELD_TEAM)
+  projectRole  ProjectRole        @default(FIELD_MEMBER)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 

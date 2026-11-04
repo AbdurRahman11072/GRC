@@ -42,8 +42,11 @@ export const TorRowActions: React.FC<TorRowActionsProps> = ({
   onEditTor,
   onDelete,
 }) => {
-  // Only show DRT button on 1.1.1 (and deeper) clauses, not high-level 1 or 1.1
+  // Show DRT button on 1.1 clauses (level 1), not root 1 or 2
   const canIssueDrt = isTorDrtEligible(node.code, level);
+  const codeParts = node.code ? node.code.split('.').filter(Boolean) : [];
+  // Only root clauses (e.g. 1, 2) can have sub-clauses (1.1). Sub-clauses cannot have 1.1.1.
+  const canAddSubClause = canManageTor && (level === 0 || codeParts.length <= 1);
 
   return (
     <td className="py-2 px-3 whitespace-nowrap text-right align-middle w-48 min-w-[200px] border-l border-slate-200">
@@ -69,7 +72,7 @@ export const TorRowActions: React.FC<TorRowActionsProps> = ({
             <span>+ DRT</span>
           </button>
         )}
-        {canManageTor && (
+        {canAddSubClause && (
           <button
             type="button"
             onClick={() => onAddChild(node.id)}

@@ -27,6 +27,7 @@ export interface TorTableProps {
   onEvaluateAnalysis?: (node: ITorNode) => void;
   onSelectTor?: (node: ITorNode) => void;
   onEditTor?: (node: ITorNode) => void;
+  onNavigateToDrt?: (torId: string) => void;
 }
 
 const defaultFilters: TorFilterState = {
@@ -49,6 +50,7 @@ export const TorTable: React.FC<TorTableProps> = ({
   onEvaluateAnalysis,
   onSelectTor,
   onEditTor,
+  onNavigateToDrt,
 }) => {
   const [filters, setFilters] = useState<TorFilterState>(defaultFilters);
   const [localTree, setLocalTree] = useState<ITorNode[]>(treeNodes);
@@ -145,6 +147,7 @@ export const TorTable: React.FC<TorTableProps> = ({
                   onEvaluateAnalysis={onEvaluateAnalysis}
                   onSelectTor={onSelectTor}
                   onEditTor={onEditTor}
+                  onNavigateToDrt={onNavigateToDrt}
                   onOpenRemarkModal={(node, phase) => {
                     setRemarkModal({
                       isOpen: true,

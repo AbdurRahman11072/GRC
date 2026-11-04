@@ -8,6 +8,8 @@ import type {
   IAddProjectMemberPayload,
   IProjectPermissions,
   IOrgUserMember,
+  ProjectFunctionalRole,
+  ProjectRole,
 } from '../../types/project.types';
 
 export const projectApi = baseApi.injectEndpoints({
@@ -96,6 +98,29 @@ export const projectApi = baseApi.injectEndpoints({
       invalidatesTags: ['User', 'Project'],
     }),
 
+    updateProjectMember: builder.mutation<
+      ApiResponse<IProjectMember>,
+      { projectId: string; memberId: string; projectRole?: ProjectFunctionalRole; teamBucket?: ProjectRole }
+    >({
+      query: ({ projectId, memberId, ...body }) => ({
+        url: `/projects/${projectId}/members/${memberId}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['User', 'Project'],
+    }),
+
+    deleteProjectMember: builder.mutation<
+      ApiResponse<{ success: boolean; message: string }>,
+      { projectId: string; memberId: string }
+    >({
+      query: ({ projectId, memberId }) => ({
+        url: `/projects/${projectId}/members/${memberId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['User', 'Project'],
+    }),
+
     getMyProjectPermissions: builder.query<ApiResponse<IProjectPermissions>, string>({
       query: (projectId) => `/projects/${projectId}/my-permissions`,
       providesTags: (_result, _error, id) => [{ type: 'Project', id }],
@@ -118,6 +143,8 @@ export const {
   useAddProjectDepartmentMutation,
   useGetProjectMembersQuery,
   useAddProjectMemberMutation,
+  useUpdateProjectMemberMutation,
+  useDeleteProjectMemberMutation,
   useGetMyProjectPermissionsQuery,
   useGetOrgMembersQuery,
 } = projectApi;

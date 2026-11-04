@@ -12,6 +12,10 @@ export interface IProjectUserContext {
   canAwardMarks: boolean;
   canCheckDocument: boolean;
   canUploadDocument: boolean;
+  canAccessTors: boolean;
+  canAccessScorecard: boolean;
+  canAccessEntities: boolean;
+  canManageTeam: boolean;
 }
 
 /**
@@ -48,15 +52,39 @@ export const getProjectUserContext = async (
   const teamBucket = projectMember?.teamBucket || null;
 
   // 3. Compute authoritative capability flags
-  const isManager = projectRole === 'PROJECT_MANAGER' || teamBucket === 'ADMINISTRATOR';
-  const isSupervisor = projectRole === 'SUPERVISOR';
-  const isFieldTeam = projectRole === 'FIELD_TEAM' || teamBucket === 'ORG_MEMBER';
+  const isAdminOrLead =
+    isOrgAdmin ||
+    projectRole === 'ADMINISTRATOR' ||
+    projectRole === 'ADMIN' ||
+    (teamBucket === 'ADMINISTRATOR' && projectRole !== 'PROJECT_MANAGER');
 
-  const canCreateTor = isOrgAdmin || isManager;
-  const canAssignDrt = isOrgAdmin || isManager;
-  const canAwardMarks = isOrgAdmin || isManager || isSupervisor;
-  const canCheckDocument = isOrgAdmin || isManager || isSupervisor;
-  const canUploadDocument = isOrgAdmin || isManager || isSupervisor || isFieldTeam;
+  const isManager = isAdminOrLead || projectRole === 'PROJECT_MANAGER';
+  const isSupervisor = projectRole === 'SUPERVISOR';
+  const isFieldMember =
+    projectRole === 'FIELD_MEMBER' ||
+    projectRole === 'FIELD_TEAM' ||
+    (!projectRole && teamBucket === 'ORG_MEMBER');
+
+  const isClient =
+    projectRole === 'CLIENT' ||
+    projectRole === 'CLIENT_REPRESENTATIVE' ||
+    teamBucket === 'CLIENT';
+
+  const isAuditee =
+    projectRole === 'AUDITEE' ||
+    projectRole === 'AUDITEE_REPRESENTATIVE' ||
+    teamBucket === 'AUDITEE';
+
+  const canCreateTor = isManager;
+  const canAssignDrt = isManager;
+  const canAwardMarks = isManager || isSupervisor;
+  const canCheckDocument = isManager || isSupervisor;
+  const canUploadDocument = isManager || isSupervisor || isFieldMember || isClient || isAuditee;
+
+  const canAccessTors = isManager || isSupervisor || isFieldMember;
+  const canAccessScorecard = isManager || isSupervisor || isClient;
+  const canAccessEntities = isManager;
+  const canManageTeam = isManager;
 
   return {
     isOrgAdmin,
@@ -67,6 +95,10 @@ export const getProjectUserContext = async (
     canAwardMarks,
     canCheckDocument,
     canUploadDocument,
+    canAccessTors,
+    canAccessScorecard,
+    canAccessEntities,
+    canManageTeam,
   };
 };
 

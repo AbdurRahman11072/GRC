@@ -5,6 +5,7 @@ import { Layers } from 'lucide-react';
 import { DrtTableHeader } from './DrtTableHeader';
 import { DrtTableRow } from './DrtTableRow';
 import type { IDRTTicket, DRTPartySide } from '../../../../types/drt.types';
+import type { DrtProgressPhase } from '../../../../lib/drtProgressUtils';
 import { DEFAULT_AUDIT_YEARS } from './DrtTimeFrameGrid';
 import { useHorizontalScroll } from '../../../../hooks/useHorizontalScroll';
 
@@ -18,7 +19,7 @@ export interface DrtTableProps {
   onManageTors?: (ticket: IDRTTicket) => void;
   onOpenPeriodModal: (ticket: IDRTTicket, periodLabel: string) => void;
   onOpenUploadModal: (ticket: IDRTTicket, partySide: DRTPartySide) => void;
-  onOpenRemarkModal: (ticket: IDRTTicket, type: 'AUDITOR' | 'AUDITEE') => void;
+  onOpenProgressModal: (ticket: IDRTTicket, phase: DrtProgressPhase) => void;
 }
 
 export const DrtTable: React.FC<DrtTableProps> = ({
@@ -31,9 +32,9 @@ export const DrtTable: React.FC<DrtTableProps> = ({
   onManageTors,
   onOpenPeriodModal,
   onOpenUploadModal,
-  onOpenRemarkModal,
+  onOpenProgressModal,
 }) => {
-  const totalColumns = 21 + auditYears.length;
+  const totalColumns = 26 + auditYears.length;
   const tableContainerRef = useHorizontalScroll<HTMLDivElement>({
     speed: 1.2,
     allowVerticalAtBoundaries: true,
@@ -44,7 +45,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
       ref={tableContainerRef}
       className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-2xs max-w-full"
     >
-      <table className="w-full text-left border-collapse min-w-[2100px]">
+      <table className="w-full text-left border-collapse min-w-[2600px]">
         <DrtTableHeader auditYears={auditYears} />
         <tbody>
           {tickets.length > 0 ? (
@@ -61,7 +62,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
                 onManageTors={onManageTors}
                 onOpenPeriodModal={onOpenPeriodModal}
                 onOpenUploadModal={onOpenUploadModal}
-                onOpenRemarkModal={onOpenRemarkModal}
+                onOpenProgressModal={onOpenProgressModal}
               />
             ))
           ) : (

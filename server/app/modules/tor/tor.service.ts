@@ -9,6 +9,7 @@ import {
   assertCanCheckDocument,
 } from '../project/project.permissions';
 import { TorRollupService } from './torRollup.service';
+import { resolveNextTorCode } from './torCodeResolver';
 
 export interface IStreamWeightItem {
   streamBucket: TeamBucket;
@@ -20,7 +21,7 @@ export interface IStreamWeightItem {
 export interface ICreateTorPayload {
   projectId: string;
   parentId?: string | null;
-  code: string;
+  code?: string;
   title: string;
   description?: string | null;
   objective?: string | null;
@@ -111,11 +112,16 @@ const createTor = async (
     }
   }
 
+  let code = payload.code?.trim();
+  if (!code) {
+    code = await resolveNextTorCode(payload.projectId, payload.parentId);
+  }
+
   const tor = await prisma.tor.create({
     data: {
       projectId: payload.projectId,
       parentId: payload.parentId || null,
-      code: payload.code.trim(),
+      code,
       title: payload.title.trim(),
       description: payload.description?.trim() || null,
       objective: payload.objective?.trim() || null,

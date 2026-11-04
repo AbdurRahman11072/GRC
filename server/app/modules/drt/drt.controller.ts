@@ -3,6 +3,20 @@ import httpStatus from 'http-status';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { sendResponse } from '../../utils/sendResponse';
 import { DRTService } from './drt.service';
+import { DRTDualService } from './drt.dual.service';
+
+const createDualTickets = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = req.orgId!;
+  const userId = req.user?.userId;
+  const result = await DRTDualService.createDualTickets(orgId, req.body, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Dual DRT tickets (Client & Auditee) created successfully',
+    data: result,
+  });
+});
 
 const createTicket = asyncHandler(async (req: Request, res: Response) => {
   const orgId = req.orgId!;
@@ -163,6 +177,7 @@ const reviewDrtDocument = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const DRTController = {
+  createDualTickets,
   createTicket,
   getTickets,
   getTicketById,

@@ -21,6 +21,7 @@ export interface TorTableRowProps {
   onEvaluateAnalysis?: (node: ITorNode) => void;
   onSelectTor?: (node: ITorNode) => void;
   onEditTor?: (node: ITorNode) => void;
+  onNavigateToDrt?: (torId: string) => void;
   onOpenRemarkModal: (node: ITorNode, phase: TorProgressReportPhase) => void;
 }
 
@@ -37,6 +38,7 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
   onEvaluateAnalysis,
   onSelectTor,
   onEditTor,
+  onNavigateToDrt,
   onOpenRemarkModal,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -85,9 +87,9 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span
-                onClick={() => onSelectTor?.(node)}
-                title={node.title}
-                className={`text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors ${
+                onClick={() => (onNavigateToDrt ? onNavigateToDrt(node.id) : onSelectTor?.(node))}
+                title={`Click to view DRT requests for [${node.code}] ${node.title}`}
+                className={`text-slate-900 cursor-pointer hover:text-indigo-600 hover:underline transition-colors ${
                   isRoot ? 'font-bold text-xs' : 'font-semibold text-xs'
                 }`}
               >
@@ -161,10 +163,12 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
         />
       </tr>
 
-      {/* Child Rows */}
+      {/* Child Rows (Up to 1.1, excluding 1.1.1) */}
       {hasChildren &&
         isExpanded &&
-        node.children!.map((child) => (
+        node.children!
+          .filter((child) => !child.code || child.code.split('.').filter(Boolean).length <= 2)
+          .map((child) => (
           <TorTableRow
             key={child.id}
             node={child}
@@ -179,6 +183,7 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
             onEvaluateAnalysis={onEvaluateAnalysis}
             onSelectTor={onSelectTor}
             onEditTor={onEditTor}
+            onNavigateToDrt={onNavigateToDrt}
             onOpenRemarkModal={onOpenRemarkModal}
           />
         ))}

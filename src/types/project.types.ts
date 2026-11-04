@@ -93,9 +93,31 @@ export type ProjectRole = 'ADMINISTRATOR' | 'ORG_MEMBER' | 'CLIENT' | 'AUDITEE';
 export type ProjectFunctionalRole =
   | 'PROJECT_MANAGER'
   | 'SUPERVISOR'
+  | 'CLIENT'
+  | 'FIELD_MEMBER'
+  | 'AUDITEE'
+  | 'ADMIN'
+  | 'ADMINISTRATOR'
   | 'FIELD_TEAM'
   | 'CLIENT_REPRESENTATIVE'
   | 'AUDITEE_REPRESENTATIVE';
+
+export interface IProjectRoleOption {
+  value: ProjectFunctionalRole;
+  label: string;
+  description: string;
+  teamBucket: ProjectRole;
+}
+
+export const PROJECT_ROLE_OPTIONS: IProjectRoleOption[] = [
+  { value: 'PROJECT_MANAGER', label: 'Project Manager', description: 'Full Project Authority (ToRs, DRTs, Marks, Checks)', teamBucket: 'ADMINISTRATOR' },
+  { value: 'SUPERVISOR', label: 'Supervisor', description: 'Verify Documents & Award Marks', teamBucket: 'ORG_MEMBER' },
+  { value: 'CLIENT', label: 'Client', description: 'Regulatory Oversight & Macro Scorecard', teamBucket: 'CLIENT' },
+  { value: 'FIELD_MEMBER', label: 'Field Member', description: 'Evidence Upload & Progress Tracking', teamBucket: 'ORG_MEMBER' },
+  { value: 'AUDITEE', label: 'Auditee', description: 'Auditee Submissions & SLA Focal Point', teamBucket: 'AUDITEE' },
+  { value: 'ADMIN', label: 'Admin', description: 'Project Administration & Team Management', teamBucket: 'ADMINISTRATOR' },
+  { value: 'ADMINISTRATOR', label: 'Administrator', description: 'Full System & Workspace Control', teamBucket: 'ADMINISTRATOR' },
+];
 
 export interface IProjectPermissions {
   isOrgAdmin: boolean;
@@ -106,6 +128,10 @@ export interface IProjectPermissions {
   canAwardMarks: boolean;
   canCheckDocument: boolean;
   canUploadDocument: boolean;
+  canAccessTors?: boolean;
+  canAccessScorecard?: boolean;
+  canAccessEntities?: boolean;
+  canManageTeam?: boolean;
 }
 
 export interface IOrgUserMember {

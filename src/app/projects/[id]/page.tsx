@@ -27,17 +27,27 @@ export default function ProjectWorkspacePage() {
     skip: !projectId,
   });
   const permissions = permData?.data;
-  const canAccessTors = isOrgAdmin || Boolean(permissions?.canCreateTor);
+  const canAccessTors = isOrgAdmin || Boolean(permissions?.canAccessTors || permissions?.canCreateTor);
+  const canAccessEntities = isOrgAdmin || Boolean(permissions?.canAccessEntities || permissions?.canCreateTor);
+  const canAccessScorecard = isOrgAdmin || permissions?.canAccessScorecard !== false;
 
   const initialTab = (searchParams?.get('tab') as WorkspaceTab) || 'overview';
+  const initialTorId = searchParams?.get('torId') || '';
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
+  const [selectedTorId, setSelectedTorId] = useState<string>(initialTorId);
 
-  // Guard: non-admins and non-managers cannot access ToR WBS or Entities tabs (only once permissions finish loading)
+  const handleNavigateToDrt = (torId: string) => {
+    setSelectedTorId(torId);
+    setActiveTab('drt');
+  };
+
+  // Guard: redirect to overview or drt if user tries to navigate to an unauthorized tab
   React.useEffect(() => {
-    if (!isPermsLoading && !canAccessTors && (activeTab === 'tors' || activeTab === 'entities')) {
-      setActiveTab('overview');
-    }
-  }, [isPermsLoading, canAccessTors, activeTab]);
+    if (isPermsLoading) return;
+    if (!canAccessEntities && activeTab === 'entities') setActiveTab('overview');
+    if (!canAccessTors && activeTab === 'tors') setActiveTab('overview');
+    if (!canAccessScorecard && activeTab === 'scorecard') setActiveTab('drt');
+  }, [isPermsLoading, canAccessEntities, canAccessTors, canAccessScorecard, activeTab]);
 
   const { data: projectData, isLoading, error } = useGetProjectByIdQuery(projectId, {
     skip: !projectId,
@@ -68,6 +78,9 @@ export default function ProjectWorkspacePage() {
               onTabChange={setActiveTab}
               isOrgAdmin={isOrgAdmin}
               canCreateTor={permissions?.canCreateTor}
+              canAccessTors={canAccessTors}
+              canAccessScorecard={canAccessScorecard}
+              canAccessEntities={canAccessEntities}
               userRole={permissions?.projectRole || (isOrgAdmin ? 'LEAD_AUDITOR' : null)}
             />
 
@@ -75,15 +88,24 @@ export default function ProjectWorkspacePage() {
               {activeTab === 'overview' && (
                 <TabOverview project={project} onNavigateTab={setActiveTab} />
               )}
-              {activeTab === 'scorecard' && (
+              {activeTab === 'scorecard' && canAccessScorecard && (
                 <TabScorecard
                   projectId={projectId}
                   isManagerOrAdmin={isOrgAdmin || Boolean(permissions?.canCreateTor)}
                 />
               )}
-              {activeTab === 'entities' && canAccessTors && <TabEntities project={project} />}
-              {activeTab === 'tors' && canAccessTors && <TabToR projectId={projectId} />}
-              {activeTab === 'drt' && <TabDRT projectId={projectId} project={project} />}
+              {activeTab === 'entities' && canAccessEntities && <TabEntities project={project} />}
+              {activeTab === 'tors' && canAccessTors && (
+                <TabToR projectId={projectId} onNavigateToDrt={handleNavigateToDrt} />
+              )}
+              {activeTab === 'drt' && (
+                <TabDRT
+                  projectId={projectId}
+                  project={project}
+                  initialTorId={selectedTorId}
+                  onClearTorFilter={() => setSelectedTorId('')}
+                />
+              )}
               {activeTab === 'team' && <TabTeam projectId={projectId} />}
             </div>
           </>

@@ -15,14 +15,14 @@ export { getTorProgressPercentage } from './torPercentageUtils';
 
 /**
  * Check if a ToR clause is eligible for issuing DRT tickets.
- * Only 3rd-level clauses (e.g. 1.1.1) and deeper can issue DRT tickets.
- * High-level clauses like 1 or 1.1 are strictly excluded.
+ * DRT tickets are issued directly from 2nd-level sub-clauses (e.g. 1.1, 1.2).
+ * Root clauses (e.g. 1, 2) cannot issue DRTs. 3rd-level clauses (1.1.1) are eliminated.
  */
 export function isTorDrtEligible(code?: string, level?: number): boolean {
-  if (!code) return level !== undefined && level >= 2;
+  if (level !== undefined && level === 1) return true;
+  if (!code) return false;
   const parts = code.split('.').filter(Boolean);
-  if (parts.length === 1 || parts.length === 2) return false;
-  return parts.length >= 3 || (level !== undefined && level >= 2);
+  return parts.length === 2;
 }
 
 /**
@@ -212,6 +212,8 @@ export function filterTorTree(nodes: ITorNode[], filters: TorFilterState): ITorN
   };
 
   const filterNode = (node: ITorNode): ITorNode | null => {
+    // Strictly eliminate level 3 clauses like 1.1.1 from rendering
+    if (node.code && node.code.split('.').filter(Boolean).length >= 3) return null;
     const selfMatches = matchesFilter(node);
     let filteredChildren: ITorNode[] = [];
     if (node.children && node.children.length > 0) {
