@@ -2,10 +2,8 @@
 
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, UserCheck } from 'lucide-react';
-import type { ITorNode, TorProgressReportPhase } from '../../../types/tor.types';
+import type { ITorNode } from '../../../types/tor.types';
 import { TorDrtSubCells } from './TorDrtSubCells';
-import { TorIncentiveCells } from './TorIncentiveCells';
-import { TorProgressCells } from './TorProgressCells';
 import { TorRowActions } from './TorRowActions';
 
 export interface TorTableRowProps {
@@ -22,7 +20,6 @@ export interface TorTableRowProps {
   onSelectTor?: (node: ITorNode) => void;
   onEditTor?: (node: ITorNode) => void;
   onNavigateToDrt?: (torId: string) => void;
-  onOpenRemarkModal: (node: ITorNode, phase: TorProgressReportPhase) => void;
 }
 
 export const TorTableRow: React.FC<TorTableRowProps> = ({
@@ -39,7 +36,6 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
   onSelectTor,
   onEditTor,
   onNavigateToDrt,
-  onOpenRemarkModal,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasChildren = Boolean(node.children && node.children.length > 0);
@@ -137,16 +133,10 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
           )}
         </td>
 
-        {/* 4. Incentive Report (1 column) */}
-        <TorIncentiveCells node={node} onOpenRemarkModal={onOpenRemarkModal} />
-
-        {/* 5. DRT BTRC & DRT FHL Sub-Cells (4 columns) */}
+        {/* 4. DRT BTRC & DRT FHL Sub-Cells (4 columns) */}
         <TorDrtSubCells node={node} />
 
-        {/* 6. Progress & Remark Cells (14 columns: 1st, 2nd, 3rd, 4th, 5th, Draft, Final) */}
-        <TorProgressCells node={node} onOpenRemarkModal={onOpenRemarkModal} />
-
-        {/* 6. Sticky Right: Actions */}
+        {/* 5. Sticky Right: Actions */}
         <TorRowActions
           node={node}
           level={level}
@@ -184,7 +174,6 @@ export const TorTableRow: React.FC<TorTableRowProps> = ({
             onSelectTor={onSelectTor}
             onEditTor={onEditTor}
             onNavigateToDrt={onNavigateToDrt}
-            onOpenRemarkModal={onOpenRemarkModal}
           />
         ))}
     </>

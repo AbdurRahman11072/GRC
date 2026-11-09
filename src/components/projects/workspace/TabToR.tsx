@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Layers, PlusCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Layers, PlusCircle, BarChart2 } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { TorTable } from '../../tors/table/TorTable';
@@ -109,16 +110,27 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId, onNavigateToDrt }) =>
           </span>
         </div>
 
-        {canManageTor && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleOpenAddRoot}
-            leftIcon={<PlusCircle className="w-4 h-4" />}
-          >
-            + Add ToR Clause
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Link href={`/projects/${projectId}/tor-progress`}>
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<BarChart2 className="w-4 h-4 text-indigo-600" />}
+            >
+              ToR Progress &amp; Reports
+            </Button>
+          </Link>
+          {canManageTor && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenAddRoot}
+              leftIcon={<PlusCircle className="w-4 h-4" />}
+            >
+              + Add ToR Clause
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table Rendering */}

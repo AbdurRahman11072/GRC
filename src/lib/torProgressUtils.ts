@@ -1,6 +1,12 @@
 import type { ITorNode, TorProgressReportPhase, ITorProgressStageData } from '../types/tor.types';
 import type { IDRTTicket } from '../types/project.types';
 import type { TorFilterState } from '../components/tors/table/TorTableFilters';
+import {
+  DrtProgressPhase,
+  getDrtStageData,
+  getDrtStagePercentage,
+} from './drtProgressUtils';
+import { getTorProgressPercentage, getTorStagePercentage } from './torPercentageUtils';
 
 export const REPORT_PHASES: { key: TorProgressReportPhase; label: string; shortLabel: string }[] = [
   { key: 'FIRST_PROGRESS', label: '1st Progress Report', shortLabel: '1st Progress' },
@@ -13,7 +19,7 @@ export const REPORT_PHASES: { key: TorProgressReportPhase; label: string; shortL
   { key: 'FINAL_REPORT', label: 'Final Audit Report', shortLabel: 'Final Report' },
 ];
 
-export { getTorProgressPercentage } from './torPercentageUtils';
+export { getTorProgressPercentage };
 
 export function isTorDrtEligible(code?: string, level?: number): boolean {
   if (level !== undefined && level === 1) return true;
@@ -222,4 +228,153 @@ export function filterTorTree(nodes: ITorNode[], filters: TorFilterState): ITorN
 
 export function countTorNodes(nodes: ITorNode[]): number {
   return nodes.reduce((acc, n) => acc + 1 + (n.children ? countTorNodes(n.children) : 0), 0);
+}
+
+export interface ITorDrtStageSummaryItem {
+  ticketId: string;
+  requestCode: string;
+  description: string;
+  torId?: string;
+  torCode?: string;
+  party: 'CLIENT' | 'AUDITEE';
+  department?: string | null;
+  percentage: number;
+  status: string;
+  auditeeRemark: string | null;
+  auditorRemark: string | null;
+}
+
+export interface ITorDrtStageRollup {
+  phase: DrtProgressPhase;
+  totalDrtCount: number;
+  reportedDrtCount: number;
+  avgDrtPercentage: number;
+  effectivePercentage: number;
+  autoCompiledAuditeeSummary: string;
+  autoCompiledAuditorSummary: string;
+  items: ITorDrtStageSummaryItem[];
+}
+
+/**
+ * Recursively collects all unique DRT tickets attached to a ToR node and its child Sub-ToR clauses.
+ * Merges with `allProjectTickets` (when provided) so M:N junction (`DRTTicketToR`) and live ticket updates are included.
+ */
+export function collectAllTorDrtTickets(
+  node: ITorNode,
+  allProjectTickets?: IDRTTicket[]
+): Array<{ ticket: IDRTTicket; sourceTorId: string; sourceTorCode: string }> {
+  const resultMap = new Map<
+    string,
+    { ticket: IDRTTicket; sourceTorId: string; sourceTorCode: string }
+  >();
+  const projectTicketById = new Map<string, IDRTTicket>();
+  (allProjectTickets || []).forEach((t) => projectTicketById.set(t.id, t));
+
+  const walk = (n: ITorNode) => {
+    // 1. Direct drtTickets on the ToR node
+    (n.drtTickets || []).forEach((t) => {
+      if (!t?.id) return;
+      const latestTicket = projectTicketById.get(t.id) || t;
+      if (!resultMap.has(t.id)) {
+        resultMap.set(t.id, {
+          ticket: latestTicket,
+          sourceTorId: n.id,
+          sourceTorCode: n.code,
+        });
+      }
+    });
+
+    // 2. Any ticket in allProjectTickets mapped to n.id via torId or M:N tors[]
+    if (allProjectTickets && allProjectTickets.length > 0) {
+      allProjectTickets.forEach((t) => {
+        const matchesTor =
+          t.torId === n.id ||
+          t.tor?.id === n.id ||
+          t.tors?.some((m) => m.torId === n.id || m.tor?.id === n.id);
+        if (matchesTor && !resultMap.has(t.id)) {
+          resultMap.set(t.id, {
+            ticket: t,
+            sourceTorId: n.id,
+            sourceTorCode: n.code,
+          });
+        }
+      });
+    }
+
+    // 3. Recurse into child Sub-ToRs
+    (n.children || []).forEach(walk);
+  };
+
+  walk(node);
+  return Array.from(resultMap.values());
+}
+
+/**
+ * Collects all DRT progress % and remarks for a ToR node (and its Sub-ToRs) for a given phase (1st–5th Progress).
+ */
+export function aggregateTorDrtProgress(
+  node: ITorNode,
+  phase: DrtProgressPhase,
+  allProjectTickets?: IDRTTicket[]
+): ITorDrtStageRollup {
+  const collected = collectAllTorDrtTickets(node, allProjectTickets);
+  const items: ITorDrtStageSummaryItem[] = collected.map(
+    ({ ticket, sourceTorId, sourceTorCode }) => {
+      const stage = getDrtStageData(ticket, phase);
+      const pct = getDrtStagePercentage(ticket, phase);
+      return {
+        ticketId: ticket.id,
+        requestCode: ticket.requestCode,
+        description: ticket.title || ticket.description,
+        torId: sourceTorId,
+        torCode: sourceTorCode,
+        party: ticket.assignedTeamBucket === 'CLIENT' ? 'CLIENT' : 'AUDITEE',
+        department: ticket.department,
+        percentage: pct,
+        status: stage.status || `${pct}%`,
+        auditeeRemark: stage.auditeeRemark,
+        auditorRemark: stage.auditorRemark,
+      };
+    }
+  );
+
+  const totalDrtCount = items.length;
+  const reportedDrtCount = items.filter(
+    (item) => item.percentage > 0 || Boolean(item.auditeeRemark) || Boolean(item.auditorRemark)
+  ).length;
+
+  const avgDrtPercentage =
+    totalDrtCount > 0
+      ? Math.round(items.reduce((acc, item) => acc + item.percentage, 0) / totalDrtCount)
+      : 0;
+
+  const torOwnPct = getTorStagePercentage(node, phase);
+  const effectivePercentage = totalDrtCount > 0 && torOwnPct === 0 ? avgDrtPercentage : torOwnPct;
+
+  const auditeeLines = items
+    .filter((i) => i.auditeeRemark)
+    .map((i) => `[${i.requestCode} - ${i.percentage}%]: ${i.auditeeRemark}`);
+
+  const auditorLines = items
+    .filter((i) => i.auditorRemark)
+    .map((i) => `[${i.requestCode} - ${i.percentage}%]: ${i.auditorRemark}`);
+
+  const autoCompiledAuditeeSummary = auditeeLines.join('\n');
+  const autoCompiledAuditorSummary =
+    auditorLines.length > 0
+      ? auditorLines.join('\n')
+      : totalDrtCount > 0
+      ? `${reportedDrtCount}/${totalDrtCount} linked DRTs evaluated (${avgDrtPercentage}% average completion).`
+      : '';
+
+  return {
+    phase,
+    totalDrtCount,
+    reportedDrtCount,
+    avgDrtPercentage,
+    effectivePercentage,
+    autoCompiledAuditeeSummary,
+    autoCompiledAuditorSummary,
+    items,
+  };
 }

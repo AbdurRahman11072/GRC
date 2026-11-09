@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   Eye,
+  BarChart2,
   FilePlus,
   Plus,
   Award,
@@ -51,6 +53,14 @@ export const TorRowActions: React.FC<TorRowActionsProps> = ({
   return (
     <td className="py-2 px-3 whitespace-nowrap text-right align-middle w-48 min-w-[200px] border-l border-slate-200">
       <div className="flex items-center justify-end gap-1.5 flex-nowrap">
+        <Link
+          href={`/projects/${node.projectId}/tor-progress?torId=${node.id}`}
+          title={`View Individual ToR Progress Report for ${node.code}`}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-colors shrink-0 shadow-2xs"
+        >
+          <BarChart2 className="w-3 h-3 text-emerald-600" />
+          <span>Progress</span>
+        </Link>
         {onSelectTor && (
           <button
             type="button"

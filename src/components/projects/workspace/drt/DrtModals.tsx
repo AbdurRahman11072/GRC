@@ -8,9 +8,7 @@ import { AssignDrtSquadModal } from './AssignDrtSquadModal';
 import { EditDrtPeriodStatusModal } from './EditDrtPeriodStatusModal';
 import { ManageDrtTorsModal } from './ManageDrtTorsModal';
 import { DrtRemarkVersionModal } from './details/DrtRemarkVersionModal';
-import { DrtProgressRemarkModal } from './DrtProgressRemarkModal';
 import { getDrtRemarkVersions } from './drtBadges';
-import type { DrtProgressPhase } from '../../../../lib/drtProgressUtils';
 import type { IDRTTicket, IDRTDocument, DRTPartySide } from '../../../../types/project.types';
 
 export interface DrtModalsProps {
@@ -33,9 +31,6 @@ export interface DrtModalsProps {
   onCloseTors: () => void;
   remarkModal: { ticket: IDRTTicket; side: 'AUDITOR' | 'AUDITEE' } | null;
   onCloseRemark: () => void;
-  progressModal: { ticket: IDRTTicket; phase: DrtProgressPhase } | null;
-  onCloseProgress: () => void;
-  onSaveProgress: (id: string, phase: DrtProgressPhase, data: any) => void;
 }
 
 export const DrtModals: React.FC<DrtModalsProps> = ({
@@ -58,9 +53,6 @@ export const DrtModals: React.FC<DrtModalsProps> = ({
   onCloseTors,
   remarkModal,
   onCloseRemark,
-  progressModal,
-  onCloseProgress,
-  onSaveProgress,
 }) => {
   return (
     <>
@@ -115,15 +107,6 @@ export const DrtModals: React.FC<DrtModalsProps> = ({
           stakeholderType={remarkModal.side}
           stakeholderName={remarkModal.side === 'AUDITOR' ? 'Lead Auditor' : auditeeName}
           versions={getDrtRemarkVersions(remarkModal.ticket, remarkModal.side, auditeeName)}
-        />
-      )}
-      {progressModal && (
-        <DrtProgressRemarkModal
-          isOpen={Boolean(progressModal)}
-          onClose={onCloseProgress}
-          ticket={progressModal.ticket}
-          phase={progressModal.phase}
-          onSave={onSaveProgress}
         />
       )}
     </>

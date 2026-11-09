@@ -98,67 +98,12 @@ export const DrtTableHeader: React.FC<DrtTableHeaderProps> = ({
           Completeness
         </th>
 
-        {/* 17. 1st Progress Report (3 columns) */}
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[95px] bg-emerald-50/50 text-emerald-950 font-bold whitespace-nowrap text-center">
-          1st Progress (%)
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-emerald-50/30 text-emerald-900 whitespace-nowrap">
-          1st Auditee Remark
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-emerald-50/30 text-emerald-900 whitespace-nowrap">
-          1st Auditor Remark
-        </th>
-
-        {/* 18. 2nd Progress Report (3 columns) */}
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[95px] bg-sky-50/50 text-sky-950 font-bold whitespace-nowrap text-center">
-          2nd Progress
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-sky-50/30 text-sky-900 whitespace-nowrap">
-          2nd Auditee Remark
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-sky-50/30 text-sky-900 whitespace-nowrap">
-          2nd Auditor Remark
-        </th>
-
-        {/* 19. 3rd Progress Report (3 columns) */}
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[95px] bg-blue-50/50 text-blue-950 font-bold whitespace-nowrap text-center">
-          3rd Progress
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-blue-50/30 text-blue-900 whitespace-nowrap">
-          3rd Auditee Remark
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-blue-50/30 text-blue-900 whitespace-nowrap">
-          3rd Auditor Remark
-        </th>
-
-        {/* 20. 4th Progress Report (3 columns) */}
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[95px] bg-purple-50/50 text-purple-950 font-bold whitespace-nowrap text-center">
-          4th Progress
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-purple-50/30 text-purple-900 whitespace-nowrap">
-          4th Auditee Remark
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-purple-50/30 text-purple-900 whitespace-nowrap">
-          4th Auditor Remark
-        </th>
-
-        {/* 21. 5th Progress Report (3 columns) */}
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[95px] bg-amber-50/50 text-amber-950 font-bold whitespace-nowrap text-center">
-          5th Progress
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-amber-50/30 text-amber-900 whitespace-nowrap">
-          5th Auditee Remark
-        </th>
-        <th className="py-2.5 px-3 border-r border-slate-300 min-w-[150px] bg-amber-50/30 text-amber-900 whitespace-nowrap">
-          5th Auditor Remark
-        </th>
-
-        {/* 22. Data Upload */}
+        {/* 17. Data Upload */}
         <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center">
           Data Upload
         </th>
 
-        {/* 23. Actions */}
+        {/* 18. Actions */}
         <th className="py-2.5 px-3 text-center w-36 whitespace-nowrap">
           Actions
         </th>

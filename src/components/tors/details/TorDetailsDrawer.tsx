@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FilePlus, Award, SlidersHorizontal, FolderTree, X, Edit2 } from 'lucide-react';
+import Link from 'next/link';
+import { FilePlus, Award, SlidersHorizontal, FolderTree, X, Edit2, BarChart2 } from 'lucide-react';
 import { Drawer } from '../../ui/Drawer';
 import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
@@ -74,7 +75,17 @@ export const TorDetailsDrawer: React.FC<TorDetailsDrawerProps> = ({
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Link href={`/projects/${tor.projectId}/tor-progress?torId=${tor.id}`}>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  className="text-emerald-800 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                  leftIcon={<BarChart2 className="w-3.5 h-3.5 text-emerald-600" />}
+                >
+                  Progress Report
+                </Button>
+              </Link>
               {onFireDrt && canIssueDrt && (
                 <Button size="xs" variant="outline" onClick={() => onFireDrt(tor.id)} className="text-indigo-700 border-indigo-200 bg-white" leftIcon={<FilePlus className="w-3.5 h-3.5" />}>+ DRT</Button>
               )}

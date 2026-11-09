@@ -12,13 +12,22 @@ import {
 
 export interface DrtProgressCellsProps {
   ticket: IDRTTicket;
+  activePhase?: 'ALL' | DrtProgressPhase;
   onOpenProgressModal: (ticket: IDRTTicket, phase: DrtProgressPhase) => void;
 }
 
+const COL_WIDTH = 'w-44 min-w-[176px] max-w-[176px]';
+
 export const DrtProgressCells: React.FC<DrtProgressCellsProps> = ({
   ticket,
+  activePhase = 'ALL',
   onOpenProgressModal,
 }) => {
+  const visiblePhases =
+    activePhase === 'ALL'
+      ? DRT_PROGRESS_PHASES
+      : DRT_PROGRESS_PHASES.filter((p) => p.key === activePhase);
+
   const renderRemarkButton = (
     remark: string | null | undefined,
     phase: DrtProgressPhase,
@@ -31,12 +40,12 @@ export const DrtProgressCells: React.FC<DrtProgressCellsProps> = ({
       className="group flex items-start gap-1 text-left w-full p-1 -m-1 rounded hover:bg-slate-100 transition-colors cursor-pointer"
     >
       {remark ? (
-        <span className="text-[11px] text-slate-700 line-clamp-2 leading-tight">
+        <span className="text-[11px] text-slate-700 line-clamp-2 leading-tight break-words">
           {remark}
         </span>
       ) : (
         <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 italic group-hover:text-indigo-600 transition-colors">
-          <Edit3 className="w-2.5 h-2.5" />
+          <Edit3 className="w-2.5 h-2.5 shrink-0" />
           <span>Add remark...</span>
         </span>
       )}
@@ -45,24 +54,26 @@ export const DrtProgressCells: React.FC<DrtProgressCellsProps> = ({
 
   return (
     <>
-      {DRT_PROGRESS_PHASES.map((p, idx) => {
+      {visiblePhases.map((p) => {
         const stage = getDrtStageData(ticket, p.key);
         const stagePct = getDrtStagePercentage(ticket, p.key);
         const bgTint =
-          idx === 0
+          p.key === 'FIRST_PROGRESS'
             ? 'bg-emerald-50/10'
-            : idx === 1
+            : p.key === 'SECOND_PROGRESS'
             ? 'bg-sky-50/10'
-            : idx === 2
+            : p.key === 'THIRD_PROGRESS'
             ? 'bg-blue-50/10'
-            : idx === 3
+            : p.key === 'FOURTH_PROGRESS'
             ? 'bg-purple-50/10'
             : 'bg-amber-50/10';
 
         return (
           <React.Fragment key={p.key}>
             {/* Progress Percentage & Bar Column */}
-            <td className={`py-2 px-2.5 text-center align-middle border-r border-slate-200 ${bgTint}`}>
+            <td
+              className={`py-2.5 px-3 text-center align-middle border-r border-slate-200 ${COL_WIDTH} ${bgTint}`}
+            >
               <button
                 type="button"
                 onClick={() => onOpenProgressModal(ticket, p.key)}
@@ -82,7 +93,7 @@ export const DrtProgressCells: React.FC<DrtProgressCellsProps> = ({
                 >
                   {stagePct}%
                 </span>
-                <div className="w-14 h-1.5 bg-slate-200/80 rounded-full overflow-hidden shadow-2xs">
+                <div className="w-20 h-1.5 bg-slate-200/80 rounded-full overflow-hidden shadow-2xs">
                   <div
                     className={`h-full transition-all duration-300 rounded-full ${
                       stagePct === 100
@@ -100,13 +111,25 @@ export const DrtProgressCells: React.FC<DrtProgressCellsProps> = ({
             </td>
 
             {/* Auditee Remark Column */}
-            <td className="py-2 px-2.5 align-middle border-r border-slate-200 min-w-[150px] max-w-[200px]">
-              {renderRemarkButton(stage.auditeeRemark, p.key, `${p.shortLabel} Auditee Remark`)}
+            <td
+              className={`py-2.5 px-3 align-middle border-r border-slate-200 ${COL_WIDTH}`}
+            >
+              {renderRemarkButton(
+                stage.auditeeRemark,
+                p.key,
+                `${p.shortLabel} Auditee Remark`
+              )}
             </td>
 
             {/* Auditor Remark Column */}
-            <td className="py-2 px-2.5 align-middle border-r border-slate-200 min-w-[150px] max-w-[200px]">
-              {renderRemarkButton(stage.auditorRemark, p.key, `${p.shortLabel} Auditor Remark`)}
+            <td
+              className={`py-2.5 px-3 align-middle border-r border-slate-200 ${COL_WIDTH}`}
+            >
+              {renderRemarkButton(
+                stage.auditorRemark,
+                p.key,
+                `${p.shortLabel} Auditor Remark`
+              )}
             </td>
           </React.Fragment>
         );

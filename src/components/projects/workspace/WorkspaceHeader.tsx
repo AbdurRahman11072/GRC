@@ -118,22 +118,43 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
       </div>
 
       {/* Sub-Navigation Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto pt-2 border-t border-slate-200 no-scrollbar">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onTabChange(tab.id)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-              activeTab === tab.id
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
+      <div className="flex items-center justify-between gap-2 overflow-x-auto pt-2 border-t border-slate-200 no-scrollbar">
+        <div className="flex items-center gap-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                activeTab === tab.id
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {(isOrgAdmin || canAccessTors || canCreateTor) && (
+            <Link
+              href={`/projects/${project.id}/tor-progress`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+            >
+              <CalendarRange className="w-3.5 h-3.5 text-emerald-600" />
+              <span>ToR Progress Reports</span>
+            </Link>
+          )}
+          <Link
+            href={`/projects/${project.id}/drt-progress`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 transition-colors"
           >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+            <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+            <span>DRT Progress Reports</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

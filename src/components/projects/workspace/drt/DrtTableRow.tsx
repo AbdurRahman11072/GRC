@@ -3,12 +3,10 @@
 import React from 'react';
 import { Upload } from 'lucide-react';
 import type { IDRTTicket, DRTPartySide } from '../../../../types/drt.types';
-import type { DrtProgressPhase } from '../../../../lib/drtProgressUtils';
 import { DrtDescriptionCell } from './DrtDescriptionCell';
 import { DrtRowActions } from './DrtRowActions';
 import { DrtUnifiedCloudCollectionCells } from './DrtUnifiedCloudCollectionCells';
 import { DrtYearAndRemarkCells } from './DrtYearAndRemarkCells';
-import { DrtProgressCells } from './DrtProgressCells';
 import { statusBadgeStyles } from './drtBadges';
 import { formatDate } from '../../../../lib/utils';
 
@@ -23,7 +21,6 @@ export interface DrtTableRowProps {
   onManageTors?: (ticket: IDRTTicket) => void;
   onOpenPeriodModal: (ticket: IDRTTicket, periodLabel: string) => void;
   onOpenUploadModal: (ticket: IDRTTicket, partySide: DRTPartySide) => void;
-  onOpenProgressModal: (ticket: IDRTTicket, phase: DrtProgressPhase) => void;
 }
 
 export const DrtTableRow: React.FC<DrtTableRowProps> = ({
@@ -37,7 +34,6 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
   onManageTors,
   onOpenPeriodModal,
   onOpenUploadModal,
-  onOpenProgressModal,
 }) => {
   const docs = ticket.drtDocuments || [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -205,13 +201,7 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         onOpenPeriodModal={onOpenPeriodModal}
       />
 
-      {/* 17. 1st through 5th Progress Stages */}
-      <DrtProgressCells
-        ticket={ticket}
-        onOpenProgressModal={onOpenProgressModal}
-      />
-
-      {/* 18. Data Upload Action */}
+      {/* 17. Data Upload Action */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap text-center border-r border-slate-200">
         <div className="flex items-center justify-center gap-1">
           <button
@@ -226,7 +216,7 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         </div>
       </td>
 
-      {/* 19. Actions */}
+      {/* 18. Actions */}
       <td className="py-2.5 px-3 text-center align-middle w-36">
         <DrtRowActions
           projectId={projectId}

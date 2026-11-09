@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { FilePlus, Table, LayoutGrid } from 'lucide-react';
+import Link from 'next/link';
+import { FilePlus, Table, LayoutGrid, BarChart2 } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { DrtMetricsBar } from './drt/DrtMetricsBar';
 import { DrtTicketCard } from './drt/DrtTicketCard';
 import { DrtTable } from './drt/DrtTable';
 import { DrtModals } from './drt/DrtModals';
 import { DrtTableFilters, type IDrtFilterState } from './drt/DrtTableFilters';
-import { type DrtProgressPhase, updateDrtProgressData } from '../../../lib/drtProgressUtils';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
 import { useGetTorTreeQuery } from '../../../store/api/torApi';
 import { useGetMyProjectPermissionsQuery, useGetProjectByIdQuery } from '../../../store/api/projectApi';
@@ -52,7 +52,6 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project, initialTorId
   const [periodModal, setPeriodModal] = useState<{ ticket: IDRTTicket; year: string } | null>(null);
   const [torsTicket, setTorsTicket] = useState<IDRTTicket | null>(null);
   const [remarkModal, setRemarkModal] = useState<{ ticket: IDRTTicket; side: 'AUDITOR' | 'AUDITEE' } | null>(null);
-  const [progressModal, setProgressModal] = useState<{ ticket: IDRTTicket; phase: DrtProgressPhase } | null>(null);
 
   const currentUser = useAppSelector((state) => state.auth.user);
   const currentOrgMembership = useAppSelector((state) =>
@@ -90,19 +89,13 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project, initialTorId
     search: filters.searchTerm.trim() || undefined,
   });
 
-  const rawTickets = ticketsData?.data || [];
-  const [localTickets, setLocalTickets] = useState<IDRTTicket[]>(rawTickets);
-  useEffect(() => { setLocalTickets(rawTickets); }, [rawTickets]);
+  const localTickets = useMemo(() => ticketsData?.data || [], [ticketsData?.data]);
 
   const departments = useMemo(() => {
     const depts = new Set<string>();
     localTickets.forEach((t) => { if (t.department?.trim()) depts.add(t.department.trim()); });
     return Array.from(depts).sort();
   }, [localTickets]);
-
-  const handleSaveProgressRemark = (id: string, phase: DrtProgressPhase, data: any) => {
-    setLocalTickets((prev) => updateDrtProgressData(prev, id, phase, data));
-  };
 
   const filteredTickets = useMemo(() => {
     return localTickets.filter((t) => {
@@ -173,11 +166,18 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project, initialTorId
           </button>
         </div>
 
-        {canCreateTicket && (
-          <Button size="sm" variant="primary" onClick={() => setIsCreateOpen(true)} leftIcon={<FilePlus className="w-4 h-4" />}>
-            Fire DRT Request
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Link href={`/projects/${projectId}/drt-progress`}>
+            <Button size="sm" variant="outline" leftIcon={<BarChart2 className="w-4 h-4 text-indigo-600" />}>
+              DRT Progress Reports
+            </Button>
+          </Link>
+          {canCreateTicket && (
+            <Button size="sm" variant="primary" onClick={() => setIsCreateOpen(true)} leftIcon={<FilePlus className="w-4 h-4" />}>
+              Fire DRT Request
+            </Button>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -202,7 +202,6 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project, initialTorId
           onManageTors={(t) => setTorsTicket(t)}
           onOpenPeriodModal={(t, year) => setPeriodModal({ ticket: t, year })}
           onOpenUploadModal={(t, side) => setUploadTicket({ ticket: t, side })}
-          onOpenProgressModal={(t, phase) => setProgressModal({ ticket: t, phase })}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3">
@@ -234,8 +233,6 @@ export const TabDRT: React.FC<TabDRTProps> = ({ projectId, project, initialTorId
         onOpenUploadFromPeriod={(t, yr) => setUploadTicket({ ticket: t, side: 'AUDITEE', initialPeriodLabel: yr })}
         torsTicket={torsTicket} onCloseTors={() => setTorsTicket(null)}
         remarkModal={remarkModal} onCloseRemark={() => setRemarkModal(null)}
-        progressModal={progressModal} onCloseProgress={() => setProgressModal(null)}
-        onSaveProgress={handleSaveProgressRemark}
       />
     </div>
   );

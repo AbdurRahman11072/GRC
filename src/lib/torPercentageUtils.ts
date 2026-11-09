@@ -1,9 +1,30 @@
 import type { ITorNode } from '../types/tor.types';
+import { DrtProgressPhase, getDrtStagePercentage } from './drtProgressUtils';
+
+const DRT_PHASES: DrtProgressPhase[] = [
+  'FIRST_PROGRESS',
+  'SECOND_PROGRESS',
+  'THIRD_PROGRESS',
+  'FOURTH_PROGRESS',
+  'FIFTH_PROGRESS',
+];
+
+function collectNodeDrtTicketsRecursive(node: ITorNode) {
+  const map = new Map<string, NonNullable<ITorNode['drtTickets']>[number]>();
+  const walk = (n: ITorNode) => {
+    (n.drtTickets || []).forEach((t) => {
+      if (t?.id) map.set(t.id, t);
+    });
+    (n.children || []).forEach(walk);
+  };
+  walk(node);
+  return Array.from(map.values());
+}
 
 /**
  * Derives a clean 0-100 percentage for a ToR node's 1st progress.
  * Evaluates explicit numeric progress, stage scores, status keywords,
- * or falls back to data collection marks and linked DRT completion.
+ * or falls back to linked DRT stage progress and data collection marks.
  */
 export function getTorProgressPercentage(node: ITorNode): number {
   // 1. Check explicit string or numeric values in firstProgress
@@ -41,18 +62,17 @@ export function getTorProgressPercentage(node: ITorNode): number {
     }
   }
 
-  // 3. Fallback: Calculate from Data Collection allocated vs obtained marks
+  // 3. Roll up from linked DRT tickets (including child Sub-ToRs)
+  const tickets = collectNodeDrtTicketsRecursive(node);
+  if (tickets.length > 0) {
+    const sum = tickets.reduce((acc, t) => acc + getDrtStagePercentage(t, 'FIRST_PROGRESS'), 0);
+    return Math.round(sum / tickets.length);
+  }
+
+  // 4. Fallback: Calculate from Data Collection allocated vs obtained marks
   if (node.dataCollectionAllocated && node.dataCollectionAllocated > 0) {
     const marksPct = ((node.dataCollectionObtained || 0) / node.dataCollectionAllocated) * 100;
     return Math.max(0, Math.min(100, Math.round(marksPct)));
-  }
-
-  // 4. Fallback: Calculate from linked DRT ticket statuses
-  if (node.drtTickets && node.drtTickets.length > 0) {
-    const doneCount = node.drtTickets.filter(
-      (t) => t.reviewOutcome === 'DONE' || t.workflowStatus === 'ACCEPTED'
-    ).length;
-    return Math.round((doneCount / node.drtTickets.length) * 100);
   }
 
   return 0;
@@ -83,6 +103,7 @@ export function getTorStagePercentage(node: ITorNode, phase: string): number {
   }
 
   // 2. Check direct node fields
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const nodeAny = node as any;
   let raw: string | null | undefined = null;
   if (phase === 'SECOND_PROGRESS') raw = nodeAny.secondProgress;
@@ -102,6 +123,18 @@ export function getTorStagePercentage(node: ITorNode, phase: string): number {
     if (['COMPLIANT', 'DONE', 'ACCEPTED', 'COMPLETED'].includes(upper)) return 100;
     if (['PARTIALLY_COMPLIANT', 'PARTIAL'].includes(upper)) return 50;
     if (['IN_PROGRESS', 'SUBMITTED', 'IN_REVIEW'].includes(upper)) return 35;
+  }
+
+  // 3. Roll up from linked DRT tickets for 1st–5th Progress phases
+  if (DRT_PHASES.includes(phase as DrtProgressPhase)) {
+    const tickets = collectNodeDrtTicketsRecursive(node);
+    if (tickets.length > 0) {
+      const sum = tickets.reduce(
+        (acc, t) => acc + getDrtStagePercentage(t, phase as DrtProgressPhase),
+        0
+      );
+      return Math.round(sum / tickets.length);
+    }
   }
 
   return 0;
