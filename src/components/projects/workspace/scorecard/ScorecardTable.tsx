@@ -10,32 +10,40 @@ interface ScorecardTableProps {
 }
 
 export const ScorecardTable: React.FC<ScorecardTableProps> = ({ scorecard, accentColor }) => {
-  const isBlue = accentColor === 'blue';
-  const borderHeader = isBlue ? 'border-blue-500/30' : 'border-violet-500/30';
-  const bgHeader = isBlue ? 'bg-blue-950/20 text-blue-300' : 'bg-violet-950/20 text-violet-300';
-  const badgeTheme = isBlue
-    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-    : 'bg-violet-500/10 text-violet-400 border-violet-500/20';
+  if (!scorecard) return null;
+
+  const isAuditee = scorecard.streamBucket === 'AUDITEE';
+  const borderHeader = isAuditee ? 'border-emerald-200' : 'border-sky-200';
+  const bgHeader = isAuditee
+    ? 'bg-emerald-50/70 text-emerald-950'
+    : 'bg-sky-50/70 text-sky-950';
+  const iconColor = isAuditee ? 'text-emerald-700' : 'text-sky-700';
+  const badgeTheme = isAuditee
+    ? 'bg-white text-emerald-700 border-emerald-300 shadow-2xs'
+    : 'bg-white text-sky-700 border-sky-300 shadow-2xs';
+
+  const rows = scorecard.rows || [];
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-      {/* Stream Title Header */}
-      <div className={`px-4 py-3 border-b flex items-center justify-between ${borderHeader} ${bgHeader}`}>
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+      {/* Stream Title Header Bar */}
+      <div className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${borderHeader} ${bgHeader}`}>
         <div className="flex items-center gap-2">
-          <Building2 className="w-4 h-4" />
-          <h3 className="text-xs font-bold uppercase tracking-wider">{scorecard.title}</h3>
+          <Building2 className={`w-4 h-4 ${iconColor}`} />
+          <h3 className="text-xs font-bold uppercase tracking-wider">{scorecard.title || 'Stream Scorecard'}</h3>
         </div>
-        <div className="flex items-center gap-3 text-xs">
-          <span className="text-slate-400">
+        <div className="flex items-center gap-3 text-xs flex-wrap">
+          <span className="text-slate-600 font-medium">
             Total Allocated:{' '}
-            <strong className="text-slate-100 font-semibold">{scorecard.totalAllocatedMarks.toFixed(2)}</strong>
+            <strong className="text-slate-900 font-mono font-bold">{(scorecard.totalAllocatedMarks ?? 0).toFixed(2)}</strong>
           </span>
-          <span className="text-slate-400">
+          <span className="text-slate-300">|</span>
+          <span className="text-slate-600 font-medium">
             Total Obtained:{' '}
-            <strong className="text-slate-100 font-semibold">{scorecard.totalObtainedMarks.toFixed(2)}</strong>
+            <strong className="text-emerald-700 font-mono font-bold">{(scorecard.totalObtainedMarks ?? 0).toFixed(2)}</strong>
           </span>
-          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${badgeTheme}`}>
-            {scorecard.achievementRate}% Achieved
+          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeTheme}`}>
+            {scorecard.achievementRate ?? 0}% Achieved
           </span>
         </div>
       </div>
@@ -44,99 +52,115 @@ export const ScorecardTable: React.FC<ScorecardTableProps> = ({ scorecard, accen
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="border-b border-slate-800 bg-slate-950/70 text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
-              <th className="py-2.5 px-3 w-12 text-center">SL</th>
-              <th className="py-2.5 px-3 min-w-[200px]">ToR Activities</th>
-              <th className="py-2.5 px-3 text-right">Data Collection Allocated</th>
-              <th className="py-2.5 px-3 text-right">Data Collection Obtained</th>
-              <th className="py-2.5 px-3 text-right">Data Analysis Allocated</th>
-              <th className="py-2.5 px-3 text-right">Data Analysis Obtained</th>
-              <th className="py-2.5 px-3 text-right">Total Allocated</th>
-              <th className="py-2.5 px-3 text-right">Total Obtained</th>
-              <th className="py-2.5 px-3 text-right w-24">Achievement %</th>
+            <tr className="border-b border-slate-200 bg-slate-100/90 text-slate-700 font-bold text-[10px] uppercase tracking-wider">
+              <th className="py-2.5 px-3 w-12 text-center border-r border-slate-200">SL</th>
+              <th className="py-2.5 px-3 min-w-[240px] border-r border-slate-200">ToR Activities</th>
+              <th className="py-2.5 px-3 text-right border-r border-slate-200">Data Collection Allocated</th>
+              <th className="py-2.5 px-3 text-right border-r border-slate-200">Data Collection Obtained</th>
+              <th className="py-2.5 px-3 text-right border-r border-slate-200">Data Analysis Allocated</th>
+              <th className="py-2.5 px-3 text-right border-r border-slate-200">Data Analysis Obtained</th>
+              <th className="py-2.5 px-3 text-right border-r border-slate-200">Total Allocated</th>
+              <th className="py-2.5 px-3 text-right border-r border-slate-200">Total Obtained</th>
+              <th className="py-2.5 px-3 text-right w-28">Achievement %</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
-            {scorecard.rows.length === 0 ? (
+          <tbody className="divide-y divide-slate-100">
+            {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-6 text-center text-slate-500">
+                <td colSpan={9} className="py-8 text-center text-slate-400 italic">
                   No ToR activity nodes found in this project.
                 </td>
               </tr>
             ) : (
-              scorecard.rows.map((row, idx) => (
-                <tr
-                  key={row.torId}
-                  className="hover:bg-slate-800/40 transition-colors text-slate-200"
-                >
-                  <td className="py-2 px-3 text-center text-slate-400 font-mono text-[11px]">
-                    {idx + 1}
-                  </td>
-                  <td className="py-2 px-3">
-                    <span className="font-mono text-emerald-400 text-[11px] mr-1.5">{row.code}</span>
-                    <span className="font-medium text-slate-100">{row.title}</span>
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-slate-300">
-                    {row.collectionAllocated.toFixed(2)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-emerald-400">
-                    {row.collectionObtained.toFixed(2)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-slate-300">
-                    {row.analysisAllocated.toFixed(2)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-emerald-400">
-                    {row.analysisObtained.toFixed(2)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono font-semibold text-slate-100">
-                    {row.totalAllocated.toFixed(2)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono font-bold text-emerald-300">
-                    {row.totalObtained.toFixed(2)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono">
-                    <span
-                      className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                        row.achievementPercentage >= 80
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : row.achievementPercentage >= 50
-                          ? 'bg-amber-500/10 text-amber-400'
-                          : 'bg-slate-800 text-slate-400'
-                      }`}
-                    >
-                      {row.achievementPercentage}%
-                    </span>
-                  </td>
-                </tr>
-              ))
+              rows.map((row, idx) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const rowAny = row as any;
+                const colAlloc = row.collectionAllocated ?? rowAny.dataCollectionAllocated ?? 0;
+                const colObt = row.collectionObtained ?? rowAny.dataCollectionObtained ?? 0;
+                const anaAlloc = row.analysisAllocated ?? rowAny.dataAnalysisAllocated ?? 0;
+                const anaObt = row.analysisObtained ?? rowAny.dataAnalysisObtained ?? 0;
+                const totAlloc = row.totalAllocated ?? (colAlloc + anaAlloc);
+                const totObt = row.totalObtained ?? (colObt + anaObt);
+                const achPct = row.achievementPercentage ?? (totAlloc > 0 ? Math.round((totObt / totAlloc) * 100) : 0);
+
+                return (
+                  <tr
+                    key={row.torId}
+                    className="hover:bg-slate-50/80 transition-colors text-slate-800"
+                  >
+                    <td className="py-2.5 px-3 text-center text-slate-400 font-mono text-[11px] border-r border-slate-100">
+                      {idx + 1}
+                    </td>
+                    <td className="py-2.5 px-3 border-r border-slate-100">
+                      <span className="font-mono text-indigo-700 font-bold mr-1.5 text-[11px] bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                        {row.code}
+                      </span>
+                      <span className="text-slate-800 font-semibold">{row.title}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">
+                      {colAlloc.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono text-emerald-700 font-semibold border-r border-slate-100">
+                      {colObt > 0 ? colObt.toFixed(2) : <span className="text-slate-400">0.00</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">
+                      {anaAlloc.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono text-emerald-700 font-semibold border-r border-slate-100">
+                      {anaObt > 0 ? anaObt.toFixed(2) : <span className="text-slate-400">0.00</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 border-r border-slate-100">
+                      {totAlloc.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 border-r border-slate-100">
+                      {totObt > 0 ? totObt.toFixed(2) : <span className="text-slate-400">0.00</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold border ${
+                          achPct === 100
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                            : achPct >= 50
+                            ? 'bg-sky-50 text-sky-700 border-sky-300'
+                            : achPct > 0
+                            ? 'bg-amber-50 text-amber-700 border-amber-300'
+                            : 'bg-slate-100 text-slate-500 border-slate-200'
+                        }`}
+                      >
+                        {achPct}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-slate-700 bg-slate-950 font-bold text-slate-100 text-xs">
-              <td colSpan={2} className="py-3 px-4 text-left uppercase tracking-wider text-slate-300">
-                Total {scorecard.streamBucket === 'AUDITEE' ? 'FHL' : 'BTRC'} Marks
+            <tr className="border-t-2 border-slate-300 bg-slate-100/95 font-bold text-slate-900 text-xs">
+              <td colSpan={2} className="py-3 px-4 text-left uppercase tracking-wider text-slate-800 border-r border-slate-200">
+                Total {scorecard.streamBucket === 'AUDITEE' ? 'FHL (Auditee)' : 'BTRC (Client)'} Marks
               </td>
-              <td className="py-3 px-3 text-right font-mono text-slate-200">
-                {scorecard.collectionAllocated.toFixed(2)}
+              <td className="py-3 px-3 text-right font-mono text-slate-800 border-r border-slate-200">
+                {(scorecard.collectionAllocated ?? 0).toFixed(2)}
               </td>
-              <td className="py-3 px-3 text-right font-mono text-emerald-400">
-                {scorecard.collectionObtained.toFixed(2)}
+              <td className="py-3 px-3 text-right font-mono text-emerald-700 font-extrabold border-r border-slate-200">
+                {(scorecard.collectionObtained ?? 0).toFixed(2)}
               </td>
-              <td className="py-3 px-3 text-right font-mono text-slate-200">
-                {scorecard.analysisAllocated.toFixed(2)}
+              <td className="py-3 px-3 text-right font-mono text-slate-800 border-r border-slate-200">
+                {(scorecard.analysisAllocated ?? 0).toFixed(2)}
               </td>
-              <td className="py-3 px-3 text-right font-mono text-emerald-400">
-                {scorecard.analysisObtained.toFixed(2)}
+              <td className="py-3 px-3 text-right font-mono text-emerald-700 font-extrabold border-r border-slate-200">
+                {(scorecard.analysisObtained ?? 0).toFixed(2)}
               </td>
-              <td className="py-3 px-3 text-right font-mono text-white text-sm">
-                {scorecard.totalAllocatedMarks.toFixed(2)}
+              <td className="py-3 px-3 text-right font-mono text-slate-900 font-black text-sm border-r border-slate-200">
+                {(scorecard.totalAllocatedMarks ?? 0).toFixed(2)}
               </td>
-              <td className="py-3 px-3 text-right font-mono text-emerald-300 text-sm font-extrabold">
-                {scorecard.totalObtainedMarks.toFixed(2)}
+              <td className="py-3 px-3 text-right font-mono text-emerald-700 font-black text-sm border-r border-slate-200">
+                {(scorecard.totalObtainedMarks ?? 0).toFixed(2)}
               </td>
               <td className="py-3 px-3 text-right font-mono">
-                <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold border ${badgeTheme}`}>
-                  {scorecard.achievementRate}%
+                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${badgeTheme}`}>
+                  {scorecard.achievementRate ?? 0}%
                 </span>
               </td>
             </tr>

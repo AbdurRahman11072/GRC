@@ -181,7 +181,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
                 {hasMounted && user?.name ? user.name : 'User Profile'}
               </div>
               <div className="text-[10px] text-slate-500">
-                {userRoleDisplay}
+                {hasMounted ? userRoleDisplay : 'Auditor'}
               </div>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:block" />

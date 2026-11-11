@@ -1,6 +1,7 @@
 import { prisma } from '../../../lib/prisma';
 import type {
   IScorecardRow,
+  IStreamScorecardData,
   IProjectScorecardResponse,
 } from '../tor/torRollup.types';
 
@@ -13,12 +14,20 @@ export const getProjectScorecard = async (
     where: { id: projectId },
     select: {
       id: true,
+      projectName: true,
       clientWeight: true,
       auditeeWeight: true,
       pmWeight: true,
       pmObtainedMarks: true,
       pmEvaluationNotes: true,
       pmEvaluatedAt: true,
+      pmEvaluatedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
       tors: {
         where: { parentId: null },
         orderBy: { sortOrder: 'asc' },
@@ -26,6 +35,7 @@ export const getProjectScorecard = async (
           id: true,
           code: true,
           title: true,
+          sortOrder: true,
           fhlCollectionAllocated: true,
           fhlCollectionObtained: true,
           fhlAnalysisAllocated: true,
@@ -41,39 +51,55 @@ export const getProjectScorecard = async (
 
   if (!project) return null;
 
-  const fhlRows: IScorecardRow[] = project.tors.map((t) => {
+  const fhlRows: IScorecardRow[] = project.tors.map((t, idx) => {
     const colAlloc = t.fhlCollectionAllocated || 0;
     const anaAlloc = t.fhlAnalysisAllocated || 0;
     const colObt = t.fhlCollectionObtained || 0;
     const anaObt = t.fhlAnalysisObtained || 0;
+    const totalAlloc = round2(colAlloc + anaAlloc);
+    const totalObt = round2(colObt + anaObt);
     return {
       torId: t.id,
       code: t.code,
       title: t.title,
+      sortOrder: t.sortOrder ?? idx + 1,
+      collectionAllocated: round2(colAlloc),
+      collectionObtained: round2(colObt),
+      analysisAllocated: round2(anaAlloc),
+      analysisObtained: round2(anaObt),
       dataCollectionAllocated: round2(colAlloc),
       dataAnalysisAllocated: round2(anaAlloc),
-      totalAllocated: round2(colAlloc + anaAlloc),
+      totalAllocated: totalAlloc,
       dataCollectionObtained: round2(colObt),
       dataAnalysisObtained: round2(anaObt),
-      totalObtained: round2(colObt + anaObt),
+      totalObtained: totalObt,
+      achievementPercentage: totalAlloc > 0 ? Math.round((totalObt / totalAlloc) * 100) : 0,
     };
   });
 
-  const btrcRows: IScorecardRow[] = project.tors.map((t) => {
+  const btrcRows: IScorecardRow[] = project.tors.map((t, idx) => {
     const colAlloc = t.btrcCollectionAllocated || 0;
     const anaAlloc = t.btrcAnalysisAllocated || 0;
     const colObt = t.btrcCollectionObtained || 0;
     const anaObt = t.btrcAnalysisObtained || 0;
+    const totalAlloc = round2(colAlloc + anaAlloc);
+    const totalObt = round2(colObt + anaObt);
     return {
       torId: t.id,
       code: t.code,
       title: t.title,
+      sortOrder: t.sortOrder ?? idx + 1,
+      collectionAllocated: round2(colAlloc),
+      collectionObtained: round2(colObt),
+      analysisAllocated: round2(anaAlloc),
+      analysisObtained: round2(anaObt),
       dataCollectionAllocated: round2(colAlloc),
       dataAnalysisAllocated: round2(anaAlloc),
-      totalAllocated: round2(colAlloc + anaAlloc),
+      totalAllocated: totalAlloc,
       dataCollectionObtained: round2(colObt),
       dataAnalysisObtained: round2(anaObt),
-      totalObtained: round2(colObt + anaObt),
+      totalObtained: totalObt,
+      achievementPercentage: totalAlloc > 0 ? Math.round((totalObt / totalAlloc) * 100) : 0,
     };
   });
 
@@ -87,17 +113,61 @@ export const getProjectScorecard = async (
   const btrcObtainedCol = round2(btrcRows.reduce((acc, r) => acc + r.dataCollectionObtained, 0));
   const btrcObtainedAna = round2(btrcRows.reduce((acc, r) => acc + r.dataAnalysisObtained, 0));
 
+  const fhlAllocatedTotal = round2(fhlAllocatedCol + fhlAllocatedAna);
   const fhlTotalObtained = round2(fhlObtainedCol + fhlObtainedAna);
+  const btrcAllocatedTotal = round2(btrcAllocatedCol + btrcAllocatedAna);
   const btrcTotalObtained = round2(btrcObtainedCol + btrcObtainedAna);
   const pmObtained = round2(project.pmObtainedMarks || 0);
 
+  const fhlAchievementRate = fhlAllocatedTotal > 0 ? Math.round((fhlTotalObtained / fhlAllocatedTotal) * 100) : 0;
+  const btrcAchievementRate = btrcAllocatedTotal > 0 ? Math.round((btrcTotalObtained / btrcAllocatedTotal) * 100) : 0;
+
+  const fhlScorecard: IStreamScorecardData = {
+    streamBucket: 'AUDITEE',
+    title: 'FHL Stream - Auditee Marks Breakdown',
+    totalAllocatedMarks: fhlAllocatedTotal || project.auditeeWeight || 50,
+    totalObtainedMarks: fhlTotalObtained,
+    collectionAllocated: fhlAllocatedCol,
+    collectionObtained: fhlObtainedCol,
+    analysisAllocated: fhlAllocatedAna,
+    analysisObtained: fhlObtainedAna,
+    achievementRate: fhlAchievementRate,
+    rows: fhlRows,
+  };
+
+  const btrcScorecard: IStreamScorecardData = {
+    streamBucket: 'CLIENT',
+    title: 'BTRC Stream - Client Marks Breakdown',
+    totalAllocatedMarks: btrcAllocatedTotal || project.clientWeight || 40,
+    totalObtainedMarks: btrcTotalObtained,
+    collectionAllocated: btrcAllocatedCol,
+    collectionObtained: btrcObtainedCol,
+    analysisAllocated: btrcAllocatedAna,
+    analysisObtained: btrcObtainedAna,
+    achievementRate: btrcAchievementRate,
+    rows: btrcRows,
+  };
+
   return {
     projectId: project.id,
+    projectName: project.projectName || 'Project Scorecard',
+    clientWeight: project.clientWeight,
+    auditeeWeight: project.auditeeWeight,
+    pmWeight: project.pmWeight,
+    pmObtainedMarks: pmObtained,
+    pmEvaluationNotes: project.pmEvaluationNotes,
+    pmEvaluatedAt: project.pmEvaluatedAt,
+    pmEvaluatedBy: project.pmEvaluatedBy,
+    fhlScorecard,
+    btrcScorecard,
+    combinedAuditTotalMarks: round2(fhlTotalObtained + btrcTotalObtained),
+    finalProjectScore: round2(fhlTotalObtained + btrcTotalObtained + pmObtained),
+    totalProjectMarks: 100.0,
     fhl: {
       allocated: {
         collection: fhlAllocatedCol,
         analysis: fhlAllocatedAna,
-        total: round2(fhlAllocatedCol + fhlAllocatedAna),
+        total: fhlAllocatedTotal,
       },
       obtained: {
         collection: fhlObtainedCol,
@@ -110,7 +180,7 @@ export const getProjectScorecard = async (
       allocated: {
         collection: btrcAllocatedCol,
         analysis: btrcAllocatedAna,
-        total: round2(btrcAllocatedCol + btrcAllocatedAna),
+        total: btrcAllocatedTotal,
       },
       obtained: {
         collection: btrcObtainedCol,

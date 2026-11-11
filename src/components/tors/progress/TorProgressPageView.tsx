@@ -67,7 +67,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
   const initialTorId = searchParams?.get('torId') || '';
 
   const [selectedTorId, setSelectedTorId] = useState<string>(initialTorId);
-  const [activeFilter, setActiveFilter] = useState<TorReportFilter>('ALL');
+  const [activeFilter, setActiveFilter] = useState<TorReportFilter>('FIRST_PROGRESS');
   const [filters, setFilters] = useState<TorFilterState>(defaultFilters);
   const [isConfigYearsOpen, setIsConfigYearsOpen] = useState(false);
   const [summaryModal, setSummaryModal] = useState<{
@@ -270,36 +270,23 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <BarChart2 className="w-5 h-5 text-emerald-600" />
-              <span>ToR Progress, DRT Rollup &amp; Milestone Reports</span>
+              <span>ToR Progress &amp; Milestone Reports</span>
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Automatically collects 1st–5th Progress percentages and Auditee/Auditor remarks from each ToR&apos;s linked DRTs (and child Sub-ToRs), alongside Incentive, Draft, and Final Audit Reports.
+              Track clause progress, linked DRT evidence rollups, and auditor verdicts across audit milestones.
             </p>
           </div>
 
-          {/* Mode Toggle: All ToRs Matrix vs Individual ToR Dossier */}
+          {/* Quick Jump to Individual ToR Dossier */}
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => handleSelectTor('')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                !selectedTorNode
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              <Table className="w-3.5 h-3.5" />
-              <span>All ToRs WBS Matrix ({flatNodes.length})</span>
-            </button>
-
             <div className="flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-slate-400" />
               <select
                 value={selectedTorId}
                 onChange={(e) => handleSelectTor(e.target.value)}
-                className="text-xs font-medium rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-600 max-w-[260px]"
+                className="text-xs font-medium rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-600 max-w-[280px]"
               >
-                <option value="">Inspect Individual ToR Report...</option>
+                <option value="">Inspect Individual Clause Dossier...</option>
                 {flatNodes.map((n) => (
                   <option key={n.id} value={n.id}>
                     [ToR {n.code}] {n.title.slice(0, 46)}
@@ -312,7 +299,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
         </div>
       </div>
 
-      {/* Render either Individual ToR Progress Dossier OR All-ToRs WBS Matrix */}
+      {/* Render either Individual ToR Progress Dossier OR All-ToRs WBS View */}
       {selectedTorNode ? (
         <IndividualTorProgressReport
           projectId={projectId}
@@ -329,71 +316,72 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
         />
       ) : (
         <>
-          {/* 5 Phase Rollup Summary Table (Equal Column Widths) */}
-          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
-            <table className="w-full table-fixed border-collapse text-left text-xs min-w-[750px]">
-              <thead>
-                <tr className="bg-slate-100/90 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                  {phaseKpis.map((p) => (
-                    <th
-                      key={p.key}
-                      onClick={() =>
-                        setActiveFilter(
-                          activeFilter === p.key ? 'ALL' : (p.key as TorReportFilter)
-                        )
-                      }
-                      className={`py-2.5 px-3 text-center border-r last:border-r-0 border-slate-200 w-1/5 cursor-pointer transition-colors ${
-                        activeFilter === p.key
-                          ? 'bg-emerald-100 text-emerald-900'
-                          : 'hover:bg-slate-200/60'
-                      }`}
-                    >
-                      {p.shortLabel}{p.targetYear ? ` (${p.targetYear})` : ''}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {phaseKpis.map((p) => {
-                    const isSelected = activeFilter === p.key;
-                    return (
-                      <td
-                        key={p.key}
-                        onClick={() =>
-                          setActiveFilter(
-                            isSelected ? 'ALL' : (p.key as TorReportFilter)
-                          )
-                        }
-                        className={`py-2.5 px-3 text-center border-r last:border-r-0 border-slate-200 w-1/5 cursor-pointer transition-colors ${
-                          isSelected ? 'bg-emerald-50/70' : 'hover:bg-slate-50'
+          {/* Milestone Navigation & KPI Bar */}
+          <div className="bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+              {REPORT_PHASES.map((p) => {
+                const kpi = phaseKpis.find((k) => k.key === p.key);
+                const isSelected = activeFilter === p.key;
+                const targetYear = kpi?.targetYear || getPhaseTargetYear(p.key, auditYears, progressYearMapping);
+                const avgPct = kpi?.avgPct ?? 0;
+
+                return (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setActiveFilter(p.key)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white shadow-2xs'
+                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/80'
+                    }`}
+                  >
+                    <span>{p.shortLabel}</span>
+                    {targetYear && (
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                          isSelected
+                            ? 'bg-emerald-700 text-emerald-100'
+                            : 'bg-slate-200/80 text-slate-600'
                         }`}
                       >
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800 mb-1">
-                          <span>Avg:</span>
-                          <span className="font-mono text-emerald-700">{p.avgPct}%</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
-                          <div
-                            className="h-full bg-emerald-600 rounded-full"
-                            style={{ width: `${p.avgPct}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-500">
-                          <span>
-                            100% Clauses:{' '}
-                            <strong>
-                              {p.completedClauses}/{flatNodes.length}
-                            </strong>
-                          </span>
-                          <span>{p.targetYear ? `Year ${p.targetYear}` : 'DRT Rollup'}</span>
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              </tbody>
-            </table>
+                        {targetYear}
+                      </span>
+                    )}
+                    {kpi !== undefined && (
+                      <span
+                        className={`text-[11px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                          isSelected
+                            ? 'bg-emerald-800 text-white'
+                            : avgPct === 100
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : avgPct > 0
+                            ? 'bg-sky-100 text-sky-800'
+                            : 'bg-slate-200/60 text-slate-500'
+                        }`}
+                      >
+                        {avgPct}%
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+
+              <div className="h-6 w-px bg-slate-200 shrink-0 mx-1 hidden sm:block" />
+
+              <button
+                type="button"
+                onClick={() => setActiveFilter('ALL')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  activeFilter === 'ALL'
+                    ? 'bg-indigo-600 text-white shadow-2xs'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/80'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>All Milestones Matrix</span>
+              </button>
+            </div>
           </div>
 
           {/* Filters */}
@@ -406,45 +394,6 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
             totalResults={totalCount}
             filteredResults={filteredCount}
           />
-
-          {/* Report Switcher Pills */}
-          <div className="flex items-center justify-between gap-3 flex-wrap px-1">
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs overflow-x-auto">
-              <button
-                type="button"
-                onClick={() => setActiveFilter('ALL')}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                  activeFilter === 'ALL'
-                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                All Reports &amp; Phases
-              </button>
-              {REPORT_PHASES.map((p) => {
-                const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
-                const label = targetYear ? `${p.shortLabel} (${targetYear})` : p.shortLabel;
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => setActiveFilter(p.key)}
-                    className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                      activeFilter === p.key
-                        ? 'bg-white text-indigo-700 shadow-2xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <span className="text-xs text-slate-500">
-              Tip: Click any <strong>ToR Code</strong> or <strong>Dossier</strong> button to view its Individual ToR Progress &amp; DRT Rollup Report.
-            </span>
-          </div>
 
           {/* Matrix Table */}
           {isTreeLoading ? (
