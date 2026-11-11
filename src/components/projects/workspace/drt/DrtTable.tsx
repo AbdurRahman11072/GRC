@@ -14,10 +14,12 @@ export interface DrtTableProps {
   clientName?: string;
   auditeeName?: string;
   auditYears?: string[];
+  stream?: 'collection' | 'analysis';
   onManageSquad?: (ticket: IDRTTicket) => void;
   onManageTors?: (ticket: IDRTTicket) => void;
   onOpenPeriodModal: (ticket: IDRTTicket, periodLabel: string) => void;
   onOpenUploadModal: (ticket: IDRTTicket, partySide: DRTPartySide) => void;
+  onOpenAnalysisModal?: (ticket: IDRTTicket, year?: string) => void;
 }
 
 export const DrtTable: React.FC<DrtTableProps> = ({
@@ -26,10 +28,12 @@ export const DrtTable: React.FC<DrtTableProps> = ({
   clientName = 'BTRC',
   auditeeName = 'FHL',
   auditYears = DEFAULT_AUDIT_YEARS,
+  stream = 'collection',
   onManageSquad,
   onManageTors,
   onOpenPeriodModal,
   onOpenUploadModal,
+  onOpenAnalysisModal,
 }) => {
   const totalColumns = 17 + auditYears.length;
   const tableContainerRef = useHorizontalScroll<HTMLDivElement>({
@@ -43,7 +47,7 @@ export const DrtTable: React.FC<DrtTableProps> = ({
       className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-2xs max-w-full"
     >
       <table className="w-full text-left border-collapse min-w-[1650px]">
-        <DrtTableHeader auditYears={auditYears} />
+        <DrtTableHeader auditYears={auditYears} stream={stream} />
         <tbody>
           {tickets.length > 0 ? (
             tickets.map((ticket, idx) => (
@@ -55,10 +59,12 @@ export const DrtTable: React.FC<DrtTableProps> = ({
                 clientName={clientName}
                 auditeeName={auditeeName}
                 auditYears={auditYears}
+                stream={stream}
                 onManageSquad={onManageSquad}
                 onManageTors={onManageTors}
                 onOpenPeriodModal={onOpenPeriodModal}
                 onOpenUploadModal={onOpenUploadModal}
+                onOpenAnalysisModal={onOpenAnalysisModal}
               />
             ))
           ) : (

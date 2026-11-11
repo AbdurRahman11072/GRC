@@ -181,6 +181,9 @@ model Project {
   pmEvaluatedById       String?
   pmEvaluatedBy         User?         @relation("ProjectPmEvaluator", fields: [pmEvaluatedById], references: [id], onDelete: SetNull)
 
+  // Progress Stages Year Mapping (e.g. { "FIRST_PROGRESS": ["2026", "2025"], "SECOND_PROGRESS": ["2024"] })
+  progressYearMapping   Json?
+
   organization      Organization            @relation(fields: [orgId], references: [id], onDelete: Cascade)
   client            EntityCRM               @relation("ProjectClient", fields: [clientId], references: [id])
   auditee           EntityCRM               @relation("ProjectAuditee", fields: [auditeeId], references: [id])

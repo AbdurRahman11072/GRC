@@ -5,11 +5,15 @@ import { DEFAULT_AUDIT_YEARS } from './DrtTimeFrameGrid';
 
 export interface DrtTableHeaderProps {
   auditYears?: string[];
+  stream?: 'collection' | 'analysis';
 }
 
 export const DrtTableHeader: React.FC<DrtTableHeaderProps> = ({
   auditYears = DEFAULT_AUDIT_YEARS,
+  stream = 'collection',
 }) => {
+  const isAnalysis = stream === 'analysis';
+
   return (
     <thead>
       <tr className="border-b border-slate-300 bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider select-none">
@@ -68,40 +72,74 @@ export const DrtTableHeader: React.FC<DrtTableHeaderProps> = ({
           Excess Days
         </th>
 
-        {/* 12. Status (Auditor) */}
-        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap">
-          Status (Auditor)
-        </th>
+        {/* 12. Mode-Specific Column: Review / Analysis Status */}
+        {isAnalysis ? (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-purple-50/60 text-purple-950 text-center">
+            Analysis Status
+          </th>
+        ) : (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap">
+            Status (Auditor)
+          </th>
+        )}
 
-        {/* 13. Unified Cloud Link */}
-        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-sky-50/40 text-sky-900">
-          Cloud Link
-        </th>
+        {/* 13. Mode-Specific Column: Cloud Link vs. Analysis Marks */}
+        {isAnalysis ? (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-indigo-50/60 text-indigo-950 text-center">
+            Analysis Marks
+          </th>
+        ) : (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-sky-50/40 text-sky-900">
+            Cloud Link
+          </th>
+        )}
 
-        {/* 14. Unified Collection Status */}
-        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-emerald-50/40 text-emerald-900">
-          Collection Status
-        </th>
+        {/* 14. Mode-Specific Column: Collection Status vs. Verification Tier */}
+        {isAnalysis ? (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-violet-50/60 text-violet-950 text-center">
+            Verification
+          </th>
+        ) : (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap bg-emerald-50/40 text-emerald-900">
+            Collection Status
+          </th>
+        )}
 
         {/* 15. Individual Audit Year Columns */}
         {auditYears.map((year) => (
           <th
             key={year}
-            className="py-2.5 px-2 text-center border-r border-slate-300 min-w-[55px] whitespace-nowrap bg-amber-50/40 text-amber-950 font-bold"
+            className={`py-2.5 px-2 text-center border-r border-slate-300 min-w-[65px] whitespace-nowrap font-bold ${
+              isAnalysis
+                ? 'bg-indigo-50/50 text-indigo-950'
+                : 'bg-amber-50/40 text-amber-950'
+            }`}
           >
             {year}
           </th>
         ))}
 
-        {/* 16. Completeness */}
-        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center">
-          Completeness
-        </th>
+        {/* 16. Completeness vs Findings */}
+        {isAnalysis ? (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center bg-amber-50/30 text-amber-950">
+            Audit Findings
+          </th>
+        ) : (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center">
+            Completeness
+          </th>
+        )}
 
-        {/* 17. Data Upload */}
-        <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center">
-          Data Upload
-        </th>
+        {/* 17. Data Upload vs Examination Action */}
+        {isAnalysis ? (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center bg-indigo-50/30 text-indigo-950">
+            Examine
+          </th>
+        ) : (
+          <th className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap text-center">
+            Data Upload
+          </th>
+        )}
 
         {/* 18. Actions */}
         <th className="py-2.5 px-3 text-center w-36 whitespace-nowrap">

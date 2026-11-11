@@ -10,6 +10,7 @@ import {
   DRT_PROGRESS_PHASES,
   getDrtStageData,
   getDrtStagePercentage,
+  getPhaseTargetYear,
   type DrtProgressPhase,
 } from '../../../lib/drtProgressUtils';
 import {
@@ -26,6 +27,8 @@ export interface IndividualTorProgressReportProps {
   node: ITorNode;
   flatNodes: ITorNode[];
   allProjectTickets: IDRTTicket[];
+  auditYears?: string[];
+  progressYearMapping?: Record<string, string[]> | null;
   clientName?: string;
   auditeeName?: string;
   onBackToAll: () => void;
@@ -40,6 +43,8 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
   node,
   flatNodes,
   allProjectTickets,
+  auditYears,
+  progressYearMapping,
   clientName = 'BTRC',
   auditeeName = 'FHL',
   onBackToAll,
@@ -99,6 +104,7 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
       <TorProgressTable
         treeNodes={[node]}
         allProjectTickets={allProjectTickets}
+        auditYears={auditYears}
         activeFilter="ALL"
         onSelectTor={onSelectTor}
         onOpenSummaryModal={onOpenSummaryModal}
@@ -137,18 +143,20 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
                 ? aggregateTorDrtProgress(
                     node,
                     phase.key as DrtProgressPhase,
-                    allProjectTickets
+                    allProjectTickets,
+                    auditYears,
+                    progressYearMapping
                   )
                 : null;
-              const stage = getTorStageData(node, phase.key);
+              const stage = getTorStageData(node, phase.key, auditYears, progressYearMapping);
               const pct = rollup
                 ? rollup.effectivePercentage
-                : getTorStagePercentage(node, phase.key);
+                : getTorStagePercentage(node, phase.key, auditYears, progressYearMapping);
 
               return (
                 <tr key={phase.key} className="hover:bg-slate-50/70 transition-colors">
                   <td className="py-3 px-3 font-bold text-slate-900 border-r border-slate-200 align-middle">
-                    {phase.label}
+                    {stage.stageName}
                   </td>
 
                   <td className="py-3 px-3 text-center border-r border-slate-200 align-middle font-mono">
@@ -261,15 +269,18 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
               <th rowSpan={2} className={`py-3 px-3 border-r border-slate-200 ${COL_WIDTH}`}>
                 DRT Description
               </th>
-              {DRT_PROGRESS_PHASES.map((p) => (
-                <th
-                  key={p.key}
-                  colSpan={3}
-                  className="py-2 px-3 text-center border-r border-b border-emerald-200 bg-emerald-50/80 text-emerald-900"
-                >
-                  {p.shortLabel}
-                </th>
-              ))}
+              {DRT_PROGRESS_PHASES.map((p) => {
+                const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
+                return (
+                  <th
+                    key={p.key}
+                    colSpan={3}
+                    className="py-2 px-3 text-center border-r border-b border-emerald-200 bg-emerald-50/80 text-emerald-900"
+                  >
+                    {p.shortLabel}{targetYear ? ` (${targetYear})` : ''}
+                  </th>
+                );
+              })}
             </tr>
             <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-600">
               {DRT_PROGRESS_PHASES.map((p) => (
@@ -292,9 +303,9 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
               <tr key={ticket.id} className="hover:bg-slate-50/70 transition-colors">
                 <td className={`py-2.5 px-3 text-center font-mono font-bold border-r border-slate-200 align-middle ${COL_WIDTH}`}>
                   <Link
-                    href={`/projects/${projectId}/drt-progress?ticketId=${ticket.id}`}
+                    href={`/projects/${projectId}?tab=drt`}
                     className="inline-flex items-center gap-1 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition-colors"
-                    title="Open Individual DRT Progress Report"
+                    title="View DRT in Requests Hub"
                   >
                     <span>{ticket.requestCode}</span>
                     <ExternalLink className="w-2.5 h-2.5" />
@@ -325,8 +336,8 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
                   </span>
                 </td>
                 {DRT_PROGRESS_PHASES.map((p) => {
-                  const stage = getDrtStageData(ticket, p.key);
-                  const pct = getDrtStagePercentage(ticket, p.key);
+                  const stage = getDrtStageData(ticket, p.key, auditYears, progressYearMapping);
+                  const pct = getDrtStagePercentage(ticket, p.key, auditYears, progressYearMapping);
                   return (
                     <React.Fragment key={`${ticket.id}-${p.key}`}>
                       <td className={`py-2.5 px-3 text-center font-mono font-bold border-r border-slate-200 align-middle ${COL_WIDTH}`}>

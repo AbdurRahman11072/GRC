@@ -8,6 +8,7 @@ import {
   BarChart2,
   FileSpreadsheet,
   Layers,
+  SlidersHorizontal,
   Table,
 } from 'lucide-react';
 import { Button } from '../../ui/Button';
@@ -22,12 +23,15 @@ import {
 } from './TorProgressTable';
 import { IndividualTorProgressReport } from './IndividualTorProgressReport';
 import { TorProgressSummaryModal } from './TorProgressSummaryModal';
+import { ConfigureProgressYearsModal } from './ConfigureProgressYearsModal';
 import { useGetTorTreeQuery } from '../../../store/api/torApi';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
 import { useGetProjectByIdQuery } from '../../../store/api/projectApi';
 import { getShortEntityName } from '../../../lib/utils';
+import { getProjectAuditYears } from '../../../utils/projectTimeframe';
 import {
   DRT_PROGRESS_PHASES,
+  getPhaseTargetYear,
   type DrtProgressPhase,
 } from '../../../lib/drtProgressUtils';
 import {
@@ -65,6 +69,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
   const [selectedTorId, setSelectedTorId] = useState<string>(initialTorId);
   const [activeFilter, setActiveFilter] = useState<TorReportFilter>('ALL');
   const [filters, setFilters] = useState<TorFilterState>(defaultFilters);
+  const [isConfigYearsOpen, setIsConfigYearsOpen] = useState(false);
   const [summaryModal, setSummaryModal] = useState<{
     node: ITorNode;
     phase: TorProgressReportPhase;
@@ -90,8 +95,10 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
     { skip: !projectId }
   );
   const project = projData?.data;
+  const progressYearMapping = project?.progressYearMapping;
   const clientName = getShortEntityName(project?.client?.name, 'BTRC');
   const auditeeName = getShortEntityName(project?.auditee?.name, 'FHL');
+  const auditYears = useMemo(() => getProjectAuditYears(project), [project]);
 
   const { data: treeData, isLoading: isTreeLoading } = useGetTorTreeQuery(
     projectId,
@@ -168,8 +175,9 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
   // Compute ToR Phase KPI Rollup Cards
   const phaseKpis = useMemo(() => {
     return DRT_PROGRESS_PHASES.map((p) => {
+      const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
       if (flatNodes.length === 0) {
-        return { ...p, avgPct: 0, completedClauses: 0 };
+        return { ...p, targetYear, avgPct: 0, completedClauses: 0 };
       }
       let sumPct = 0;
       let completedClauses = 0;
@@ -177,18 +185,21 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
         const rollup = aggregateTorDrtProgress(
           node,
           p.key as DrtProgressPhase,
-          allProjectTickets
+          allProjectTickets,
+          auditYears,
+          progressYearMapping
         );
         sumPct += rollup.effectivePercentage;
         if (rollup.effectivePercentage === 100) completedClauses += 1;
       });
       return {
         ...p,
+        targetYear,
         avgPct: Math.round(sumPct / flatNodes.length),
         completedClauses,
       };
     });
-  }, [flatNodes, allProjectTickets]);
+  }, [flatNodes, allProjectTickets, auditYears, progressYearMapping]);
 
   const handleSaveSummary = (
     nodeId: string,
@@ -235,13 +246,21 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Link href={`/projects/${projectId}/drt-progress`}>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => setIsConfigYearsOpen(true)}
+              leftIcon={<SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />}
+            >
+              Configure Progress Years
+            </Button>
+            <Link href={`/projects/${projectId}?tab=drt`}>
               <Button
                 variant="outline"
                 size="xs"
                 leftIcon={<FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />}
               >
-                DRT Progress Reports ({allProjectTickets.length})
+                DRT Requests Hub ({allProjectTickets.length})
               </Button>
             </Link>
           </div>
@@ -300,6 +319,8 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
           node={selectedTorNode}
           flatNodes={flatNodes}
           allProjectTickets={allProjectTickets}
+          auditYears={auditYears}
+          progressYearMapping={progressYearMapping}
           clientName={clientName}
           auditeeName={auditeeName}
           onBackToAll={() => handleSelectTor('')}
@@ -327,7 +348,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
                           : 'hover:bg-slate-200/60'
                       }`}
                     >
-                      {p.shortLabel} (DRT Rollup)
+                      {p.shortLabel}{p.targetYear ? ` (${p.targetYear})` : ''}
                     </th>
                   ))}
                 </tr>
@@ -365,7 +386,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
                               {p.completedClauses}/{flatNodes.length}
                             </strong>
                           </span>
-                          <span>DRT Rollup</span>
+                          <span>{p.targetYear ? `Year ${p.targetYear}` : 'DRT Rollup'}</span>
                         </div>
                       </td>
                     );
@@ -400,20 +421,24 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
               >
                 All Reports &amp; Phases
               </button>
-              {REPORT_PHASES.map((p) => (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => setActiveFilter(p.key)}
-                  className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    activeFilter === p.key
-                      ? 'bg-white text-indigo-700 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {p.shortLabel}
-                </button>
-              ))}
+              {REPORT_PHASES.map((p) => {
+                const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
+                const label = targetYear ? `${p.shortLabel} (${targetYear})` : p.shortLabel;
+                return (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setActiveFilter(p.key)}
+                    className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                      activeFilter === p.key
+                        ? 'bg-white text-indigo-700 shadow-2xs font-semibold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
 
             <span className="text-xs text-slate-500">
@@ -430,6 +455,8 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
             <TorProgressTable
               treeNodes={filteredTree}
               allProjectTickets={allProjectTickets}
+              auditYears={auditYears}
+              progressYearMapping={progressYearMapping}
               activeFilter={activeFilter}
               onSelectTor={handleSelectTor}
               onOpenSummaryModal={(node, phase) =>
@@ -449,9 +476,22 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
           node={summaryModal.node}
           phase={summaryModal.phase}
           allProjectTickets={allProjectTickets}
+          auditYears={auditYears}
+          progressYearMapping={progressYearMapping}
           clientName={clientName}
           auditeeName={auditeeName}
           onSave={handleSaveSummary}
+        />
+      )}
+
+      {/* Configure Progress Years Modal */}
+      {isConfigYearsOpen && (
+        <ConfigureProgressYearsModal
+          isOpen={isConfigYearsOpen}
+          onClose={() => setIsConfigYearsOpen(false)}
+          projectId={projectId}
+          auditYears={auditYears}
+          currentMapping={progressYearMapping}
         />
       )}
     </div>

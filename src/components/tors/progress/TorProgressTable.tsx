@@ -12,6 +12,7 @@ import type { ITorNode, TorProgressReportPhase } from '../../../types/tor.types'
 import type { IDRTTicket } from '../../../types/project.types';
 import {
   DRT_PROGRESS_PHASES,
+  getPhaseTargetYear,
   type DrtProgressPhase,
 } from '../../../lib/drtProgressUtils';
 import {
@@ -25,6 +26,8 @@ export type TorReportFilter = 'ALL' | TorProgressReportPhase;
 export interface TorProgressTableProps {
   treeNodes: ITorNode[];
   allProjectTickets: IDRTTicket[];
+  auditYears?: string[];
+  progressYearMapping?: Record<string, string[]> | null;
   activeFilter: TorReportFilter;
   onSelectTor: (torId: string) => void;
   onOpenSummaryModal: (node: ITorNode, phase: TorProgressReportPhase) => void;
@@ -34,6 +37,8 @@ interface TorProgressRowProps {
   node: ITorNode;
   level: number;
   allProjectTickets: IDRTTicket[];
+  auditYears?: string[];
+  progressYearMapping?: Record<string, string[]> | null;
   activeFilter: TorReportFilter;
   onSelectTor: (torId: string) => void;
   onOpenSummaryModal: (node: ITorNode, phase: TorProgressReportPhase) => void;
@@ -45,6 +50,8 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
   node,
   level,
   allProjectTickets,
+  auditYears,
+  progressYearMapping,
   activeFilter,
   onSelectTor,
   onOpenSummaryModal,
@@ -66,9 +73,9 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
     (p) => activeFilter === 'ALL' || activeFilter === p.key
   );
 
-  const stageIncentive = getTorStageData(node, 'INCENTIVE_REPORT');
-  const stageDraft = getTorStageData(node, 'DRAFT_REPORT');
-  const stageFinal = getTorStageData(node, 'FINAL_REPORT');
+  const stageIncentive = getTorStageData(node, 'INCENTIVE_REPORT', auditYears, progressYearMapping);
+  const stageDraft = getTorStageData(node, 'DRAFT_REPORT', auditYears, progressYearMapping);
+  const stageFinal = getTorStageData(node, 'FINAL_REPORT', auditYears, progressYearMapping);
 
   const renderRemarkButton = (
     remark: string | null | undefined,
@@ -211,13 +218,17 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
         {/* 5. 1st–5th Progress (Rolled up from DRTs) */}
         {visibleProgressPhases.map((p) => {
           const phaseKey = p.key as TorProgressReportPhase;
+          const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
           const rollup = aggregateTorDrtProgress(
             node,
             p.key as DrtProgressPhase,
-            allProjectTickets
+            allProjectTickets,
+            auditYears,
+            progressYearMapping
           );
-          const stage = getTorStageData(node, phaseKey);
+          const stage = getTorStageData(node, phaseKey, auditYears, progressYearMapping);
           const pct = rollup.effectivePercentage;
+          const stageLabel = targetYear ? `${p.shortLabel} (${targetYear})` : p.shortLabel;
 
           return (
             <React.Fragment key={p.key}>
@@ -227,7 +238,7 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenSummaryModal(node, phaseKey)}
-                  title={`${p.shortLabel}: ${pct}% (DRT Avg: ${rollup.avgDrtPercentage}% across ${rollup.totalDrtCount} DRTs)`}
+                  title={`${stageLabel}: ${pct}% (DRT Avg: ${rollup.avgDrtPercentage}% across ${rollup.totalDrtCount} DRTs${targetYear ? ` for Year ${targetYear}` : ''})`}
                   className="group inline-flex flex-col items-center gap-1 p-1 -m-1 rounded hover:bg-white/80 transition-colors cursor-pointer w-full"
                 >
                   <span
@@ -353,6 +364,8 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
             node={child}
             level={level + 1}
             allProjectTickets={allProjectTickets}
+            auditYears={auditYears}
+            progressYearMapping={progressYearMapping}
             activeFilter={activeFilter}
             onSelectTor={onSelectTor}
             onOpenSummaryModal={onOpenSummaryModal}
@@ -365,6 +378,8 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
 export const TorProgressTable: React.FC<TorProgressTableProps> = ({
   treeNodes,
   allProjectTickets,
+  auditYears,
+  progressYearMapping,
   activeFilter,
   onSelectTor,
   onOpenSummaryModal,
@@ -422,15 +437,18 @@ export const TorProgressTable: React.FC<TorProgressTableProps> = ({
               </th>
             )}
 
-            {visibleProgressPhases.map((p) => (
-              <th
-                key={p.key}
-                colSpan={2}
-                className="py-2 px-3 text-center border-r border-emerald-200 bg-emerald-50/80 text-emerald-900"
-              >
-                {p.shortLabel} (DRT Rollup)
-              </th>
-            ))}
+            {visibleProgressPhases.map((p) => {
+              const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
+              return (
+                <th
+                  key={p.key}
+                  colSpan={2}
+                  className="py-2 px-3 text-center border-r border-emerald-200 bg-emerald-50/80 text-emerald-900"
+                >
+                  {p.shortLabel}{targetYear ? ` (${targetYear})` : ' (DRT Rollup)'}
+                </th>
+              );
+            })}
 
             {showDraft && (
               <th
@@ -519,6 +537,8 @@ export const TorProgressTable: React.FC<TorProgressTableProps> = ({
               node={node}
               level={0}
               allProjectTickets={allProjectTickets}
+              auditYears={auditYears}
+              progressYearMapping={progressYearMapping}
               activeFilter={activeFilter}
               onSelectTor={onSelectTor}
               onOpenSummaryModal={onOpenSummaryModal}

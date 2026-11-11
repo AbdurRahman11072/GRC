@@ -10,6 +10,7 @@ export type DrtProgressPhase =
 export interface IDrtStageData {
   phase: DrtProgressPhase;
   stageName: string;
+  targetYear?: string;
   status: string;
   score?: number;
   auditeeRemark: string | null;
@@ -24,7 +25,117 @@ export const DRT_PROGRESS_PHASES: { key: DrtProgressPhase; label: string; shortL
   { key: 'FIFTH_PROGRESS', label: '5th Progress Report', shortLabel: '5th Progress' },
 ];
 
-export function getDrtStagePercentage(ticket: IDRTTicket, phase: DrtProgressPhase): number {
+/**
+ * Resolves the target audit years for a progress stage.
+ * If progressYearMapping has an explicit configuration for this phase, uses that.
+ * Otherwise, falls back to the default reverse-chronological order from auditYears.
+ */
+export function getPhaseTargetYears(
+  phase: DrtProgressPhase | string,
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
+): string[] {
+  if (
+    progressYearMapping &&
+    Array.isArray(progressYearMapping[phase]) &&
+    progressYearMapping[phase].length > 0
+  ) {
+    return progressYearMapping[phase];
+  }
+
+  if (!auditYears || auditYears.length === 0) return [];
+  const reversed = [...auditYears].reverse();
+  if (phase === 'FIRST_PROGRESS') return reversed[0] ? [reversed[0]] : [];
+  if (phase === 'SECOND_PROGRESS') return reversed[1] ? [reversed[1]] : [];
+  if (phase === 'THIRD_PROGRESS') return reversed[2] ? [reversed[2]] : [];
+  if (phase === 'FOURTH_PROGRESS') return reversed[3] ? [reversed[3]] : [];
+  if (phase === 'FIFTH_PROGRESS') return reversed[4] ? [reversed[4]] : [];
+  return [];
+}
+
+/**
+ * Formats a list of years into a human-friendly label, e.g. "2025, 2026" or "2024".
+ */
+export function formatPhaseYearsLabel(years?: string[]): string {
+  if (!years || years.length === 0) return '';
+  return [...years].sort((a, b) => b.localeCompare(a)).join(', ');
+}
+
+/**
+ * Returns formatted target year(s) string for a progress stage, e.g. "2025, 2026" or "2024".
+ */
+export function getPhaseTargetYear(
+  phase: DrtProgressPhase | string,
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
+): string | undefined {
+  const years = getPhaseTargetYears(phase, auditYears, progressYearMapping);
+  return years.length > 0 ? formatPhaseYearsLabel(years) : undefined;
+}
+
+export interface IDrtYearCollectionResult {
+  year: string;
+  evidenceStatus: string;
+  percentage: number;
+  remark: string | null;
+  isNotApplicable: boolean;
+}
+
+/**
+ * Retrieves the data collection percentage and remark for a specific audit year from a DRT ticket.
+ */
+export function getDrtYearCollectionData(
+  ticket: IDRTTicket,
+  year: string
+): IDrtYearCollectionResult {
+  const match = (ticket.periodStatuses || []).find((p) => p.periodLabel === year);
+  const status = match?.evidenceStatus || 'IN_PROGRESS';
+  const remark = match?.remark || null;
+
+  let percentage = 0;
+  let isNotApplicable = false;
+
+  if (status === 'COMPLETED' || status === 'SHARED') {
+    percentage = 100;
+  } else if (status === 'PARTIAL') {
+    percentage = 50;
+  } else if (status === 'NOT_APPLICABLE') {
+    percentage = 100;
+    isNotApplicable = true;
+  } else {
+    // 'NOT_SHARED' | 'IN_PROGRESS'
+    percentage = 0;
+  }
+
+  return {
+    year,
+    evidenceStatus: status,
+    percentage,
+    remark,
+    isNotApplicable,
+  };
+}
+
+export function getDrtStagePercentage(
+  ticket: IDRTTicket,
+  phase: DrtProgressPhase | string,
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
+): number {
+  const targetYears = getPhaseTargetYears(phase, auditYears, progressYearMapping);
+  if (targetYears.length > 0) {
+    const yearResults = targetYears.map((yr) => getDrtYearCollectionData(ticket, yr));
+    const applicable = yearResults.filter((r) => !r.isNotApplicable);
+    if (applicable.length > 0) {
+      const sum = applicable.reduce((acc, r) => acc + r.percentage, 0);
+      return Math.round(sum / applicable.length);
+    }
+    if (yearResults.every((r) => r.isNotApplicable)) {
+      return 100;
+    }
+    return 0;
+  }
+
   let val: string | null | undefined = null;
   if (phase === 'FIRST_PROGRESS') val = ticket.firstProgress;
   else if (phase === 'SECOND_PROGRESS') val = ticket.secondProgress;
@@ -52,18 +163,64 @@ export function getDrtStagePercentage(ticket: IDRTTicket, phase: DrtProgressPhas
   return 0;
 }
 
-export function getDrtProgressPercentage(ticket: IDRTTicket): number {
-  return getDrtStagePercentage(ticket, 'FIRST_PROGRESS');
+export function getDrtProgressPercentage(
+  ticket: IDRTTicket,
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
+): number {
+  return getDrtStagePercentage(ticket, 'FIRST_PROGRESS', auditYears, progressYearMapping);
 }
 
-export function getDrtStageData(ticket: IDRTTicket, phase: DrtProgressPhase): IDrtStageData {
+export function getDrtStageData(
+  ticket: IDRTTicket,
+  phase: DrtProgressPhase,
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
+): IDrtStageData {
+  const targetYears = getPhaseTargetYears(phase, auditYears, progressYearMapping);
+  const targetYearLabel = formatPhaseYearsLabel(targetYears);
+
+  if (targetYears.length > 0) {
+    const yearResults = targetYears.map((yr) => getDrtYearCollectionData(ticket, yr));
+    const score = getDrtStagePercentage(ticket, phase, auditYears, progressYearMapping);
+    const phaseItem = DRT_PROGRESS_PHASES.find((p) => p.key === phase);
+    const stageName = phaseItem ? `${phaseItem.shortLabel} (${targetYearLabel})` : targetYearLabel;
+
+    let statusText: string;
+    if (targetYears.length === 1) {
+      statusText = `${yearResults[0].evidenceStatus.replace(/_/g, ' ')} (${yearResults[0].percentage}%)`;
+    } else {
+      const summaryList = yearResults
+        .map((yr) => `${yr.year}: ${yr.evidenceStatus.replace(/_/g, ' ')}`)
+        .join(', ');
+      statusText = `${summaryList} (${score}%)`;
+    }
+
+    const remarksList = yearResults
+      .filter((r) => r.remark)
+      .map((r) => (targetYears.length > 1 ? `[${r.year}]: ${r.remark}` : (r.remark as string)));
+    const combinedRemarks = remarksList.length > 0 ? remarksList.join('; ') : null;
+
+    return {
+      phase,
+      stageName,
+      targetYear: targetYearLabel,
+      status: statusText,
+      score,
+      auditeeRemark:
+        ticket.assignedTeamBucket !== 'CLIENT' ? (combinedRemarks || ticket.remarks || null) : null,
+      auditorRemark:
+        ticket.assignedTeamBucket === 'CLIENT' ? combinedRemarks : null,
+    };
+  }
+
   switch (phase) {
     case 'FIRST_PROGRESS':
       return {
         phase,
         stageName: '1st Progress',
         status: ticket.firstProgress || (ticket.workflowStatus === 'ACCEPTED' ? 'DONE' : 'IN_PROGRESS'),
-        score: getDrtProgressPercentage(ticket),
+        score: getDrtProgressPercentage(ticket, auditYears, progressYearMapping),
         auditeeRemark: ticket.firstProgressAuditeeRemark || ticket.remarks || null,
         auditorRemark: ticket.firstProgressAuditorRemark || null,
       };

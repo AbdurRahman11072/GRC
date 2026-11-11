@@ -5,6 +5,10 @@ import {
   DrtProgressPhase,
   getDrtStageData,
   getDrtStagePercentage,
+  getPhaseTargetYear,
+  getPhaseTargetYears,
+  formatPhaseYearsLabel,
+  getDrtYearCollectionData,
 } from './drtProgressUtils';
 import { getTorProgressPercentage, getTorStagePercentage } from './torPercentageUtils';
 
@@ -39,16 +43,32 @@ export function splitDrtTicketsByParty(tickets?: IDRTTicket[]): {
   return { btrcTickets, fhlTickets };
 }
 
-export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): ITorProgressStageData {
+export function getTorStageData(
+  node: ITorNode,
+  phase: TorProgressReportPhase,
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
+): ITorProgressStageData {
+  const targetYears = getPhaseTargetYears(phase, auditYears, progressYearMapping);
+  const targetYear = formatPhaseYearsLabel(targetYears) || undefined;
+
   if (node.progressStages && node.progressStages.length > 0) {
     const stage = node.progressStages.find((s) => s.stageKey === phase);
-    if (stage) return stage;
+    if (stage) {
+      if (targetYear) {
+        const cleanName = stage.stageName.replace(/\s*\([^)]*\)$/, '');
+        return { ...stage, stageName: `${cleanName} (${targetYear})` };
+      }
+      return stage;
+    }
   }
+
+  const yearSuffix = targetYear ? ` (${targetYear})` : '';
 
   if (phase === 'FIRST_PROGRESS') {
     return {
       stageKey: phase,
-      stageName: '1st Progress',
+      stageName: `1st Progress${yearSuffix}`,
       status: node.firstProgress || (node.complianceStatus ? 'IN_PROGRESS' : 'PENDING'),
       auditorRemark: node.firstProgressAuditorRemark || (node.complianceStatus ? 'Initial evidence logs collected and mapped to ToR.' : null),
     };
@@ -56,7 +76,7 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
   if (phase === 'SECOND_PROGRESS') {
     return {
       stageKey: phase,
-      stageName: '2nd Progress',
+      stageName: `2nd Progress${yearSuffix}`,
       status: node.secondProgress || (node.complianceStatus === 'COMPLIANT' ? 'PARTIALLY_COMPLIANT' : 'PENDING'),
       auditorRemark: node.secondProgressAuditorRemark || (node.analysisNotes ? 'Technical documentation under verification.' : null),
     };
@@ -64,7 +84,7 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
   if (phase === 'THIRD_PROGRESS') {
     return {
       stageKey: phase,
-      stageName: '3rd Progress',
+      stageName: `3rd Progress${yearSuffix}`,
       status: node.thirdProgress || (node.complianceStatus || 'PENDING'),
       auditorRemark: node.thirdProgressAuditorRemark || (node.complianceStatus === 'COMPLIANT' ? 'Validation completed against baseline criteria.' : null),
     };
@@ -72,7 +92,7 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
   if (phase === 'FOURTH_PROGRESS') {
     return {
       stageKey: phase,
-      stageName: '4th Progress',
+      stageName: `4th Progress${yearSuffix}`,
       status: node.fourthProgress || (node.complianceStatus || 'PENDING'),
       auditorRemark: node.fourthProgressAuditorRemark || (node.complianceStatus === 'COMPLIANT' ? 'Fourth stage review verified against criteria.' : null),
     };
@@ -80,7 +100,7 @@ export function getTorStageData(node: ITorNode, phase: TorProgressReportPhase): 
   if (phase === 'FIFTH_PROGRESS') {
     return {
       stageKey: phase,
-      stageName: '5th Progress',
+      stageName: `5th Progress${yearSuffix}`,
       status: node.fifthProgress || (node.complianceStatus || 'PENDING'),
       auditorRemark: node.fifthProgressAuditorRemark || (node.complianceStatus === 'COMPLIANT' ? 'Fifth stage milestone conformance confirmed.' : null),
     };
@@ -236,16 +256,20 @@ export interface ITorDrtStageSummaryItem {
   description: string;
   torId?: string;
   torCode?: string;
+  targetYear?: string;
   party: 'CLIENT' | 'AUDITEE';
   department?: string | null;
   percentage: number;
+  evidenceStatus?: string;
   status: string;
   auditeeRemark: string | null;
   auditorRemark: string | null;
+  isNotApplicable?: boolean;
 }
 
 export interface ITorDrtStageRollup {
   phase: DrtProgressPhase;
+  targetYear?: string;
   totalDrtCount: number;
   reportedDrtCount: number;
   avgDrtPercentage: number;
@@ -310,16 +334,64 @@ export function collectAllTorDrtTickets(
 }
 
 /**
- * Collects all DRT progress % and remarks for a ToR node (and its Sub-ToRs) for a given phase (1st–5th Progress).
+ * Collects and aggregates DRT progress % and remarks for a ToR node (and its Sub-ToRs).
+ * When auditYears are provided, maps the phase (1st, 2nd, etc.) to the target audit year (e.g. 2026, 2025...)
+ * in reverse-chronological order and aggregates data collection statuses for that specific year.
  */
 export function aggregateTorDrtProgress(
   node: ITorNode,
   phase: DrtProgressPhase,
-  allProjectTickets?: IDRTTicket[]
+  allProjectTickets?: IDRTTicket[],
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
 ): ITorDrtStageRollup {
+  const targetYears = getPhaseTargetYears(phase, auditYears, progressYearMapping);
+  const targetYear = formatPhaseYearsLabel(targetYears) || undefined;
   const collected = collectAllTorDrtTickets(node, allProjectTickets);
+
   const items: ITorDrtStageSummaryItem[] = collected.map(
     ({ ticket, sourceTorId, sourceTorCode }) => {
+      if (targetYears.length > 0) {
+        const yearResults = targetYears.map((yr) => getDrtYearCollectionData(ticket, yr));
+        const pct = getDrtStagePercentage(ticket, phase, auditYears, progressYearMapping);
+        const allNotApp = yearResults.every((r) => r.isNotApplicable);
+
+        let statusLabel: string;
+        if (targetYears.length === 1) {
+          statusLabel = `${yearResults[0].evidenceStatus.replace(/_/g, ' ')} (${yearResults[0].percentage}%)`;
+        } else {
+          const summaryList = yearResults
+            .map((yr) => `${yr.year}: ${yr.evidenceStatus.replace(/_/g, ' ')}`)
+            .join(', ');
+          statusLabel = `${summaryList} (${pct}%)`;
+        }
+
+        const remarksList = yearResults
+          .filter((r) => r.remark)
+          .map((r) => (targetYears.length > 1 ? `[${r.year}]: ${r.remark}` : (r.remark as string)));
+        const combinedRemarks = remarksList.length > 0 ? remarksList.join('; ') : null;
+
+        return {
+          ticketId: ticket.id,
+          requestCode: ticket.requestCode,
+          description: ticket.title || ticket.description,
+          torId: sourceTorId,
+          torCode: sourceTorCode,
+          targetYear,
+          party: ticket.assignedTeamBucket === 'CLIENT' ? 'CLIENT' : 'AUDITEE',
+          department: ticket.department,
+          percentage: pct,
+          evidenceStatus: targetYears.length === 1 ? yearResults[0].evidenceStatus : undefined,
+          status: statusLabel,
+          auditeeRemark:
+            ticket.assignedTeamBucket !== 'CLIENT' ? (combinedRemarks || ticket.remarks || null) : null,
+          auditorRemark:
+            ticket.assignedTeamBucket === 'CLIENT' ? combinedRemarks : null,
+          isNotApplicable: allNotApp,
+        };
+      }
+
+      // Fallback when auditYears are not available
       const stage = getDrtStageData(ticket, phase);
       const pct = getDrtStagePercentage(ticket, phase);
       return {
@@ -334,41 +406,47 @@ export function aggregateTorDrtProgress(
         status: stage.status || `${pct}%`,
         auditeeRemark: stage.auditeeRemark,
         auditorRemark: stage.auditorRemark,
+        isNotApplicable: false,
       };
     }
   );
 
   const totalDrtCount = items.length;
-  const reportedDrtCount = items.filter(
+  const applicableItems = items.filter((i) => !i.isNotApplicable);
+  const reportedDrtCount = applicableItems.filter(
     (item) => item.percentage > 0 || Boolean(item.auditeeRemark) || Boolean(item.auditorRemark)
   ).length;
 
   const avgDrtPercentage =
-    totalDrtCount > 0
-      ? Math.round(items.reduce((acc, item) => acc + item.percentage, 0) / totalDrtCount)
+    applicableItems.length > 0
+      ? Math.round(applicableItems.reduce((acc, item) => acc + item.percentage, 0) / applicableItems.length)
+      : totalDrtCount > 0 && items.every((i) => i.isNotApplicable)
+      ? 100
       : 0;
 
-  const torOwnPct = getTorStagePercentage(node, phase);
+  const torOwnPct = getTorStagePercentage(node, phase, auditYears, progressYearMapping);
   const effectivePercentage = totalDrtCount > 0 && torOwnPct === 0 ? avgDrtPercentage : torOwnPct;
 
   const auditeeLines = items
     .filter((i) => i.auditeeRemark)
-    .map((i) => `[${i.requestCode} - ${i.percentage}%]: ${i.auditeeRemark}`);
+    .map((i) => `[${i.requestCode}${targetYear ? ` - ${targetYear}` : ''} (${i.percentage}%)]: ${i.auditeeRemark}`);
 
   const auditorLines = items
     .filter((i) => i.auditorRemark)
-    .map((i) => `[${i.requestCode} - ${i.percentage}%]: ${i.auditorRemark}`);
+    .map((i) => `[${i.requestCode}${targetYear ? ` - ${targetYear}` : ''} (${i.percentage}%)]: ${i.auditorRemark}`);
 
   const autoCompiledAuditeeSummary = auditeeLines.join('\n');
+  const yearNote = targetYear ? `for ${targetYear}` : '';
   const autoCompiledAuditorSummary =
     auditorLines.length > 0
       ? auditorLines.join('\n')
       : totalDrtCount > 0
-      ? `${reportedDrtCount}/${totalDrtCount} linked DRTs evaluated (${avgDrtPercentage}% average completion).`
+      ? `${reportedDrtCount}/${applicableItems.length} applicable DRTs collected ${yearNote} (${avgDrtPercentage}% completion).`
       : '';
 
   return {
     phase,
+    targetYear,
     totalDrtCount,
     reportedDrtCount,
     avgDrtPercentage,

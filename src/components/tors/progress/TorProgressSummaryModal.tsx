@@ -30,6 +30,8 @@ export interface TorProgressSummaryModalProps {
   node: ITorNode;
   phase: TorProgressReportPhase;
   allProjectTickets: IDRTTicket[];
+  auditYears?: string[];
+  progressYearMapping?: Record<string, string[]> | null;
   clientName?: string;
   auditeeName?: string;
   onSave: (
@@ -54,15 +56,23 @@ export const TorProgressSummaryModal: React.FC<TorProgressSummaryModalProps> = (
   node,
   phase,
   allProjectTickets,
+  auditYears,
+  progressYearMapping,
   clientName = 'BTRC',
   auditeeName = 'FHL',
   onSave,
 }) => {
-  const initialData = getTorStageData(node, phase);
+  const initialData = getTorStageData(node, phase, auditYears, progressYearMapping);
   const isDrtProgressPhase = PROGRESS_PHASES.includes(phase as DrtProgressPhase);
 
   const drtRollup = isDrtProgressPhase
-    ? aggregateTorDrtProgress(node, phase as DrtProgressPhase, allProjectTickets)
+    ? aggregateTorDrtProgress(
+        node,
+        phase as DrtProgressPhase,
+        allProjectTickets,
+        auditYears,
+        progressYearMapping
+      )
     : null;
 
   const hasDualRemarks =
@@ -70,7 +80,7 @@ export const TorProgressSummaryModal: React.FC<TorProgressSummaryModalProps> = (
 
   const [progressPct, setProgressPct] = useState<number>(() => {
     if (drtRollup) return drtRollup.effectivePercentage;
-    return getTorStagePercentage(node, phase);
+    return getTorStagePercentage(node, phase, auditYears, progressYearMapping);
   });
 
   const [auditorRemark, setAuditorRemark] = useState<string>(() => {
@@ -90,8 +100,9 @@ export const TorProgressSummaryModal: React.FC<TorProgressSummaryModalProps> = (
     setProgressPct(drtRollup.avgDrtPercentage);
 
     const blocks: string[] = [];
+    const yearHeader = drtRollup.targetYear ? ` (Year ${drtRollup.targetYear})` : '';
     blocks.push(
-      `DRT Rollup (${drtRollup.reportedDrtCount}/${drtRollup.totalDrtCount} DRTs evaluated — ${drtRollup.avgDrtPercentage}% avg completion):`
+      `DRT Rollup${yearHeader} (${drtRollup.reportedDrtCount}/${drtRollup.totalDrtCount} DRTs evaluated — ${drtRollup.avgDrtPercentage}% avg completion):`
     );
     drtRollup.items.forEach((item) => {
       const partyLabel = item.party === 'CLIENT' ? clientName : auditeeName;
@@ -155,6 +166,11 @@ export const TorProgressSummaryModal: React.FC<TorProgressSummaryModalProps> = (
                   <span className="font-bold text-slate-800">
                     Collected DRT Progress &amp; Remarks ({drtRollup.totalDrtCount} Linked DRTs)
                   </span>
+                  {drtRollup.targetYear && (
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-mono font-bold text-[11px]">
+                      Year {drtRollup.targetYear}
+                    </span>
+                  )}
                   <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono font-bold text-[11px]">
                     DRT Avg: {drtRollup.avgDrtPercentage}%
                   </span>
@@ -179,9 +195,9 @@ export const TorProgressSummaryModal: React.FC<TorProgressSummaryModalProps> = (
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <Link
-                            href={`/projects/${projectId}/drt-progress?ticketId=${item.ticketId}`}
+                            href={`/projects/${projectId}?tab=drt`}
                             className="inline-flex items-center gap-1 font-mono font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200"
-                            title="Open Individual DRT Progress Report"
+                            title="View DRT in Requests Hub"
                           >
                             <span>{item.requestCode}</span>
                             <ExternalLink className="w-2.5 h-2.5" />

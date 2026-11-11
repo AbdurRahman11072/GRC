@@ -32,6 +32,7 @@ export interface IUpdateProjectPayload {
   projectObjective?: string | null;
   projectScope?: string | null;
   status?: ProjectStatus;
+  progressYearMapping?: Record<string, string[]> | null;
 }
 
 export interface IProjectQueryOptions {
@@ -472,6 +473,9 @@ const updateProject = async (
         ? { projectScope: payload.projectScope ? payload.projectScope.trim() : null }
         : {}),
       ...(payload.status !== undefined ? { status: payload.status } : {}),
+      ...(payload.progressYearMapping !== undefined
+        ? { progressYearMapping: payload.progressYearMapping as any }
+        : {}),
     },
     include: {
       client: {

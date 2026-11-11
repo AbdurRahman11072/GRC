@@ -12,6 +12,7 @@ export interface IProject {
   projectObjective?: string | null;
   projectScope?: string | null;
   status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD';
+  progressYearMapping?: Record<string, string[]> | null;
   members?: IProjectMember[];
   assessmentPeriods?: IAssessmentPeriod[];
   createdAt: string;
@@ -37,6 +38,7 @@ export interface ICreateProjectPayload {
   projectObjective?: string;
   projectScope?: string;
   status?: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD';
+  progressYearMapping?: Record<string, string[]> | null;
   projectManagerId?: string;
   supervisorIds?: string[];
   fieldTeamIds?: string[];

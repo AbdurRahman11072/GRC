@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Upload } from 'lucide-react';
-import type { IDRTTicket, DRTPartySide } from '../../../../types/drt.types';
+import { Upload, FileCheck2 } from 'lucide-react';
+import type { IDRTTicket, IDRTTicketPeriodStatus, DRTPartySide } from '../../../../types/drt.types';
 import { DrtDescriptionCell } from './DrtDescriptionCell';
 import { DrtRowActions } from './DrtRowActions';
 import { DrtUnifiedCloudCollectionCells } from './DrtUnifiedCloudCollectionCells';
@@ -17,10 +17,12 @@ export interface DrtTableRowProps {
   clientName?: string;
   auditeeName?: string;
   auditYears: string[];
+  stream?: 'collection' | 'analysis';
   onManageSquad?: (ticket: IDRTTicket) => void;
   onManageTors?: (ticket: IDRTTicket) => void;
   onOpenPeriodModal: (ticket: IDRTTicket, periodLabel: string) => void;
   onOpenUploadModal: (ticket: IDRTTicket, partySide: DRTPartySide) => void;
+  onOpenAnalysisModal?: (ticket: IDRTTicket, year?: string) => void;
 }
 
 export const DrtTableRow: React.FC<DrtTableRowProps> = ({
@@ -30,11 +32,14 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
   clientName = 'BTRC',
   auditeeName = 'FHL',
   auditYears,
+  stream = 'collection',
   onManageSquad,
   onManageTors,
   onOpenPeriodModal,
   onOpenUploadModal,
+  onOpenAnalysisModal,
 }) => {
+  const isAnalysis = stream === 'analysis';
   const docs = ticket.drtDocuments || [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const torCodes = ticket.tors?.map((t: any) => t.code || t.tor?.code).filter(Boolean) || [];
@@ -53,6 +58,15 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
     : ticket.actualDateOfReceipt
       ? formatDate(ticket.actualDateOfReceipt)
       : '—';
+
+  const periodStatuses = ticket.periodStatuses || [];
+  const completedCount = auditYears.filter((yr) => {
+    const p = periodStatuses.find((ps: IDRTTicketPeriodStatus) => ps.periodLabel === yr);
+    return p?.evidenceStatus === 'COMPLETED' || p?.evidenceStatus === 'SHARED';
+  }).length;
+  const completeness = auditYears.length
+    ? Math.round((completedCount / auditYears.length) * 100)
+    : 0;
 
   return (
     <tr className="group border-b border-slate-200 hover:bg-slate-50/70 transition-colors text-xs bg-white">
@@ -180,39 +194,142 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
         </span>
       </td>
 
-      {/* 12. Status (Auditor) */}
-      <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200">
+      {/* 12. Review / Analysis Status */}
+      <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200 text-center">
         <span
           className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold border ${
-            statusBadgeStyles[reviewOutcomeKey] || 'bg-slate-100 text-slate-700 border-slate-300'
+            isAnalysis
+              ? reviewOutcomeKey === 'DONE'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                : reviewOutcomeKey === 'PARTIAL'
+                ? 'bg-amber-50 text-amber-700 border-amber-300'
+                : 'bg-slate-100 text-slate-700 border-slate-300'
+              : statusBadgeStyles[reviewOutcomeKey] || 'bg-slate-100 text-slate-700 border-slate-300'
           }`}
         >
-          {reviewOutcomeKey.replace(/_/g, ' ')}
+          {isAnalysis && reviewOutcomeKey === 'DONE'
+            ? 'EXAMINED'
+            : reviewOutcomeKey.replace(/_/g, ' ')}
         </span>
       </td>
 
-      {/* 13-14. Unified Cloud Link & Collection Status */}
-      <DrtUnifiedCloudCollectionCells ticket={ticket} />
+      {/* 13-14. Cloud Link & Collection Status OR Analysis Marks & Verification */}
+      {isAnalysis ? (
+        <>
+          {/* Analysis Marks */}
+          <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200 text-center font-mono">
+            <span className="font-bold text-indigo-700">
+              {(ticket.analysisObtained ?? 0).toFixed(1)}
+            </span>
+            <span className="text-slate-400 mx-1">/</span>
+            <span className="text-slate-600">
+              {(ticket.analysisAllocated ?? 0).toFixed(1)}
+            </span>
+          </td>
 
-      {/* 15-16. Audit Years & Completeness */}
-      <DrtYearAndRemarkCells
-        ticket={ticket}
-        auditYears={auditYears}
-        onOpenPeriodModal={onOpenPeriodModal}
-      />
+          {/* Verification Tier */}
+          <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200 text-center">
+            {completeness === 100 ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300">
+                Verified
+              </span>
+            ) : completeness > 0 ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-300">
+                In Progress
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                Pending
+              </span>
+            )}
+          </td>
+        </>
+      ) : (
+        <DrtUnifiedCloudCollectionCells ticket={ticket} />
+      )}
 
-      {/* 17. Data Upload Action */}
+      {/* 15-16. Audit Years & Completeness/Findings */}
+      {isAnalysis ? (
+        <>
+          {/* Individual Audit Year Verification Cells */}
+          {auditYears.map((year) => {
+            const match = periodStatuses.find((p: IDRTTicketPeriodStatus) => p.periodLabel === year);
+            const statusKey = match?.evidenceStatus || 'IN_PROGRESS';
+            const isVerified = statusKey === 'COMPLETED' || statusKey === 'SHARED';
+            const isPartial = statusKey === 'PARTIAL';
+            const isNA = statusKey === 'NOT_APPLICABLE';
+
+            return (
+              <td
+                key={year}
+                className="px-1.5 py-2.5 align-middle text-center border-r border-slate-200 whitespace-nowrap min-w-[65px]"
+              >
+                <button
+                  type="button"
+                  onClick={() => onOpenAnalysisModal?.(ticket, year)}
+                  title={`Year ${year}: ${match?.remark || statusKey} (Click to examine)`}
+                  className={`inline-flex px-1.5 py-0.5 text-[10px] font-semibold rounded border cursor-pointer hover:opacity-85 transition-opacity ${
+                    isVerified
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                      : isPartial
+                      ? 'bg-amber-50 text-amber-700 border-amber-300'
+                      : isNA
+                      ? 'bg-slate-100 text-slate-500 border-slate-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-300'
+                  }`}
+                >
+                  {isVerified ? 'Verified' : isPartial ? 'Partial' : isNA ? 'N/A' : 'Unverified'}
+                </button>
+              </td>
+            );
+          })}
+
+          {/* Audit Findings */}
+          <td className="px-3 py-2.5 align-middle whitespace-nowrap border-r border-slate-200 text-center">
+            {ticket.remarks ? (
+              <span
+                title={ticket.remarks}
+                className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-300 truncate max-w-[120px]"
+              >
+                Obs Recorded
+              </span>
+            ) : (
+              <span className="text-slate-400 font-mono text-[11px]">None</span>
+            )}
+          </td>
+        </>
+      ) : (
+        <DrtYearAndRemarkCells
+          ticket={ticket}
+          auditYears={auditYears}
+          onOpenPeriodModal={onOpenPeriodModal}
+        />
+      )}
+
+      {/* 17. Data Upload vs Examination Action */}
       <td className="px-3 py-2.5 align-middle whitespace-nowrap text-center border-r border-slate-200">
         <div className="flex items-center justify-center gap-1">
-          <button
-            type="button"
-            onClick={() => onOpenUploadModal(ticket, ticket.assignedTeamBucket === 'CLIENT' ? 'CLIENT' : 'AUDITEE')}
-            title="Upload evidence"
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-colors cursor-pointer"
-          >
-            <Upload className="w-3 h-3" />
-            <span>Upload</span>
-          </button>
+          {isAnalysis ? (
+            <button
+              type="button"
+              onClick={() => onOpenAnalysisModal?.(ticket)}
+              title="Examine evidence & award analysis marks"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-colors cursor-pointer"
+            >
+              <FileCheck2 className="w-3.5 h-3.5" />
+              <span>Examine</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onOpenUploadModal(ticket, ticket.assignedTeamBucket === 'CLIENT' ? 'CLIENT' : 'AUDITEE')}
+              title="Upload evidence"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-colors cursor-pointer"
+            >
+              <Upload className="w-3 h-3" />
+              <span>Upload</span>
+            </button>
+          )}
         </div>
       </td>
 

@@ -147,13 +147,6 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               <span>ToR Progress Reports</span>
             </Link>
           )}
-          <Link
-            href={`/projects/${project.id}/drt-progress`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 transition-colors"
-          >
-            <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-            <span>DRT Progress Reports</span>
-          </Link>
         </div>
       </div>
     </div>

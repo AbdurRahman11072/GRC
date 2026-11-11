@@ -1,5 +1,10 @@
 import type { ITorNode } from '../types/tor.types';
-import { DrtProgressPhase, getDrtStagePercentage } from './drtProgressUtils';
+import {
+  DrtProgressPhase,
+  getDrtStagePercentage,
+  getPhaseTargetYear,
+  getPhaseTargetYears,
+} from './drtProgressUtils';
 
 const DRT_PHASES: DrtProgressPhase[] = [
   'FIRST_PROGRESS',
@@ -22,13 +27,67 @@ function collectNodeDrtTicketsRecursive(node: ITorNode) {
 }
 
 /**
- * Derives a clean 0-100 percentage for a ToR node's 1st progress.
- * Evaluates explicit numeric progress, stage scores, status keywords,
- * or falls back to linked DRT stage progress and data collection marks.
+ * Derives a clean 0-100 percentage for a ToR node's progress stage.
+ * When auditYears/progressYearMapping are provided, maps the stage to the corresponding audit year(s)
+ * and calculates the average completeness of linked DRTs for those assigned year(s).
  */
-export function getTorProgressPercentage(node: ITorNode): number {
-  // 1. Check explicit string or numeric values in firstProgress
-  if (node.firstProgress) {
+export function getTorProgressPercentage(
+  node: ITorNode,
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
+): number {
+  return getTorStagePercentage(node, 'FIRST_PROGRESS', auditYears, progressYearMapping);
+}
+
+export function getTorStagePercentage(
+  node: ITorNode,
+  phase: string,
+  auditYears?: string[],
+  progressYearMapping?: Record<string, string[]> | null
+): number {
+  // 1. Roll up from linked DRT tickets based on yearly data collection
+  if (DRT_PHASES.includes(phase as DrtProgressPhase)) {
+    const tickets = collectNodeDrtTicketsRecursive(node);
+    if (tickets.length > 0) {
+      const targetYears = getPhaseTargetYears(
+        phase as DrtProgressPhase,
+        auditYears,
+        progressYearMapping
+      );
+      if (targetYears.length > 0) {
+        const validTickets = tickets.filter((t) => {
+          return !targetYears.every(
+            (yr) =>
+              (t.periodStatuses || []).find((p) => p.periodLabel === yr)
+                ?.evidenceStatus === 'NOT_APPLICABLE'
+          );
+        });
+        const listToAverage = validTickets.length > 0 ? validTickets : tickets;
+        const sum = listToAverage.reduce(
+          (acc, t) =>
+            acc +
+            getDrtStagePercentage(
+              t,
+              phase as DrtProgressPhase,
+              auditYears,
+              progressYearMapping
+            ),
+          0
+        );
+        return Math.round(sum / listToAverage.length);
+      }
+
+      // Fallback if no target years resolved
+      const sum = tickets.reduce(
+        (acc, t) => acc + getDrtStagePercentage(t, phase as DrtProgressPhase),
+        0
+      );
+      return Math.round(sum / tickets.length);
+    }
+  }
+
+  // 2. Check explicit string or numeric values in firstProgress for 1st progress
+  if (phase === 'FIRST_PROGRESS' && node.firstProgress) {
     const raw = String(node.firstProgress).trim();
     const match = raw.match(/(\d+(?:\.\d+)?)/);
     if (match) {
@@ -45,45 +104,7 @@ export function getTorProgressPercentage(node: ITorNode): number {
     if (['NOT_STARTED', 'PENDING', 'NOT_APPLICABLE'].includes(upper)) return 0;
   }
 
-  // 2. Check dynamic progressStages if present
-  if (node.progressStages && node.progressStages.length > 0) {
-    const stage1 = node.progressStages.find((s) => s.stageKey === 'FIRST_PROGRESS');
-    if (stage1) {
-      if (typeof stage1.score === 'number') {
-        return Math.max(0, Math.min(100, Math.round(stage1.score)));
-      }
-      if (stage1.status) {
-        const match = String(stage1.status).match(/(\d+(?:\.\d+)?)/);
-        if (match) {
-          const parsed = parseFloat(match[1]);
-          if (!isNaN(parsed)) return Math.max(0, Math.min(100, Math.round(parsed)));
-        }
-      }
-    }
-  }
-
-  // 3. Roll up from linked DRT tickets (including child Sub-ToRs)
-  const tickets = collectNodeDrtTicketsRecursive(node);
-  if (tickets.length > 0) {
-    const sum = tickets.reduce((acc, t) => acc + getDrtStagePercentage(t, 'FIRST_PROGRESS'), 0);
-    return Math.round(sum / tickets.length);
-  }
-
-  // 4. Fallback: Calculate from Data Collection allocated vs obtained marks
-  if (node.dataCollectionAllocated && node.dataCollectionAllocated > 0) {
-    const marksPct = ((node.dataCollectionObtained || 0) / node.dataCollectionAllocated) * 100;
-    return Math.max(0, Math.min(100, Math.round(marksPct)));
-  }
-
-  return 0;
-}
-
-export function getTorStagePercentage(node: ITorNode, phase: string): number {
-  if (phase === 'FIRST_PROGRESS') {
-    return getTorProgressPercentage(node);
-  }
-
-  // 1. Check progressStages
+  // 3. Check dynamic progressStages
   if (node.progressStages && node.progressStages.length > 0) {
     const st = node.progressStages.find((s) => s.stageKey === phase);
     if (st) {
@@ -102,7 +123,7 @@ export function getTorStagePercentage(node: ITorNode, phase: string): number {
     }
   }
 
-  // 2. Check direct node fields
+  // 4. Check direct node fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const nodeAny = node as any;
   let raw: string | null | undefined = null;
@@ -125,16 +146,10 @@ export function getTorStagePercentage(node: ITorNode, phase: string): number {
     if (['IN_PROGRESS', 'SUBMITTED', 'IN_REVIEW'].includes(upper)) return 35;
   }
 
-  // 3. Roll up from linked DRT tickets for 1st–5th Progress phases
-  if (DRT_PHASES.includes(phase as DrtProgressPhase)) {
-    const tickets = collectNodeDrtTicketsRecursive(node);
-    if (tickets.length > 0) {
-      const sum = tickets.reduce(
-        (acc, t) => acc + getDrtStagePercentage(t, phase as DrtProgressPhase),
-        0
-      );
-      return Math.round(sum / tickets.length);
-    }
+  // 5. Fallback for 1st progress: Calculate from Data Collection marks
+  if (phase === 'FIRST_PROGRESS' && node.dataCollectionAllocated && node.dataCollectionAllocated > 0) {
+    const marksPct = ((node.dataCollectionObtained || 0) / node.dataCollectionAllocated) * 100;
+    return Math.max(0, Math.min(100, Math.round(marksPct)));
   }
 
   return 0;

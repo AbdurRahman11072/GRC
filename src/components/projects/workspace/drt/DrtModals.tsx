@@ -7,6 +7,7 @@ import { ReviewDrtDocumentModal } from './ReviewDrtDocumentModal';
 import { AssignDrtSquadModal } from './AssignDrtSquadModal';
 import { EditDrtPeriodStatusModal } from './EditDrtPeriodStatusModal';
 import { ManageDrtTorsModal } from './ManageDrtTorsModal';
+import { DrtAnalysisModal } from './DrtAnalysisModal';
 import { DrtRemarkVersionModal } from './details/DrtRemarkVersionModal';
 import { getDrtRemarkVersions } from './drtBadges';
 import type { IDRTTicket, IDRTDocument, DRTPartySide } from '../../../../types/project.types';
@@ -29,6 +30,8 @@ export interface DrtModalsProps {
   onOpenUploadFromPeriod: (ticket: IDRTTicket, year: string) => void;
   torsTicket: IDRTTicket | null;
   onCloseTors: () => void;
+  analysisTicket: { ticket: IDRTTicket; year?: string } | null;
+  onCloseAnalysis: () => void;
   remarkModal: { ticket: IDRTTicket; side: 'AUDITOR' | 'AUDITEE' } | null;
   onCloseRemark: () => void;
 }
@@ -51,6 +54,8 @@ export const DrtModals: React.FC<DrtModalsProps> = ({
   onOpenUploadFromPeriod,
   torsTicket,
   onCloseTors,
+  analysisTicket,
+  onCloseAnalysis,
   remarkModal,
   onCloseRemark,
 }) => {
@@ -98,6 +103,15 @@ export const DrtModals: React.FC<DrtModalsProps> = ({
         onClose={onCloseTors}
         ticket={torsTicket}
         projectId={projectId}
+      />
+      <DrtAnalysisModal
+        isOpen={Boolean(analysisTicket)}
+        onClose={onCloseAnalysis}
+        ticket={analysisTicket?.ticket || null}
+        auditYears={auditYears}
+        clientName={clientName}
+        auditeeName={auditeeName}
+        initialYear={analysisTicket?.year}
       />
       {remarkModal && (
         <DrtRemarkVersionModal
