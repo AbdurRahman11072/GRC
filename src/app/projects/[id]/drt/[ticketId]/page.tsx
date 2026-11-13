@@ -15,8 +15,13 @@ export default function DrtTicketDetailsPage() {
   const searchParams = useSearchParams();
   const projectId = (params?.id as string) || '';
   const ticketId = (params?.ticketId as string) || '';
-  const initialStream = searchParams?.get('stream')?.toLowerCase();
-  const initialTab = initialStream === 'analysis' ? 'analysis' : 'collection';
+  const initialStream = searchParams?.get('tab')?.toLowerCase() || searchParams?.get('stream')?.toLowerCase();
+  const initialTab =
+    initialStream === 'analysis'
+      ? 'analysis'
+      : initialStream === 'progress'
+      ? 'progress'
+      : 'collection';
 
   const {
     data: projectData,
