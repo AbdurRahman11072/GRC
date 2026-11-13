@@ -32,6 +32,7 @@ export interface TorProgressSummaryModalProps {
   allProjectTickets: IDRTTicket[];
   auditYears?: string[];
   progressYearMapping?: Record<string, string[]> | null;
+  progressCutoffDates?: Record<string, string> | null;
   clientName?: string;
   auditeeName?: string;
   onSave: (
@@ -58,11 +59,12 @@ export const TorProgressSummaryModal: React.FC<TorProgressSummaryModalProps> = (
   allProjectTickets,
   auditYears,
   progressYearMapping,
+  progressCutoffDates,
   clientName = 'BTRC',
   auditeeName = 'FHL',
   onSave,
 }) => {
-  const initialData = getTorStageData(node, phase, auditYears, progressYearMapping);
+  const initialData = getTorStageData(node, phase, auditYears, progressYearMapping, progressCutoffDates);
   const isDrtProgressPhase = PROGRESS_PHASES.includes(phase as DrtProgressPhase);
 
   const drtRollup = isDrtProgressPhase
@@ -71,7 +73,8 @@ export const TorProgressSummaryModal: React.FC<TorProgressSummaryModalProps> = (
         phase as DrtProgressPhase,
         allProjectTickets,
         auditYears,
-        progressYearMapping
+        progressYearMapping,
+        progressCutoffDates
       )
     : null;
 
@@ -80,7 +83,7 @@ export const TorProgressSummaryModal: React.FC<TorProgressSummaryModalProps> = (
 
   const [progressPct, setProgressPct] = useState<number>(() => {
     if (drtRollup) return drtRollup.effectivePercentage;
-    return getTorStagePercentage(node, phase, auditYears, progressYearMapping);
+    return getTorStagePercentage(node, phase, auditYears, progressYearMapping, progressCutoffDates);
   });
 
   const [auditorRemark, setAuditorRemark] = useState<string>(() => {

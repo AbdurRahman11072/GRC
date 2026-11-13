@@ -23,7 +23,7 @@ import {
 } from './TorProgressTable';
 import { IndividualTorProgressReport } from './IndividualTorProgressReport';
 import { TorProgressSummaryModal } from './TorProgressSummaryModal';
-import { ConfigureProgressYearsModal } from './ConfigureProgressYearsModal';
+import { ConfigureProgressCutoffsModal } from './ConfigureProgressCutoffsModal';
 import { useGetTorTreeQuery } from '../../../store/api/torApi';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
 import { useGetProjectByIdQuery } from '../../../store/api/projectApi';
@@ -32,6 +32,8 @@ import { getProjectAuditYears } from '../../../utils/projectTimeframe';
 import {
   DRT_PROGRESS_PHASES,
   getPhaseTargetYear,
+  getPhaseCutoffDate,
+  formatCutoffDateDisplay,
   type DrtProgressPhase,
 } from '../../../lib/drtProgressUtils';
 import {
@@ -96,6 +98,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
   );
   const project = projData?.data;
   const progressYearMapping = project?.progressYearMapping;
+  const progressCutoffDates = project?.progressCutoffDates;
   const clientName = getShortEntityName(project?.client?.name, 'BTRC');
   const auditeeName = getShortEntityName(project?.auditee?.name, 'FHL');
   const auditYears = useMemo(() => getProjectAuditYears(project), [project]);
@@ -175,9 +178,11 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
   // Compute ToR Phase KPI Rollup Cards
   const phaseKpis = useMemo(() => {
     return DRT_PROGRESS_PHASES.map((p) => {
-      const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
+      const cutoffDate = getPhaseCutoffDate(p.key, progressCutoffDates);
+      const cutoffLabel = cutoffDate ? formatCutoffDateDisplay(cutoffDate) : undefined;
+      const targetYear = cutoffLabel || getPhaseTargetYear(p.key, auditYears, progressYearMapping);
       if (flatNodes.length === 0) {
-        return { ...p, targetYear, avgPct: 0, completedClauses: 0 };
+        return { ...p, targetYear, cutoffLabel, avgPct: 0, completedClauses: 0 };
       }
       let sumPct = 0;
       let completedClauses = 0;
@@ -187,7 +192,8 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
           p.key as DrtProgressPhase,
           allProjectTickets,
           auditYears,
-          progressYearMapping
+          progressYearMapping,
+          progressCutoffDates
         );
         sumPct += rollup.effectivePercentage;
         if (rollup.effectivePercentage === 100) completedClauses += 1;
@@ -195,11 +201,12 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
       return {
         ...p,
         targetYear,
+        cutoffLabel,
         avgPct: Math.round(sumPct / flatNodes.length),
         completedClauses,
       };
     });
-  }, [flatNodes, allProjectTickets, auditYears, progressYearMapping]);
+  }, [flatNodes, allProjectTickets, auditYears, progressYearMapping, progressCutoffDates]);
 
   const handleSaveSummary = (
     nodeId: string,
@@ -252,7 +259,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
               onClick={() => setIsConfigYearsOpen(true)}
               leftIcon={<SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />}
             >
-              Configure Progress Years
+              Configure Milestone Cutoffs
             </Button>
             <Link href={`/projects/${projectId}?tab=drt`}>
               <Button
@@ -308,6 +315,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
           allProjectTickets={allProjectTickets}
           auditYears={auditYears}
           progressYearMapping={progressYearMapping}
+          progressCutoffDates={progressCutoffDates}
           clientName={clientName}
           auditeeName={auditeeName}
           onBackToAll={() => handleSelectTor('')}
@@ -406,6 +414,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
               allProjectTickets={allProjectTickets}
               auditYears={auditYears}
               progressYearMapping={progressYearMapping}
+              progressCutoffDates={progressCutoffDates}
               activeFilter={activeFilter}
               onSelectTor={handleSelectTor}
               onOpenSummaryModal={(node, phase) =>
@@ -427,20 +436,23 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
           allProjectTickets={allProjectTickets}
           auditYears={auditYears}
           progressYearMapping={progressYearMapping}
+          progressCutoffDates={progressCutoffDates}
           clientName={clientName}
           auditeeName={auditeeName}
           onSave={handleSaveSummary}
         />
       )}
 
-      {/* Configure Progress Years Modal */}
+      {/* Configure Progress Cutoffs Modal */}
       {isConfigYearsOpen && (
-        <ConfigureProgressYearsModal
+        <ConfigureProgressCutoffsModal
           isOpen={isConfigYearsOpen}
           onClose={() => setIsConfigYearsOpen(false)}
           projectId={projectId}
           auditYears={auditYears}
-          currentMapping={progressYearMapping}
+          currentCutoffs={progressCutoffDates}
+          projectStartDate={project?.startDate}
+          projectEndDate={project?.endDate}
         />
       )}
     </div>

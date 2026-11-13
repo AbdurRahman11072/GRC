@@ -13,6 +13,8 @@ import type { IDRTTicket } from '../../../types/project.types';
 import {
   DRT_PROGRESS_PHASES,
   getPhaseTargetYear,
+  getPhaseCutoffDate,
+  formatCutoffDateDisplay,
   type DrtProgressPhase,
 } from '../../../lib/drtProgressUtils';
 import {
@@ -28,6 +30,7 @@ export interface TorProgressTableProps {
   allProjectTickets: IDRTTicket[];
   auditYears?: string[];
   progressYearMapping?: Record<string, string[]> | null;
+  progressCutoffDates?: Record<string, string> | null;
   activeFilter: TorReportFilter;
   onSelectTor: (torId: string) => void;
   onOpenSummaryModal: (node: ITorNode, phase: TorProgressReportPhase) => void;
@@ -39,6 +42,7 @@ interface TorProgressRowProps {
   allProjectTickets: IDRTTicket[];
   auditYears?: string[];
   progressYearMapping?: Record<string, string[]> | null;
+  progressCutoffDates?: Record<string, string> | null;
   activeFilter: TorReportFilter;
   onSelectTor: (torId: string) => void;
   onOpenSummaryModal: (node: ITorNode, phase: TorProgressReportPhase) => void;
@@ -50,6 +54,7 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
   allProjectTickets,
   auditYears,
   progressYearMapping,
+  progressCutoffDates,
   activeFilter,
   onSelectTor,
   onOpenSummaryModal,
@@ -76,17 +81,20 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
   // Single-phase specific calculations (when not in matrix mode)
   const singlePhaseKey = !isMatrix ? (activeFilter as TorProgressReportPhase) : 'FIRST_PROGRESS';
   const isDrtPhase = DRT_PROGRESS_PHASES.some((p) => p.key === singlePhaseKey);
-  const singleTargetYear = getPhaseTargetYear(singlePhaseKey, auditYears, progressYearMapping);
+  const singleCutoffDate = getPhaseCutoffDate(singlePhaseKey, progressCutoffDates);
+  const singleCutoffLabel = singleCutoffDate ? formatCutoffDateDisplay(singleCutoffDate) : undefined;
+  const singleTargetYear = singleCutoffLabel || getPhaseTargetYear(singlePhaseKey, auditYears, progressYearMapping);
   const singleRollup = isDrtPhase
     ? aggregateTorDrtProgress(
         node,
         singlePhaseKey as DrtProgressPhase,
         allProjectTickets,
         auditYears,
-        progressYearMapping
+        progressYearMapping,
+        progressCutoffDates
       )
     : null;
-  const singleStage = getTorStageData(node, singlePhaseKey, auditYears, progressYearMapping);
+  const singleStage = getTorStageData(node, singlePhaseKey, auditYears, progressYearMapping, progressCutoffDates);
   const singlePct = singleRollup ? singleRollup.effectivePercentage : (singleStage.score ?? 0);
 
   const getBadgeClass = (pct: number) => {
@@ -286,10 +294,13 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
                 p.key as DrtProgressPhase,
                 allProjectTickets,
                 auditYears,
-                progressYearMapping
+                progressYearMapping,
+                progressCutoffDates
               );
               const pct = rollup.effectivePercentage;
-              const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
+              const cutoffDate = getPhaseCutoffDate(p.key, progressCutoffDates);
+              const cutoffLabel = cutoffDate ? formatCutoffDateDisplay(cutoffDate) : undefined;
+              const targetYear = cutoffLabel || getPhaseTargetYear(p.key, auditYears, progressYearMapping);
 
               return (
                 <td
@@ -372,6 +383,7 @@ const TorProgressRow: React.FC<TorProgressRowProps> = ({
             allProjectTickets={allProjectTickets}
             auditYears={auditYears}
             progressYearMapping={progressYearMapping}
+            progressCutoffDates={progressCutoffDates}
             activeFilter={activeFilter}
             onSelectTor={onSelectTor}
             onOpenSummaryModal={onOpenSummaryModal}
@@ -386,6 +398,7 @@ export const TorProgressTable: React.FC<TorProgressTableProps> = ({
   allProjectTickets,
   auditYears,
   progressYearMapping,
+  progressCutoffDates,
   activeFilter,
   onSelectTor,
   onOpenSummaryModal,
@@ -429,7 +442,9 @@ export const TorProgressTable: React.FC<TorProgressTableProps> = ({
                   DRTs
                 </th>
                 {DRT_PROGRESS_PHASES.map((p) => {
-                  const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
+                  const cutoffDate = getPhaseCutoffDate(p.key, progressCutoffDates);
+                  const cutoffLabel = cutoffDate ? formatCutoffDateDisplay(cutoffDate) : undefined;
+                  const targetYear = cutoffLabel || getPhaseTargetYear(p.key, auditYears, progressYearMapping);
                   return (
                     <th
                       key={p.key}
@@ -470,6 +485,7 @@ export const TorProgressTable: React.FC<TorProgressTableProps> = ({
               allProjectTickets={allProjectTickets}
               auditYears={auditYears}
               progressYearMapping={progressYearMapping}
+              progressCutoffDates={progressCutoffDates}
               activeFilter={activeFilter}
               onSelectTor={onSelectTor}
               onOpenSummaryModal={onOpenSummaryModal}

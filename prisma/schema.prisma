@@ -184,6 +184,9 @@ model Project {
   // Progress Stages Year Mapping (e.g. { "FIRST_PROGRESS": ["2026", "2025"], "SECOND_PROGRESS": ["2024"] })
   progressYearMapping   Json?
 
+  // Progress Stages Cutoff Dates (e.g. { "FIRST_PROGRESS": "2024-03-31", "SECOND_PROGRESS": "2024-06-30" })
+  progressCutoffDates   Json?
+
   organization      Organization            @relation(fields: [orgId], references: [id], onDelete: Cascade)
   client            EntityCRM               @relation("ProjectClient", fields: [clientId], references: [id])
   auditee           EntityCRM               @relation("ProjectAuditee", fields: [auditeeId], references: [id])

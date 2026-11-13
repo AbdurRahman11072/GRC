@@ -11,6 +11,8 @@ import {
   getDrtStageData,
   getDrtStagePercentage,
   getPhaseTargetYear,
+  getPhaseCutoffDate,
+  formatCutoffDateDisplay,
   type DrtProgressPhase,
 } from '../../../lib/drtProgressUtils';
 import {
@@ -29,6 +31,7 @@ export interface IndividualTorProgressReportProps {
   allProjectTickets: IDRTTicket[];
   auditYears?: string[];
   progressYearMapping?: Record<string, string[]> | null;
+  progressCutoffDates?: Record<string, string> | null;
   clientName?: string;
   auditeeName?: string;
   onBackToAll: () => void;
@@ -45,6 +48,7 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
   allProjectTickets,
   auditYears,
   progressYearMapping,
+  progressCutoffDates,
   clientName = 'BTRC',
   auditeeName = 'FHL',
   onBackToAll,
@@ -105,6 +109,8 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
         treeNodes={[node]}
         allProjectTickets={allProjectTickets}
         auditYears={auditYears}
+        progressYearMapping={progressYearMapping}
+        progressCutoffDates={progressCutoffDates}
         activeFilter="ALL"
         onSelectTor={onSelectTor}
         onOpenSummaryModal={onOpenSummaryModal}
@@ -145,13 +151,14 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
                     phase.key as DrtProgressPhase,
                     allProjectTickets,
                     auditYears,
-                    progressYearMapping
+                    progressYearMapping,
+                    progressCutoffDates
                   )
                 : null;
-              const stage = getTorStageData(node, phase.key, auditYears, progressYearMapping);
+              const stage = getTorStageData(node, phase.key, auditYears, progressYearMapping, progressCutoffDates);
               const pct = rollup
                 ? rollup.effectivePercentage
-                : getTorStagePercentage(node, phase.key, auditYears, progressYearMapping);
+                : getTorStagePercentage(node, phase.key, auditYears, progressYearMapping, progressCutoffDates);
 
               return (
                 <tr key={phase.key} className="hover:bg-slate-50/70 transition-colors">
@@ -270,7 +277,9 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
                 DRT Description
               </th>
               {DRT_PROGRESS_PHASES.map((p) => {
-                const targetYear = getPhaseTargetYear(p.key, auditYears, progressYearMapping);
+                const cutoffDate = getPhaseCutoffDate(p.key, progressCutoffDates);
+                const cutoffLabel = cutoffDate ? formatCutoffDateDisplay(cutoffDate) : undefined;
+                const targetYear = cutoffLabel || getPhaseTargetYear(p.key, auditYears, progressYearMapping);
                 return (
                   <th
                     key={p.key}
@@ -303,9 +312,9 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
               <tr key={ticket.id} className="hover:bg-slate-50/70 transition-colors">
                 <td className={`py-2.5 px-3 text-center font-mono font-bold border-r border-slate-200 align-middle ${COL_WIDTH}`}>
                   <Link
-                    href={`/projects/${projectId}?tab=drt`}
+                    href={`/projects/${projectId}/drt/${ticket.id}`}
                     className="inline-flex items-center gap-1 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition-colors"
-                    title="View DRT in Requests Hub"
+                    title="View DRT Details & Evidence"
                   >
                     <span>{ticket.requestCode}</span>
                     <ExternalLink className="w-2.5 h-2.5" />
@@ -336,8 +345,8 @@ export const IndividualTorProgressReport: React.FC<IndividualTorProgressReportPr
                   </span>
                 </td>
                 {DRT_PROGRESS_PHASES.map((p) => {
-                  const stage = getDrtStageData(ticket, p.key, auditYears, progressYearMapping);
-                  const pct = getDrtStagePercentage(ticket, p.key, auditYears, progressYearMapping);
+                  const stage = getDrtStageData(ticket, p.key, auditYears, progressYearMapping, progressCutoffDates);
+                  const pct = getDrtStagePercentage(ticket, p.key, auditYears, progressYearMapping, progressCutoffDates);
                   return (
                     <React.Fragment key={`${ticket.id}-${p.key}`}>
                       <td className={`py-2.5 px-3 text-center font-mono font-bold border-r border-slate-200 align-middle ${COL_WIDTH}`}>

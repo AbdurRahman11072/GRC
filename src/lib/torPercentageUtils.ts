@@ -34,52 +34,33 @@ function collectNodeDrtTicketsRecursive(node: ITorNode) {
 export function getTorProgressPercentage(
   node: ITorNode,
   auditYears?: string[],
-  progressYearMapping?: Record<string, string[]> | null
+  progressYearMapping?: Record<string, string[]> | null,
+  progressCutoffDates?: Record<string, string> | null
 ): number {
-  return getTorStagePercentage(node, 'FIRST_PROGRESS', auditYears, progressYearMapping);
+  return getTorStagePercentage(node, 'FIRST_PROGRESS', auditYears, progressYearMapping, progressCutoffDates);
 }
 
 export function getTorStagePercentage(
   node: ITorNode,
   phase: string,
   auditYears?: string[],
-  progressYearMapping?: Record<string, string[]> | null
+  progressYearMapping?: Record<string, string[]> | null,
+  progressCutoffDates?: Record<string, string> | null
 ): number {
-  // 1. Roll up from linked DRT tickets based on yearly data collection
+  // 1. Roll up from linked DRT tickets
   if (DRT_PHASES.includes(phase as DrtProgressPhase)) {
     const tickets = collectNodeDrtTicketsRecursive(node);
     if (tickets.length > 0) {
-      const targetYears = getPhaseTargetYears(
-        phase as DrtProgressPhase,
-        auditYears,
-        progressYearMapping
-      );
-      if (targetYears.length > 0) {
-        const validTickets = tickets.filter((t) => {
-          return !targetYears.every(
-            (yr) =>
-              (t.periodStatuses || []).find((p) => p.periodLabel === yr)
-                ?.evidenceStatus === 'NOT_APPLICABLE'
-          );
-        });
-        const listToAverage = validTickets.length > 0 ? validTickets : tickets;
-        const sum = listToAverage.reduce(
-          (acc, t) =>
-            acc +
-            getDrtStagePercentage(
-              t,
-              phase as DrtProgressPhase,
-              auditYears,
-              progressYearMapping
-            ),
-          0
-        );
-        return Math.round(sum / listToAverage.length);
-      }
-
-      // Fallback if no target years resolved
       const sum = tickets.reduce(
-        (acc, t) => acc + getDrtStagePercentage(t, phase as DrtProgressPhase),
+        (acc, t) =>
+          acc +
+          getDrtStagePercentage(
+            t,
+            phase as DrtProgressPhase,
+            auditYears,
+            progressYearMapping,
+            progressCutoffDates
+          ),
         0
       );
       return Math.round(sum / tickets.length);

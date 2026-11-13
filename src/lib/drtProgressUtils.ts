@@ -11,6 +11,7 @@ export interface IDrtStageData {
   phase: DrtProgressPhase;
   stageName: string;
   targetYear?: string;
+  cutoffDate?: string;
   status: string;
   score?: number;
   auditeeRemark: string | null;
@@ -24,6 +25,33 @@ export const DRT_PROGRESS_PHASES: { key: DrtProgressPhase; label: string; shortL
   { key: 'FOURTH_PROGRESS', label: '4th Progress Report', shortLabel: '4th Progress' },
   { key: 'FIFTH_PROGRESS', label: '5th Progress Report', shortLabel: '5th Progress' },
 ];
+
+/**
+ * Returns configured cutoff date string (YYYY-MM-DD) for a progress report phase if set by PM.
+ */
+export function getPhaseCutoffDate(
+  phase: DrtProgressPhase | string,
+  progressCutoffDates?: Record<string, string> | null
+): string | undefined {
+  if (progressCutoffDates && typeof progressCutoffDates[phase] === 'string' && progressCutoffDates[phase].trim()) {
+    return progressCutoffDates[phase].trim();
+  }
+  return undefined;
+}
+
+/**
+ * Formats a cutoff date string (e.g. "2024-03-31") into a concise readable string (e.g. "31 Mar 2024").
+ */
+export function formatCutoffDateDisplay(dateStr?: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
 /**
  * Resolves the target audit years for a progress stage.
@@ -116,12 +144,117 @@ export function getDrtYearCollectionData(
   };
 }
 
+export interface IDrtCutoffProgressResult {
+  percentage: number;
+  satisfiedYears: string[];
+  totalYearsCount: number;
+  eligibleDocsCount: number;
+  latestRemark: string | null;
+}
+
+/**
+ * Calculates a DRT ticket's progress percentage strictly up to a milestone Cutoff Date.
+ * Any document submitted on or before the cutoff date (receivedDate or createdAt <= cutoff) is evaluated.
+ * Documents submitted after the cutoff date are excluded from this milestone report.
+ */
+export function getDrtProgressByCutoff(
+  ticket: IDRTTicket,
+  cutoffDateStr: string,
+  auditYears?: string[]
+): IDrtCutoffProgressResult {
+  const cutoffTime = new Date(cutoffDateStr).setHours(23, 59, 59, 999);
+  const docs = ticket.drtDocuments || [];
+
+  // Filter documents submitted on or before the cutoff date
+  const eligibleDocs = docs.filter((doc) => {
+    const rawDate = doc.receivedDate || doc.createdAt;
+    if (!rawDate) return false;
+    const docTime = new Date(rawDate).getTime();
+    return !isNaN(docTime) && docTime <= cutoffTime;
+  });
+
+  // If multi-year audit scope is configured
+  if (auditYears && auditYears.length > 0) {
+    const satisfiedYears = new Set<string>();
+
+    auditYears.forEach((year) => {
+      // Check if an eligible document exists for this audit year
+      const hasDoc = eligibleDocs.some(
+        (d) => d.periodLabel === year && d.status !== 'REVISION_REQUESTED'
+      );
+
+      // Check if period status was marked completed on or before cutoff date
+      const periodStatusMatch = (ticket.periodStatuses || []).find(
+        (ps) => ps.periodLabel === year
+      );
+      const isPeriodMarked =
+        periodStatusMatch &&
+        (periodStatusMatch.evidenceStatus === 'COMPLETED' ||
+          periodStatusMatch.evidenceStatus === 'SHARED');
+      const isPeriodInTime =
+        periodStatusMatch &&
+        (!periodStatusMatch.updatedAt ||
+          new Date(periodStatusMatch.updatedAt).getTime() <= cutoffTime);
+
+      if (hasDoc || (isPeriodMarked && isPeriodInTime)) {
+        satisfiedYears.add(year);
+      }
+    });
+
+    const percentage = Math.round((satisfiedYears.size / auditYears.length) * 100);
+
+    const latestDoc = [...eligibleDocs].sort((a, b) => {
+      const ta = new Date(a.receivedDate || a.createdAt || 0).getTime();
+      const tb = new Date(b.receivedDate || b.createdAt || 0).getTime();
+      return tb - ta;
+    })[0];
+
+    return {
+      percentage,
+      satisfiedYears: Array.from(satisfiedYears),
+      totalYearsCount: auditYears.length,
+      eligibleDocsCount: eligibleDocs.length,
+      latestRemark: latestDoc?.reviewNotes || ticket.remarks || null,
+    };
+  }
+
+  // Single deliverable / global document request
+  let percentage = 0;
+  if (eligibleDocs.length > 0) {
+    const hasAccepted = eligibleDocs.some((d) => d.status === 'ACCEPTED');
+    const hasSubmitted = eligibleDocs.some((d) => d.status === 'SUBMITTED');
+    percentage = hasAccepted ? 100 : hasSubmitted ? 75 : 50;
+  } else if (
+    ticket.actualDateOfReceipt &&
+    new Date(ticket.actualDateOfReceipt).getTime() <= cutoffTime
+  ) {
+    percentage = ticket.workflowStatus === 'ACCEPTED' ? 100 : 50;
+  }
+
+  return {
+    percentage,
+    satisfiedYears: [],
+    totalYearsCount: 0,
+    eligibleDocsCount: eligibleDocs.length,
+    latestRemark: ticket.remarks || null,
+  };
+}
+
 export function getDrtStagePercentage(
   ticket: IDRTTicket,
   phase: DrtProgressPhase | string,
   auditYears?: string[],
-  progressYearMapping?: Record<string, string[]> | null
+  progressYearMapping?: Record<string, string[]> | null,
+  progressCutoffDates?: Record<string, string> | null
 ): number {
+  // 1. Primary: Date-driven Cutoff evaluation
+  const cutoffDate = getPhaseCutoffDate(phase, progressCutoffDates);
+  if (cutoffDate) {
+    const cutoffResult = getDrtProgressByCutoff(ticket, cutoffDate, auditYears);
+    return cutoffResult.percentage;
+  }
+
+  // 2. Secondary: Explicit audit year mapping
   const targetYears = getPhaseTargetYears(phase, auditYears, progressYearMapping);
   if (targetYears.length > 0) {
     const yearResults = targetYears.map((yr) => getDrtYearCollectionData(ticket, yr));
@@ -166,20 +299,58 @@ export function getDrtStagePercentage(
 export function getDrtProgressPercentage(
   ticket: IDRTTicket,
   auditYears?: string[],
-  progressYearMapping?: Record<string, string[]> | null
+  progressYearMapping?: Record<string, string[]> | null,
+  progressCutoffDates?: Record<string, string> | null
 ): number {
-  return getDrtStagePercentage(ticket, 'FIRST_PROGRESS', auditYears, progressYearMapping);
+  return getDrtStagePercentage(ticket, 'FIRST_PROGRESS', auditYears, progressYearMapping, progressCutoffDates);
 }
 
 export function getDrtStageData(
   ticket: IDRTTicket,
   phase: DrtProgressPhase,
   auditYears?: string[],
-  progressYearMapping?: Record<string, string[]> | null
+  progressYearMapping?: Record<string, string[]> | null,
+  progressCutoffDates?: Record<string, string> | null
 ): IDrtStageData {
+  const cutoffDate = getPhaseCutoffDate(phase, progressCutoffDates);
+  const cutoffDateLabel = cutoffDate ? formatCutoffDateDisplay(cutoffDate) : undefined;
   const targetYears = getPhaseTargetYears(phase, auditYears, progressYearMapping);
   const targetYearLabel = formatPhaseYearsLabel(targetYears);
 
+  // 1. Primary: Date-driven Cutoff evaluation
+  if (cutoffDate) {
+    const cutoffResult = getDrtProgressByCutoff(ticket, cutoffDate, auditYears);
+    const phaseItem = DRT_PROGRESS_PHASES.find((p) => p.key === phase);
+    const stageName = phaseItem
+      ? `${phaseItem.shortLabel} (${cutoffDateLabel})`
+      : `Progress (${cutoffDateLabel})`;
+
+    let statusText: string;
+    if (cutoffResult.totalYearsCount > 0) {
+      statusText = `${cutoffResult.satisfiedYears.length}/${cutoffResult.totalYearsCount} Years (${cutoffResult.percentage}%)`;
+    } else {
+      statusText = `${cutoffResult.eligibleDocsCount} Docs (${cutoffResult.percentage}%)`;
+    }
+
+    return {
+      phase,
+      stageName,
+      targetYear: targetYearLabel || undefined,
+      cutoffDate: cutoffDateLabel,
+      status: statusText,
+      score: cutoffResult.percentage,
+      auditeeRemark:
+        ticket.assignedTeamBucket !== 'CLIENT'
+          ? cutoffResult.latestRemark || ticket.remarks || null
+          : null,
+      auditorRemark:
+        ticket.assignedTeamBucket === 'CLIENT'
+          ? cutoffResult.latestRemark
+          : null,
+    };
+  }
+
+  // 2. Secondary: If target years are provided
   if (targetYears.length > 0) {
     const yearResults = targetYears.map((yr) => getDrtYearCollectionData(ticket, yr));
     const score = getDrtStagePercentage(ticket, phase, auditYears, progressYearMapping);

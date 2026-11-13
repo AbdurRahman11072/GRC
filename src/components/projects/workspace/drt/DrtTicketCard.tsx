@@ -91,9 +91,18 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
-              {ticket.requestCode}
-            </span>
+            {projectId ? (
+              <Link
+                href={`/projects/${projectId}/drt/${ticket.id}`}
+                className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-900 border border-indigo-200/80 shadow-2xs transition-colors cursor-pointer hover:underline"
+              >
+                {ticket.requestCode}
+              </Link>
+            ) : (
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
+                {ticket.requestCode}
+              </span>
+            )}
             {ticket.department && (
               <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
                 {ticket.department}
@@ -143,7 +152,16 @@ export const DrtTicketCard: React.FC<DrtTicketCardProps> = ({
             )}
           </div>
           {ticket.title ? (
-            <h3 className="text-sm font-semibold text-slate-900 mt-1.5 leading-snug">{ticket.title}</h3>
+            projectId ? (
+              <Link
+                href={`/projects/${projectId}/drt/${ticket.id}`}
+                className="text-sm font-semibold text-slate-900 hover:text-indigo-600 hover:underline mt-1.5 leading-snug block transition-colors cursor-pointer"
+              >
+                {ticket.title}
+              </Link>
+            ) : (
+              <h3 className="text-sm font-semibold text-slate-900 mt-1.5 leading-snug">{ticket.title}</h3>
+            )
           ) : (
             <div
               className="text-xs text-slate-800 mt-1.5 leading-relaxed line-clamp-3"

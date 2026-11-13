@@ -71,17 +71,6 @@ export const TorRowActions: React.FC<TorRowActionsProps> = ({
             <Eye className="w-3.5 h-3.5" />
           </button>
         )}
-        {onFireDrt && canIssueDrt && (
-          <button
-            type="button"
-            onClick={() => onFireDrt(node.id)}
-            title={`Issue DRT Data Request for ${node.code}`}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 transition-colors shrink-0 shadow-2xs cursor-pointer"
-          >
-            <FilePlus className="w-3 h-3 text-indigo-600" />
-            <span>+ DRT</span>
-          </button>
-        )}
         {canAddSubClause && (
           <button
             type="button"

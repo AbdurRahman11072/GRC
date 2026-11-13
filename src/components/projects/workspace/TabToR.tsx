@@ -147,7 +147,6 @@ export const TabToR: React.FC<TabToRProps> = ({ projectId, onNavigateToDrt }) =>
           onAddChild={handleOpenAddChild}
           onConfigureWeights={(node) => setWeightModalNode(node)}
           onDelete={handleDeleteNode}
-          onFireDrt={(torId) => setFireDrtTorId(torId)}
           onEvaluateAnalysis={(node) => setEvaluateTor(node)}
           onSelectTor={(node) => setSelectedTor(node)}
           onEditTor={(node) => setEditingTor(node)}

@@ -47,6 +47,8 @@ export interface IDRTTicketPeriodStatus {
   evidenceStatus: PeriodEvidenceStatus;
   remark?: string | null;
   period?: { id: string; periodKey: string; weight: number };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface IDRTTicket {

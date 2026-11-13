@@ -139,18 +139,6 @@ export const TorTreeNode: React.FC<TorTreeNodeProps> = ({
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0 self-end sm:self-center flex-wrap">
-          {onFireDrt && canIssueDrt && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={() => onFireDrt(node.id)}
-              leftIcon={<FilePlus className="w-3 h-3 text-indigo-600" />}
-            >
-              + DRT
-            </Button>
-          )}
-
           {canAwardMarks && onEvaluateAnalysis && (
             <Button
               type="button"

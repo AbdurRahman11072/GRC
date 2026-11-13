@@ -65,6 +65,7 @@ export const updateProjectValidationSchema = z.object({
     projectScope: z.string().optional().nullable(),
     status: z.enum(['DRAFT', 'ACTIVE', 'COMPLETED', 'ON_HOLD']).optional(),
     progressYearMapping: z.record(z.string(), z.array(z.string())).optional().nullable(),
+    progressCutoffDates: z.record(z.string(), z.string()).optional().nullable(),
   }),
 });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Upload, FileCheck2 } from 'lucide-react';
 import type { IDRTTicket, IDRTTicketPeriodStatus, DRTPartySide } from '../../../../types/drt.types';
 import { DrtDescriptionCell } from './DrtDescriptionCell';
@@ -77,14 +78,18 @@ export const DrtTableRow: React.FC<DrtTableRowProps> = ({
 
       {/* 2. ID (Sticky Left) */}
       <td className="sticky left-[48px] z-10 bg-white group-hover:bg-slate-50 transition-colors py-2.5 px-2.5 text-center font-mono font-bold text-xs text-indigo-700 border-r border-slate-200 align-middle w-24 min-w-[96px] max-w-[96px]">
-        <span className="inline-block px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200/80">
+        <Link
+          href={`/projects/${projectId}/drt/${ticket.id}`}
+          className="inline-block px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 text-indigo-700 hover:text-indigo-900 transition-colors cursor-pointer hover:underline"
+          title={`View details for ${ticket.requestCode}`}
+        >
           {ticket.requestCode}
-        </span>
+        </Link>
       </td>
 
       {/* 3. Request Description (Sticky Left) */}
       <td className="sticky left-[144px] z-10 bg-white group-hover:bg-slate-50 transition-colors py-2.5 px-3 min-w-[280px] max-w-sm border-r border-slate-200 align-middle space-y-1 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
-        <DrtDescriptionCell ticket={ticket} docs={docs} />
+        <DrtDescriptionCell ticket={ticket} docs={docs} projectId={projectId} />
       </td>
 
       {/* 4. ToR ID */}
