@@ -17,6 +17,7 @@ import {
   FileCheck2,
   Layers,
   ChevronRight,
+  PlusCircle,
 } from 'lucide-react';
 import { Button } from '../../../../ui/Button';
 import { Badge } from '../../../../ui/Badge';
@@ -37,6 +38,7 @@ export interface DrtDetailsMilestoneProgressProps {
   ticket: IDRTTicket;
   project?: IProject | null;
   auditYears?: string[];
+  onOpenAddReport?: (phase?: DrtProgressPhase) => void;
   onOpenConfigCutoffs?: () => void;
 }
 
@@ -45,6 +47,7 @@ export const DrtDetailsMilestoneProgress: React.FC<DrtDetailsMilestoneProgressPr
   ticket,
   project,
   auditYears = [],
+  onOpenAddReport,
   onOpenConfigCutoffs,
 }) => {
   const [selectedPhase, setSelectedPhase] = useState<DrtProgressPhase>('FIRST_PROGRESS');
@@ -260,6 +263,16 @@ export const DrtDetailsMilestoneProgress: React.FC<DrtDetailsMilestoneProgressPr
             <Badge variant="neutral" size="xs">
               DRT: {ticket.requestCode}
             </Badge>
+            {onOpenAddReport && (
+              <Button
+                variant="primary"
+                size="xs"
+                onClick={() => onOpenAddReport(selectedPhase)}
+                leftIcon={<PlusCircle className="w-3.5 h-3.5" />}
+              >
+                + Add Progress Report
+              </Button>
+            )}
             {onOpenConfigCutoffs && (
               <Button
                 variant="outline"

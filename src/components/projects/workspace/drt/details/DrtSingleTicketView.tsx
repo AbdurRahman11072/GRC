@@ -20,9 +20,10 @@ import { DrtDetailsHeader } from './DrtDetailsHeader';
 import { DrtDetailsDocuments } from './DrtDetailsDocuments';
 import { DrtDetailsMilestoneProgress } from './DrtDetailsMilestoneProgress';
 import { ConfigureProgressCutoffsModal } from '../../../../tors/progress/ConfigureProgressCutoffsModal';
+import { AddProgressReportModal } from '../../../../tors/progress/AddProgressReportModal';
 import { getProjectAuditYears } from '../../../../../utils/projectTimeframe';
 import { getShortEntityName, formatDate } from '../../../../../lib/utils';
-import { getDrtStagePercentage } from '../../../../../lib/drtProgressUtils';
+import { getDrtStagePercentage, type DrtProgressPhase } from '../../../../../lib/drtProgressUtils';
 import type {
   IDRTTicket,
   IDRTDocument,
@@ -45,6 +46,7 @@ export const DrtSingleTicketView: React.FC<DrtSingleTicketViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'collection' | 'analysis' | 'progress'>(initialTab);
   const [isConfigCutoffsOpen, setIsConfigCutoffsOpen] = useState(false);
+  const [addReportPhase, setAddReportPhase] = useState<DrtProgressPhase | null>(null);
 
   // Modals state
   const [uploadTicket, setUploadTicket] = useState<{
@@ -240,6 +242,7 @@ export const DrtSingleTicketView: React.FC<DrtSingleTicketViewProps> = ({
           ticket={ticket}
           project={project}
           auditYears={auditYears}
+          onOpenAddReport={(ph) => setAddReportPhase(ph || 'FIRST_PROGRESS')}
           onOpenConfigCutoffs={() => setIsConfigCutoffsOpen(true)}
         />
       ) : (
@@ -336,6 +339,19 @@ export const DrtSingleTicketView: React.FC<DrtSingleTicketViewProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Add Progress Report Modal */}
+      {addReportPhase && (
+        <AddProgressReportModal
+          isOpen={Boolean(addReportPhase)}
+          onClose={() => setAddReportPhase(null)}
+          projectId={projectId}
+          currentCutoffs={project?.progressCutoffDates}
+          auditYears={auditYears}
+          allProjectTickets={[ticket]}
+          initialPhase={addReportPhase}
+        />
       )}
 
       {/* Configure Cutoffs Modal */}

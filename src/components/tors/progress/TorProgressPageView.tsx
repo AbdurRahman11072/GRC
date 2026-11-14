@@ -10,6 +10,7 @@ import {
   Layers,
   SlidersHorizontal,
   Table,
+  PlusCircle,
 } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
@@ -24,6 +25,7 @@ import {
 import { IndividualTorProgressReport } from './IndividualTorProgressReport';
 import { TorProgressSummaryModal } from './TorProgressSummaryModal';
 import { ConfigureProgressCutoffsModal } from './ConfigureProgressCutoffsModal';
+import { AddProgressReportModal } from './AddProgressReportModal';
 import { useGetTorTreeQuery } from '../../../store/api/torApi';
 import { useGetTicketsQuery } from '../../../store/api/drtApi';
 import { useGetProjectByIdQuery } from '../../../store/api/projectApi';
@@ -72,6 +74,7 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
   const [activeFilter, setActiveFilter] = useState<TorReportFilter>('FIRST_PROGRESS');
   const [filters, setFilters] = useState<TorFilterState>(defaultFilters);
   const [isConfigYearsOpen, setIsConfigYearsOpen] = useState(false);
+  const [isAddReportOpen, setIsAddReportOpen] = useState(false);
   const [summaryModal, setSummaryModal] = useState<{
     node: ITorNode;
     phase: TorProgressReportPhase;
@@ -254,12 +257,20 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
 
           <div className="flex items-center gap-2 flex-wrap">
             <Button
+              variant="primary"
+              size="xs"
+              onClick={() => setIsAddReportOpen(true)}
+              leftIcon={<PlusCircle className="w-3.5 h-3.5" />}
+            >
+              + Add Progress Report
+            </Button>
+            <Button
               variant="outline"
               size="xs"
               onClick={() => setIsConfigYearsOpen(true)}
               leftIcon={<SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />}
             >
-              Configure Milestone Cutoffs
+              Configure All Cutoffs
             </Button>
             <Link href={`/projects/${projectId}?tab=drt`}>
               <Button
@@ -440,6 +451,18 @@ export const TorProgressPageView: React.FC<TorProgressPageViewProps> = ({
           clientName={clientName}
           auditeeName={auditeeName}
           onSave={handleSaveSummary}
+        />
+      )}
+
+      {/* Add Progress Report Modal */}
+      {isAddReportOpen && (
+        <AddProgressReportModal
+          isOpen={isAddReportOpen}
+          onClose={() => setIsAddReportOpen(false)}
+          projectId={projectId}
+          currentCutoffs={progressCutoffDates}
+          auditYears={auditYears}
+          allProjectTickets={allProjectTickets}
         />
       )}
 
